@@ -1,0 +1,17 @@
+# build output
+dist/
+out/
+node_modules/
+*.vsix
+*.tsbuildinfo
+
+# never commit game files, mod archives, or anything extracted from the game
+*.archive
+*.archive.xl
+*.dll
+*.exe
+*.asi
+
+# a local mod library used for testing
+library/
+test-library/

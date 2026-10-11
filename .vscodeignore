@@ -1,0 +1,11 @@
+src/**
+docs/**
+tools/**
+.github/**
+.vscode/**
+esbuild.mjs
+tsconfig.json
+node_modules/**
+dist/**/*.map
+*.vsix
+CLAUDE.md

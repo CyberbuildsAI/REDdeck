@@ -1,0 +1,177 @@
+{
+  "name": "redpack",
+  "displayName": "REDpack",
+  "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
+  "version": "0.1.0",
+  "publisher": "cyberbuildsai",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#08090d",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CyberbuildsAI/REDpack"
+  },
+  "engines": {
+    "vscode": "^1.80.0",
+    "node": ">=20"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "cyberpunk",
+    "modding",
+    "mod manager",
+    "redcode",
+    "nexus"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "redpack",
+          "title": "REDpack",
+          "icon": "images/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "redpack": [
+        {
+          "id": "redpack.mods",
+          "name": "Mods"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "redpack.mods",
+        "contents": "No mods yet.\nAdd a mod folder, or a zip from Nexus Mods, and turn it on. Nothing touches the game until you deploy.\n[Add mod](command:redpack.addMod)",
+        "when": "redpack.empty"
+      }
+    ],
+    "commands": [
+      {
+        "command": "redpack.addMod",
+        "title": "Add mod",
+        "category": "REDpack",
+        "icon": "$(add)"
+      },
+      {
+        "command": "redpack.deploy",
+        "title": "Deploy",
+        "category": "REDpack",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "redpack.remove",
+        "title": "Remove",
+        "category": "REDpack"
+      },
+      {
+        "command": "redpack.openInExplorer",
+        "title": "Reveal in File Explorer",
+        "category": "REDpack"
+      },
+      {
+        "command": "redpack.refresh",
+        "title": "Refresh",
+        "category": "REDpack",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "redpack.showLog",
+        "title": "Show log",
+        "category": "REDpack"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "redpack.addMod",
+          "when": "view == redpack.mods",
+          "group": "navigation@1"
+        },
+        {
+          "command": "redpack.deploy",
+          "when": "view == redpack.mods",
+          "group": "navigation@2"
+        },
+        {
+          "command": "redpack.refresh",
+          "when": "view == redpack.mods",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "redpack.openInExplorer",
+          "when": "view == redpack.mods && viewItem == mod",
+          "group": "1_open@1"
+        },
+        {
+          "command": "redpack.remove",
+          "when": "view == redpack.mods && viewItem == mod",
+          "group": "9_remove@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "redpack.remove",
+          "when": "false"
+        },
+        {
+          "command": "redpack.openInExplorer",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "REDpack",
+      "properties": {
+        "redpack.gamePath": {
+          "type": "string",
+          "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cyberpunk 2077",
+          "description": "The Cyberpunk 2077 install folder (the one containing bin, archive and r6)."
+        },
+        "redpack.libraryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Where REDpack keeps your mods. Empty means %USERPROFILE%\\REDpack. Put it on the same drive as the game so deploy can use hardlinks."
+        }
+      }
+    },
+    "colors": [
+      {
+        "id": "redpack.accent",
+        "description": "Accent for REDpack icons and the status bar item.",
+        "defaults": {
+          "dark": "#fcee0a",
+          "light": "#8a7a00",
+          "highContrast": "#fcee0a",
+          "highContrastLight": "#8a7a00"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && vsce package --no-dependencies --out dist/"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "1.80.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "~5.9.3"
+  }
+}
