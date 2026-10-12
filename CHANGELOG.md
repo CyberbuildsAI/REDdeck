@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.2 (2026-10-12)
+
+- Update from inside REDdeck. The yellow "update X available" text on the mods page, "Update to X" in a row's menu and the same button in the detail panel ask once, then download the newest file from Nexus into the library, put it in the old version's place in the order and turn the old version off. Deploy makes it real. Nexus gives direct downloads to Premium members only; for everyone else REDdeck opens the file page, and "Mod manager download" there finishes the same way when REDdeck handles nxm links.
+- A file added from an nxm link for a mod already in the library now takes the old entry's place and turns it off, instead of leaving both on.
+- The mods page no longer shows the update twice in the status column.
+
 ## 0.9.1 (2026-10-12)
 
 - The yellow framework chip always comes first in a mod's kinds, on the page and in the detail panel.

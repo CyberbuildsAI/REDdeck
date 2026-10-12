@@ -124,7 +124,7 @@ ${nexusLine}
   <button data-action="moveDown">Move down</button>
   <button data-action="open">Open folder</button>
   ${mod.source.modId ? `<button data-action="nexus">Open on Nexus</button>` : ""}
-  ${update ? `<button data-action="update">Get ${esc(update)} on Nexus</button>` : ""}
+  ${update ? `<button data-action="update" title="Download it from Nexus and put it in this mod's place">Update to ${esc(update)}</button>` : ""}
   <button data-action="remove" class="danger">Remove</button>
 </div>
 <h2>Conflicts by file path</h2>

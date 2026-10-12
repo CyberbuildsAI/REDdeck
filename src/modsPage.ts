@@ -34,7 +34,7 @@ export interface PageData {
 }
 
 export interface PageMessage {
-  action: "toggle" | "details" | "moveUp" | "moveDown" | "open" | "nexus" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
+  action: "toggle" | "details" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
   id?: string;
 }
 
@@ -105,6 +105,7 @@ function render(d: PageData, csp: string): string {
       { m: { action: "moveDown", id: r.id }, label: "Move down" },
       { m: { action: "open", id: r.id }, label: "Open folder" },
       ...(r.nexusId ? [{ m: { action: "nexus", id: r.id }, label: "Open on Nexus" }] : []),
+      ...(r.update ? [{ m: { action: "update", id: r.id }, label: `Update to ${r.update}` }] : []),
       { m: { action: "remove", id: r.id }, label: "Remove" },
     ] as { m: PageMessage; label: string }[];
     const text = `${r.name} ${r.version} ${r.kinds.join(" ")} ${r.status}`.toLowerCase();
@@ -113,7 +114,7 @@ function render(d: PageData, csp: string): string {
 <td class="name"><a data-msg='${msg({ action: "details", id: r.id })}'>${esc(r.name)}</a></td>
 <td class="mono">${esc(r.version)}</td>
 <td>${[...r.kinds].sort((a, b) => (a === "framework" ? -1 : b === "framework" ? 1 : 0)).map((k) => `<span class="kind ${k === "framework" ? "fw" : ""}">${esc(k)}</span>`).join("")}</td>
-<td class="${statusClass}">${esc(r.status)}${r.update ? `<span class="upd">update ${esc(r.update)} available</span>` : ""}</td>
+<td class="${statusClass}">${esc(r.status)}${r.update ? `<a class="upd" data-msg='${msg({ action: "update", id: r.id })}' title="Download ${esc(r.update)} from Nexus and put it in this mod's place">update ${esc(r.update)} available</a>` : ""}</td>
 <td class="acts"><select class="menu"><option value="">...</option>${menu.map((e) => `<option value='${msg(e.m)}'>${e.label}</option>`).join("")}</select></td>
 </tr>`;
   };
@@ -148,7 +149,7 @@ td.chk { width: 1%; } td.acts { width: 1%; } td.name a { cursor: pointer; color:
 tr.offrow td.name a, tr.offrow td.mono { color: var(--dim); }
 .kind { font-family: var(--vscode-editor-font-family); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border: 1px solid var(--line); color: var(--dim); margin-right: 4px; } .kind.fw { color: var(--yellow); border-color: var(--yellow); }
 .mono { font-family: var(--vscode-editor-font-family); font-size: 12px; } .dim { color: var(--dim); } .ok { color: var(--green); } .warn { color: var(--yellow); } .pend { color: var(--cyan); }
-.upd { display: block; color: var(--yellow); font-size: 12px; }
+.upd { display: block; color: var(--yellow); font-size: 12px; cursor: pointer; } .upd:hover { text-decoration: underline; }
 select.menu { font: inherit; font-size: 12px; color: var(--fg); background: var(--vscode-dropdown-background, var(--bg)); border: 1px solid var(--vscode-dropdown-border, var(--line)); padding: 2px 6px; cursor: pointer; }
 select.menu:hover, select.menu:focus { border-color: var(--yellow); outline: none; }
 input[type=checkbox] { accent-color: var(--yellow); width: 15px; height: 15px; cursor: pointer; }

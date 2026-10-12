@@ -195,10 +195,10 @@ function refresh(): void {
   scanTimer = setTimeout(() => void run(() => scanArchives(false)), 400);
 }
 
-function statusFor(mod: ModInfo): string {
+function statusFor(mod: ModInfo, withUpdate = true): string {
   if (!library || !state.plan) return "";
   const parts = [modStatus(library, settings().gamePath, mod, state.plan, readManifest(settings().gamePath), state.changes)];
-  if (mod.nexus && versionNewer(mod.nexus.latestVersion, mod.version)) parts.push(`update ${mod.nexus.latestVersion} available`);
+  if (withUpdate && mod.nexus && versionNewer(mod.nexus.latestVersion, mod.version)) parts.push(`update ${mod.nexus.latestVersion} available`);
   const a = state.archive;
   if (a && mod.enabled) {
     const lost = a.lost.get(mod.id) ?? 0;
@@ -328,7 +328,7 @@ function pageRow(mod: ModInfo, manifestMods: Set<string>): PageRow {
     version: mod.version,
     kinds: mod.kinds,
     enabled: mod.enabled,
-    status: statusFor(mod),
+    status: statusFor(mod, false),
     framework: mod.kinds.includes("framework"),
     deployed: manifestMods.has(mod.id),
     needsDeploy: !!p && (p.add.some((d) => d.mod?.id === mod.id) || p.stale.some((e) => e.mod === mod.id)),
@@ -406,6 +406,9 @@ async function pageAction(m: PageMessage): Promise<void> {
       break;
     case "nexus":
       await nexusOpenCommand(mod);
+      break;
+    case "update":
+      await updateModCommand(mod);
       break;
     case "remove":
       await removeCommand(mod);
@@ -506,7 +509,7 @@ async function detailAction(action: string, id: string): Promise<void> {
       await nexusOpenCommand(mod);
       break;
     case "update":
-      if (mod.source.modId) void vscode.env.openExternal(vscode.Uri.parse(`${modPageUrl(mod.source.modId)}?tab=files${mod.nexus?.latestFileId ? `&file_id=${mod.nexus.latestFileId}` : ""}`));
+      await updateModCommand(mod);
       break;
   }
 }
@@ -904,15 +907,25 @@ async function addFromLink(link: string): Promise<void> {
   }
   const nxm = parseNxm(link);
   if (nxm.game !== "cyberpunk2077") throw new Error(`That link is for ${nxm.game}, not Cyberpunk 2077.`);
+  await fetchFromNexus(nxm.modId, nxm.fileId, nxm.key, nxm.expires);
+}
+
+/**
+ * Downloads one Nexus file into the library and adds it. When an older entry for the same Nexus
+ * mod exists, the new one takes its place in the order and the old one is turned off.
+ */
+async function fetchFromNexus(modId: number, fileId: number, key?: string, expires?: number): Promise<void> {
+  if (!library) return;
   const client = await nexusClient(true);
   if (!client) return;
-  const [info, files] = await Promise.all([client.mod(nxm.modId), client.files(nxm.modId)]);
-  const file = files.files.find((f) => f.file_id === nxm.fileId);
-  const links = await client.downloadLinks(nxm.modId, nxm.fileId, nxm.key, nxm.expires).catch((err: Error) => {
-    if (/403|forbidden|premium/i.test(err.message)) throw new Error("Nexus only gives direct links to Premium members. Use the Mod manager download button on the site, which sends a link with a key.");
+  const [info, files] = await Promise.all([client.mod(modId), client.files(modId)]);
+  const file = files.files.find((f) => f.file_id === fileId);
+  const links = await client.downloadLinks(modId, fileId, key, expires).catch((err: Error) => {
+    if (/403|forbidden|premium/i.test(err.message)) throw new PremiumError();
     throw err;
   });
   if (!links.length) throw new Error("Nexus returned no download link.");
+  const nxm = { modId, fileId };
   const fileName = file?.file_name ?? `${info.name}-${nxm.modId}-${nxm.fileId}.zip`;
   const dest = path.join(library.root, "downloads", fileName);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -933,8 +946,54 @@ async function addFromLink(link: string): Promise<void> {
     added.nexus = { name: info.name, version: info.version, latestVersion: file?.version ?? info.version, latestFileId: nxm.fileId, latestFileName: fileName, checked: new Date().toISOString(), author: info.author, summary: info.summary };
     saveMod(library, added);
   }
-  if (existing) {
-    void vscode.window.showInformationMessage(`${info.name} was already in the library as ${existing.name} ${existing.version}. The new file is its own entry; turn the old one off or remove it.`);
+  if (existing && added && added.id !== existing.id) {
+    placeAbove(library, added, existing);
+    if (existing.enabled) {
+      existing.enabled = false;
+      saveMod(library, existing);
+    }
+    log.appendLine(`${added.name} takes the place of ${existing.name} ${existing.version}, which is now off`);
+    refresh();
+    offerDeploy(`${added.name} ${added.version} added; ${existing.name} ${existing.version} turned off.`);
+  }
+}
+
+class PremiumError extends Error {
+  constructor() {
+    super("Nexus gives direct downloads to Premium members only. Use the Mod manager download button on the site, which sends a link with a key.");
+  }
+}
+
+/** Updates a mod to the newest file Nexus has, with one confirmation. */
+async function updateModCommand(mod: ModInfo | undefined): Promise<void> {
+  if (!mod || !library || !mod.source.modId) return;
+  const client = await nexusClient(true);
+  if (!client) return;
+  let fileId = mod.nexus?.latestFileId;
+  let latest = mod.nexus?.latestVersion;
+  if (!fileId || !latest || !versionNewer(latest, mod.version)) {
+    const newest = newestFile(await client.files(mod.source.modId));
+    fileId = newest?.file_id;
+    latest = newest?.version;
+  }
+  if (!fileId || !latest || !versionNewer(latest, mod.version)) {
+    void vscode.window.showInformationMessage(`${mod.name} ${mod.version} is the newest file on Nexus.`);
+    return;
+  }
+  const a = await vscode.window.showInformationMessage(`Update ${mod.name} from ${mod.version} to ${latest}?`, { modal: true, detail: "REDdeck downloads the newest file from Nexus into the library, puts it in this mod's place and turns this version off. The game folder changes when you deploy." }, "Update");
+  if (a !== "Update") return;
+  try {
+    await fetchFromNexus(mod.source.modId, fileId);
+  } catch (err) {
+    if (!(err instanceof PremiumError)) throw err;
+    const handler = describeHandler(await currentNxmHandler());
+    const ours = /reddeck/i.test(handler);
+    void vscode.env.openExternal(vscode.Uri.parse(`${modPageUrl(mod.source.modId)}?tab=files&file_id=${fileId}`));
+    void vscode.window.showInformationMessage(
+      ours
+        ? `Nexus gives direct downloads to Premium members only. The file page is open: press "Mod manager download" and REDdeck takes it from there.`
+        : `Nexus gives direct downloads to Premium members only. The file page is open: press "Mod manager download". ${handler} handles those links right now; run "REDdeck: Nexus: handle download links" so they land here.`,
+    );
   }
 }
 
