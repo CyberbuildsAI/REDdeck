@@ -31,11 +31,16 @@ npm install
 | `npm run build` | Bundles `src/extension.ts` to `dist/extension.js` with esbuild |
 | `npm run watch` | The same, rebuilding on every change |
 | `npm run typecheck` | `tsc --noEmit` over `src/` |
+| `npm run smoke` | Runs `scripts/smoke.mjs`: classifies sample layouts, adds them to a temp library, deploys into a fake game folder with hardlinks, changes a file by hand, undoes, and imports from Vortex if it is installed (read-only) |
 | `npm run package` | Builds a `.vsix` into `dist/` with vsce |
 
 To run it, open the repo in VS Code and press F5. A second VS Code window opens with REDdeck loaded; its Mods view is in the activity bar. Set `reddeck.gamePath` in that window's settings if the game is not in the Steam default folder.
 
 The mod library defaults to `%USERPROFILE%\REDdeck`. Point `reddeck.libraryPath` at a scratch folder while developing, so tests never touch a real library.
+
+Archives: zip and 7z are opened by the `7za.exe` from the `7zip-bin` package, which the build copies to `bin/` so the `.vsix` carries it (the folder is git-ignored). rar needs 7-Zip or WinRAR installed; REDdeck looks in both Program Files folders.
+
+A real-game test needs a game folder that Vortex does not manage. REDdeck refuses to deploy while `vortex.deployment.json` is present; purge in Vortex first, or point `reddeck.gamePath` at a copy of the game folder.
 
 ## 4. Docs site and brand images
 

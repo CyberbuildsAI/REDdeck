@@ -5,8 +5,9 @@ REDdeck is a mod manager for Cyberpunk 2077 built as a VS Code extension. It is 
 ## Current status and next step
 
 - **Design:** `docs/design.html`, published at https://cyberbuildsai.github.io/REDdeck/design.html. Read it before any feature work; it has the UI mockup, the word list, the library layout, the deployment rules and the roadmap. It is a standalone HTML page in the HUD style; edit it in place and keep the draft number in its status bar current.
-- **M0 done (2026-10-11):** repo in the house style, extension scaffold with the Mods view over an empty library, `Add mod` from a folder, on/off checkboxes, settings for the game and library paths.
-- **Next step (M1):** add from zip, 7z and rar; the library layout with `mod.json`; hardlink deploy with a manifest and undo; changes made outside REDdeck; `modlist.txt`; Vortex detection and import.
+- **M0 done (2026-10-11):** repo in the house style, extension scaffold, settings for the game and library paths.
+- **M1 built (2026-10-11), not yet tested against a real game:** `src/classifier.ts` (one classifier, option folders become a choice), `src/library.ts` (library.json, mod.json, files laid out as they deploy), `src/deploy.ts` (plan, hardlink or copy, manifest `reddeck.deployment.json`, backups, undo, external changes, modlist.txt), `src/extract.ts` (bundled 7za for zip and 7z, system 7-Zip or WinRAR for rar), `src/vortex.ts` (list and import, read-only). `npm run smoke` passes against a fake game folder and this machine's Vortex library. The laptop's game is still managed by Vortex, so the first real deploy happens after a Vortex purge or on the owner's other PC.
+- **Next step (M2):** Frameworks group with game version check, REDmod packages and `redMod.exe deploy`, a detail panel webview, file conflicts with the winner shown, archive conflicts through REDbridge (`archive.openMod`).
 
 ## The design goal
 

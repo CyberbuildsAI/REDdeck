@@ -1,4 +1,4 @@
-// The Mods view: one list, grouped into Frameworks and Mods, with a checkbox per mod.
+// The Mods view: one list, grouped into Frameworks and Mods, with a checkbox and a status per mod.
 
 import * as vscode from "vscode";
 import type { Library, ModInfo } from "./library";
@@ -9,7 +9,10 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
   private readonly changed = new vscode.EventEmitter<ModNode | undefined>();
   readonly onDidChangeTreeData = this.changed.event;
 
-  constructor(private readonly library: () => Library | undefined) {}
+  constructor(
+    private readonly library: () => Library | undefined,
+    private readonly status: (mod: ModInfo) => string,
+  ) {}
 
   refresh(): void {
     this.changed.fire(undefined);
@@ -39,13 +42,18 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
       return item;
     }
     const { mod } = node;
+    const status = this.status(mod);
     const item = new vscode.TreeItem(mod.name, vscode.TreeItemCollapsibleState.None);
     item.id = mod.id;
-    item.description = [mod.version, mod.kinds.join(" ")].filter(Boolean).join("  ");
-    item.tooltip = `${mod.name}\n${mod.files} files\n${mod.enabled ? "On" : "Off"}, not deployed yet`;
+    item.description = [mod.version, status].filter(Boolean).join("  ·  ");
+    item.tooltip = new vscode.MarkdownString(
+      [`**${mod.name}** ${mod.version}`, `${mod.kinds.join(", ")} · ${mod.files.length} files`, status, mod.source.path ? `from ${mod.source.path}` : ""].filter(Boolean).join("  \n"),
+    );
     item.contextValue = "mod";
     item.checkboxState = mod.enabled ? vscode.TreeItemCheckboxState.Checked : vscode.TreeItemCheckboxState.Unchecked;
-    item.iconPath = new vscode.ThemeIcon("package", new vscode.ThemeColor("reddeck.accent"));
+    const icon = status.includes("conflict") ? "warning" : status.includes("changed") ? "edit" : "package";
+    const color = status.includes("conflict") || status.includes("changed") ? "editorWarning.foreground" : mod.enabled ? "reddeck.accent" : "disabledForeground";
+    item.iconPath = new vscode.ThemeIcon(icon, new vscode.ThemeColor(color));
     return item;
   }
 }

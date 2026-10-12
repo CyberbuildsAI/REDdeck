@@ -5,9 +5,17 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import type { Placement } from "./classifier";
 
 /** What is inside a mod, by where its files land. A mod can be several kinds at once. */
 export type ModKind = "archive" | "xl" | "redmod" | "reds" | "tweak" | "cet" | "red4ext" | "audioware" | "input" | "config" | "asi" | "framework" | "rednode" | "other";
+
+export interface ModSource {
+  type: "folder" | "file" | "nexus" | "project" | "vortex";
+  path?: string;
+  modId?: number;
+  fileId?: number;
+}
 
 /** `mod.json`, one per mod folder. */
 export interface ModInfo {
@@ -17,14 +25,16 @@ export interface ModInfo {
   kinds: ModKind[];
   enabled: boolean;
   added: string;
-  source: { type: "folder" | "file" | "nexus" | "project"; path?: string; modId?: number; fileId?: number };
-  files: number;
+  source: ModSource;
+  /** Paths under the game folder, forward slashes, in no particular order. */
+  files: string[];
 }
 
 /** `library.json` at the library root. */
 export interface LibraryInfo {
   version: 1;
   gamePath: string;
+  /** Mod ids, first wins a conflict. */
   order: string[];
 }
 
@@ -38,8 +48,16 @@ export function defaultLibraryPath(): string {
   return path.join(os.homedir(), "REDdeck");
 }
 
-export function libraryFolder(mods: string): string {
-  return path.join(mods, "library");
+export function libraryFolder(root: string): string {
+  return path.join(root, "library");
+}
+
+export function downloadsFolder(root: string): string {
+  return path.join(root, "downloads");
+}
+
+export function backupFolder(root: string): string {
+  return path.join(root, "backup");
 }
 
 /** Reads the library, creating an empty one if the folder is new. */
@@ -50,13 +68,16 @@ export function loadLibrary(root: string, gamePath: string): Library {
   if (fs.existsSync(infoFile)) {
     info = { ...info, ...(JSON.parse(fs.readFileSync(infoFile, "utf8")) as Partial<LibraryInfo>) };
   }
+  info.gamePath = gamePath || info.gamePath;
   const mods: ModInfo[] = [];
   for (const entry of fs.readdirSync(libraryFolder(root), { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const file = path.join(libraryFolder(root), entry.name, "mod.json");
     if (!fs.existsSync(file)) continue;
     try {
-      mods.push(JSON.parse(fs.readFileSync(file, "utf8")) as ModInfo);
+      const mod = JSON.parse(fs.readFileSync(file, "utf8")) as ModInfo;
+      mod.files ??= [];
+      mods.push(mod);
     } catch {
       // A broken mod.json is shown as missing rather than crashing the view.
     }
@@ -88,24 +109,35 @@ export function idFor(lib: Library, name: string): string {
   return id;
 }
 
-/**
- * Adds a folder as a mod by copying it into the library as-is. The M1 classifier will replace
- * the "as-is" with a proper layout; for now the folder is expected to be rooted at the game folder
- * (archive/, r6/, red4ext/, bin/, mods/).
- */
-export function addFolder(lib: Library, source: string, name: string): ModInfo {
-  const id = idFor(lib, name);
+export interface AddOptions {
+  name: string;
+  version?: string;
+  source: ModSource;
+  enabled?: boolean;
+}
+
+/** Copies classified files into a new mod folder, laid out exactly as they deploy. */
+export function addMod(lib: Library, placements: Placement[], opts: AddOptions): ModInfo {
+  if (!placements.length) throw new Error("Nothing to add: no files could be placed.");
+  const id = idFor(lib, opts.name);
   const target = path.join(libraryFolder(lib.root), id);
-  fs.cpSync(source, target, { recursive: true });
+  fs.mkdirSync(target, { recursive: true });
+  const files = new Set<string>();
+  for (const p of placements) {
+    const dest = path.join(target, ...p.to.split("/"));
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(p.from, dest);
+    files.add(p.to);
+  }
   const mod: ModInfo = {
     id,
-    name,
-    version: "",
-    kinds: detectKinds(target),
-    enabled: true,
+    name: opts.name,
+    version: opts.version ?? "",
+    kinds: [...new Set(placements.map((p) => p.kind))],
+    enabled: opts.enabled ?? true,
     added: new Date().toISOString(),
-    source: { type: "folder", path: source },
-    files: countFiles(target),
+    source: opts.source,
+    files: [...files].sort(),
   };
   lib.mods.push(mod);
   lib.info.order.push(id);
@@ -121,32 +153,26 @@ export function removeMod(lib: Library, mod: ModInfo): void {
   saveLibrary(lib);
 }
 
-/** First-pass kind detection from the top-level folders. The M1 classifier goes deeper. */
-export function detectKinds(folder: string): ModKind[] {
-  const kinds = new Set<ModKind>();
-  const has = (...parts: string[]) => fs.existsSync(path.join(folder, ...parts));
-  if (has("archive", "pc", "mod")) {
-    kinds.add("archive");
-    if (fs.readdirSync(path.join(folder, "archive", "pc", "mod")).some((f) => f.endsWith(".xl"))) kinds.add("xl");
-  }
-  if (has("mods")) kinds.add("redmod");
-  if (has("r6", "scripts")) kinds.add("reds");
-  if (has("r6", "tweaks")) kinds.add("tweak");
-  if (has("r6", "audioware")) kinds.add("audioware");
-  if (has("r6", "input")) kinds.add("input");
-  if (has("r6", "config") || has("engine", "config")) kinds.add("config");
-  if (has("bin", "x64", "plugins", "cyber_engine_tweaks", "mods")) kinds.add("cet");
-  if (has("red4ext", "plugins")) kinds.add("red4ext");
-  if (has("red4ext", "RED4ext.dll") || has("bin", "x64", "winmm.dll") || has("bin", "x64", "plugins", "cyber_engine_tweaks.asi") || has("engine", "tools", "scc.exe")) kinds.add("framework");
-  if (kinds.size === 0) kinds.add("other");
-  return [...kinds];
+/** Moves a mod up (wins more conflicts) or down in the order. */
+export function moveMod(lib: Library, mod: ModInfo, delta: -1 | 1): void {
+  const i = lib.info.order.indexOf(mod.id);
+  const j = i + delta;
+  if (i < 0 || j < 0 || j >= lib.info.order.length) return;
+  [lib.info.order[i], lib.info.order[j]] = [lib.info.order[j], lib.info.order[i]];
+  const rank = new Map(lib.info.order.map((id, k) => [id, k]));
+  lib.mods.sort((a, b) => (rank.get(a.id) ?? 1e9) - (rank.get(b.id) ?? 1e9));
+  saveLibrary(lib);
 }
 
-export function countFiles(folder: string): number {
-  let n = 0;
-  for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
-    if (entry.isDirectory()) n += countFiles(path.join(folder, entry.name));
-    else if (entry.name !== "mod.json") n++;
-  }
-  return n;
+/** Keeps the original archive so the mod can be re-added or inspected later. */
+export function keepDownload(lib: Library, file: string): string {
+  fs.mkdirSync(downloadsFolder(lib.root), { recursive: true });
+  const dest = path.join(downloadsFolder(lib.root), path.basename(file));
+  if (path.resolve(dest) !== path.resolve(file)) fs.copyFileSync(file, dest);
+  return dest;
+}
+
+/** The library path a mod file deploys from. */
+export function sourcePath(lib: Library, mod: ModInfo, rel: string): string {
+  return path.join(modFolder(lib, mod), ...rel.split("/"));
 }

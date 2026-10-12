@@ -1,4 +1,5 @@
 src/**
+scripts/**
 docs/**
 tools/**
 .github/**
@@ -9,3 +10,4 @@ node_modules/**
 dist/**/*.map
 *.vsix
 CLAUDE.md
+README.md

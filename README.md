@@ -17,7 +17,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 **[Read the docs](https://cyberbuildsai.github.io/REDdeck/)** &middot; [Design](https://cyberbuildsai.github.io/REDdeck/design.html) &middot; [REDcode](https://github.com/CyberbuildsAI/REDcode) &middot; [REDbridge](https://github.com/CyberbuildsAI/REDbridge) &middot; [REDnode](https://github.com/CyberbuildsAI/REDnode)
 
 > [!NOTE]
-> **Status: design phase.** The [design](https://cyberbuildsai.github.io/REDdeck/design.html) is settled and the repo holds the extension scaffold: a Mods view over an empty library, Add mod from a folder, on/off checkboxes. Deployment is next. Nothing here manages a real game yet.
+> **Status: M1 library and deploy built, awaiting a real-game test.** Add from zip, 7z, rar or folder; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex. All of it passes `npm run smoke` against a fake game folder and a real Vortex library. The [design](https://cyberbuildsai.github.io/REDdeck/design.html) has the full picture.
 
 ## How it works
 
@@ -44,7 +44,8 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 
 | Path | Contents |
 |---|---|
-| `src/` | The extension: library, Mods view, commands |
+| `src/` | The extension. `core.ts` gathers the VS Code-free parts: classifier, library, deploy, extract, vortex |
+| `scripts/smoke.mjs` | End-to-end test of the core against a fake game folder |
 | `images/` | Activity bar icon and extension icon |
 | `docs/` | Documentation site |
 | `tools/brand/` | Generates the banner, badges and icon |
@@ -56,6 +57,7 @@ git clone https://github.com/CyberbuildsAI/REDdeck.git
 cd REDdeck
 npm install
 npm run build       # or: npm run watch
+npm run smoke       # classify, add, deploy, undo against a temp folder
 ```
 
 Open the folder in VS Code and press F5 to run the extension in a second window. Details in the [setup guide](https://cyberbuildsai.github.io/REDdeck/dev-setup.html).

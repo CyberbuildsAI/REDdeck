@@ -1,0 +1,183 @@
+// Exercises the core end to end against a fake game folder in a temp directory: classify sample
+// mod layouts, add them to a library, deploy (hardlinks), detect a change made outside REDdeck,
+// undo, and import from a Vortex staging folder if one exists on this machine (read-only).
+//   node scripts/smoke.mjs            after npm run build
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const core = require("../dist/core.js");
+const root = path.resolve(import.meta.dirname, "..");
+const sevenZa = core.findSevenZip(root);
+assert.ok(sevenZa, "7za.exe not found; run npm run build");
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "reddeck-smoke-"));
+const game = path.join(tmp, "game");
+const libRoot = path.join(tmp, "lib");
+const src = path.join(tmp, "src");
+fs.mkdirSync(path.join(game, "bin", "x64"), { recursive: true });
+fs.writeFileSync(path.join(game, "bin", "x64", "Cyberpunk2077.exe"), "not really");
+fs.mkdirSync(path.join(game, "archive", "pc", "mod"), { recursive: true });
+fs.mkdirSync(path.join(game, "r6", "scripts"), { recursive: true });
+fs.writeFileSync(path.join(game, "r6", "scripts", "UserOwn.reds"), "// the user's own file");
+
+const write = (p, content = p) => {
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, content);
+};
+const zip = (name, folder) => {
+  const file = path.join(tmp, name);
+  execFileSync(sevenZa, ["a", "-tzip", file, path.join(folder, "*")], { stdio: "ignore" });
+  return file;
+};
+
+// Sample mods in the layouts Nexus actually ships.
+write(path.join(src, "bare", "CoolMod.archive"));
+write(path.join(src, "bare", "readme.txt"));
+write(path.join(src, "rooted", "archive", "pc", "mod", "Rooted.archive"));
+write(path.join(src, "rooted", "archive", "pc", "mod", "Rooted.archive.xl"));
+write(path.join(src, "rooted", "r6", "scripts", "Rooted", "Rooted.reds"));
+write(path.join(src, "rooted", "r6", "tweaks", "Rooted", "rooted.yaml"));
+write(path.join(src, "cet", "MyCetMod", "init.lua"));
+write(path.join(src, "cet", "MyCetMod", "data", "x.json"));
+write(path.join(src, "options", "Option A", "Thing.archive"));
+write(path.join(src, "options", "Option B", "Thing.archive"));
+write(path.join(src, "conflict", "archive", "pc", "mod", "CoolMod.archive"), "other content");
+write(path.join(src, "loose", "Loose.reds"));
+write(path.join(src, "red4ext", "red4ext", "plugins", "Plug", "Plug.dll"));
+write(path.join(src, "redmod", "MyRedmod", "info.json"), '{"name":"MyRedmod"}');
+write(path.join(src, "redmod", "MyRedmod", "archives", "x.archive"));
+write(path.join(src, "framework", "bin", "x64", "winmm.dll"));
+write(path.join(src, "framework", "red4ext", "RED4ext.dll"));
+
+const cls = (folder, name) => core.classify(path.join(src, folder), name);
+let c = cls("bare", "Bare");
+assert.deepEqual(c.placements.map((p) => p.to), ["archive/pc/mod/CoolMod.archive"]);
+assert.deepEqual(c.ignored, ["readme.txt"]);
+c = cls("rooted", "Rooted");
+assert.equal(c.placements.length, 4);
+assert.deepEqual([...c.kinds].sort(), ["archive", "reds", "tweak", "xl"]);
+c = cls("cet", "Cet");
+assert.deepEqual(c.placements.map((p) => p.to).sort(), ["bin/x64/plugins/cyber_engine_tweaks/mods/MyCetMod/data/x.json", "bin/x64/plugins/cyber_engine_tweaks/mods/MyCetMod/init.lua"]);
+c = cls("options", "Options");
+assert.deepEqual(c.options.map((o) => o.label), ["Option A", "Option B"]);
+c = core.classify(c.options[1].folder, "Options");
+assert.deepEqual(c.placements.map((p) => p.to), ["archive/pc/mod/Thing.archive"]);
+c = cls("loose", "Loose");
+assert.deepEqual(c.placements.map((p) => p.to), ["r6/scripts/Loose/Loose.reds"]);
+c = cls("red4ext", "Plug");
+assert.deepEqual(c.placements.map((p) => p.to), ["red4ext/plugins/Plug/Plug.dll"]);
+c = cls("redmod", "MyRedmod");
+assert.deepEqual(c.placements.map((p) => p.to).sort(), ["mods/MyRedmod/archives/x.archive", "mods/MyRedmod/info.json"]);
+c = cls("framework", "RED4ext");
+assert.deepEqual(c.kinds, ["framework"]);
+console.log("classifier: ok");
+
+// Extract a zip and add from it.
+const lib = core.loadLibrary(libRoot, game);
+const zipped = zip("rooted.zip", path.join(src, "rooted"));
+const extracted = path.join(tmp, "extracted");
+await core.extractArchive(zipped, extracted, sevenZa);
+c = core.classify(extracted, "Rooted");
+const rooted = core.addMod(lib, c.placements, { name: "Rooted", version: "1.0", source: { type: "file", path: zipped } });
+assert.equal(rooted.files.length, 4);
+const bare = core.addMod(lib, cls("bare", "Bare").placements, { name: "Bare", source: { type: "folder" } });
+const conflict = core.addMod(lib, cls("conflict", "Conflict").placements, { name: "Conflict", source: { type: "folder" } });
+const loose = core.addMod(lib, cls("loose", "Loose").placements, { name: "Loose", source: { type: "folder" } });
+assert.ok(fs.existsSync(path.join(libRoot, "library", "rooted", "archive", "pc", "mod", "Rooted.archive")));
+console.log("library: ok");
+
+// Plan: Bare and Conflict both ship CoolMod.archive; Bare is earlier in the order so it wins.
+let p = core.plan(lib, game);
+assert.equal(p.conflicts.length, 1);
+assert.equal(p.conflicts[0].winner, "bare");
+assert.deepEqual(p.conflicts[0].losers, ["conflict"]);
+assert.equal(p.method, "link");
+const r = core.deploy(lib, game, new Map());
+assert.equal(r.linked, 7, `linked ${r.linked}: 4 rooted + 1 bare + 1 loose + modlist`);
+assert.equal(r.skipped.length, 0);
+const modlist = fs.readFileSync(path.join(game, "archive", "pc", "mod", "modlist.txt"), "utf8");
+assert.equal(modlist, "Rooted.archive\r\nCoolMod.archive\r\n");
+assert.equal(fs.readFileSync(path.join(game, "archive", "pc", "mod", "CoolMod.archive"), "utf8").endsWith("CoolMod.archive"), true, "Bare's copy, not Conflict's");
+assert.ok(fs.existsSync(path.join(game, core.ManifestName)));
+assert.equal(fs.statSync(path.join(game, "archive", "pc", "mod", "Rooted.archive")).nlink, 2, "hardlinked");
+console.log("deploy: ok", r);
+
+// Nothing to do on a second deploy.
+p = core.plan(lib, game);
+assert.equal(p.add.length, 0);
+assert.equal(p.stale.length, 0);
+
+// Reorder: Conflict wins now, so CoolMod.archive is replaced.
+core.moveMod(lib, conflict, -1);
+core.moveMod(lib, conflict, -1);
+assert.equal(lib.info.order[0], "conflict");
+p = core.plan(lib, game);
+assert.equal(p.conflicts[0].winner, "conflict");
+core.deploy(lib, game);
+assert.equal(fs.readFileSync(path.join(game, "archive", "pc", "mod", "CoolMod.archive"), "utf8"), "other content");
+console.log("reorder: ok");
+
+// A change made outside REDdeck: replace a deployed file with a different one.
+const changedFile = path.join(game, "r6", "scripts", "Loose", "Loose.reds");
+fs.rmSync(changedFile);
+fs.writeFileSync(changedFile, "edited by hand");
+let changes = core.detectChanges(game);
+assert.deepEqual(changes.map((x) => [x.entry.path, x.kind]), [["r6/scripts/Loose/Loose.reds", "changed"]]);
+// Deploy without an answer leaves it alone.
+let r2 = core.deploy(lib, game);
+assert.deepEqual(r2.skipped, ["r6/scripts/Loose/Loose.reds"]);
+assert.equal(fs.readFileSync(changedFile, "utf8"), "edited by hand");
+// "keep" imports the edit into the library and relinks.
+r2 = core.deploy(lib, game, new Map([["r6/scripts/Loose/Loose.reds", "keep"]]));
+assert.equal(fs.readFileSync(path.join(libRoot, "library", "loose", "r6", "scripts", "Loose", "Loose.reds"), "utf8"), "edited by hand");
+assert.equal(fs.statSync(changedFile).nlink, 2);
+assert.equal(core.detectChanges(game).length, 0);
+// A missing file comes back silently.
+fs.rmSync(changedFile);
+assert.equal(core.detectChanges(game)[0].kind, "missing");
+core.deploy(lib, game);
+assert.ok(fs.existsSync(changedFile));
+console.log("changes: ok");
+
+// Turn a mod off: its files leave on the next deploy.
+rooted.enabled = false;
+core.saveMod(lib, rooted);
+r2 = core.deploy(lib, game);
+assert.equal(r2.removed, 4);
+assert.ok(!fs.existsSync(path.join(game, "archive", "pc", "mod", "Rooted.archive")));
+assert.ok(!fs.existsSync(path.join(game, "r6", "tweaks", "Rooted")), "folder REDdeck created is gone");
+console.log("off: ok");
+
+// A foreign file in the way is backed up and restored on undo.
+rooted.enabled = true;
+core.saveMod(lib, rooted);
+fs.writeFileSync(path.join(game, "archive", "pc", "mod", "Rooted.archive"), "user's own archive");
+r2 = core.deploy(lib, game);
+assert.equal(r2.backedUp, 1);
+const u = core.undo(lib, game);
+assert.equal(u.skipped.length, 0);
+assert.equal(fs.readFileSync(path.join(game, "archive", "pc", "mod", "Rooted.archive"), "utf8"), "user's own archive", "backup restored");
+assert.ok(!fs.existsSync(path.join(game, core.ManifestName)));
+assert.ok(!fs.existsSync(path.join(game, "archive", "pc", "mod", "modlist.txt")));
+assert.ok(fs.existsSync(path.join(game, "r6", "scripts", "UserOwn.reds")), "never touched the user's file");
+assert.ok(fs.existsSync(path.join(game, "r6", "scripts")), "pre-existing folder kept");
+console.log("undo: ok");
+
+// Vortex, if present on this machine: list and classify, import into the temp library, never write.
+const vortex = core.listVortexMods(game);
+if (vortex.length) {
+  const imported = core.importFromVortex(lib, vortex);
+  console.log(`vortex: ${vortex.length} mods found, ${imported.added.length} imported, ${imported.skipped.length} skipped`);
+  for (const s of imported.skipped) console.log(`  skipped ${s.name}: ${s.reason}`);
+  for (const m of imported.added) console.log(`  ${m.name} ${m.version} [${m.kinds.join(" ")}] ${m.files.length} files, ${m.enabled ? "on" : "off"}`);
+} else {
+  console.log("vortex: not installed here, skipped");
+}
+
+fs.rmSync(tmp, { recursive: true, force: true });
+console.log("smoke: all passed");
