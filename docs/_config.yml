@@ -1,5 +1,6 @@
 # GitHub Pages (Jekyll) settings for the docs site.
 # Every markdown page in docs/ renders with the HUD layout in _layouts/default.html.
+# design.html is a standalone page and is served as-is.
 # Built and deployed by .github/workflows/pages.yml.
 
 title: REDdeck
@@ -22,5 +23,7 @@ defaults:
 nav:
   - title: Docs
     url: /
+  - title: Design
+    url: /design.html
   - title: Dev setup
     url: /dev-setup.html

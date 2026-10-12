@@ -4,7 +4,7 @@ REDdeck is a mod manager for Cyberpunk 2077 built as a VS Code extension. It is 
 
 ## Current status and next step
 
-- **Design:** done, as a private design document held by the owner. It is not in this repo. Ask the owner for it before any feature work; it has the UI mockup, the word list, the library layout, the deployment rules and the roadmap.
+- **Design:** `docs/design.html`, published at https://cyberbuildsai.github.io/REDdeck/design.html. Read it before any feature work; it has the UI mockup, the word list, the library layout, the deployment rules and the roadmap. It is a standalone HTML page in the HUD style; edit it in place and keep the draft number in its status bar current.
 - **M0 done (2026-10-11):** repo in the house style, extension scaffold with the Mods view over an empty library, `Add mod` from a folder, on/off checkboxes, settings for the game and library paths.
 - **Next step (M1):** add from zip, 7z and rar; the library layout with `mod.json`; hardlink deploy with a manifest and undo; changes made outside REDdeck; `modlist.txt`; Vortex detection and import.
 

@@ -14,10 +14,10 @@ A mod manager for Cyberpunk 2077 that lives inside VS Code and [REDcode](https:/
 
 REDdeck keeps your mods in a library outside the game folder, deploys the ones you turn on with hardlinks, and undoes it just as cleanly. It recognises the frameworks (RED4ext, CET, redscript, ArchiveXL, TweakXL and friends), prepares REDmod packages, writes the archive load order, and, with [REDbridge](https://github.com/CyberbuildsAI/REDbridge) present, shows conflicts between files *inside* mod archives, which file-level managers cannot see. The name: a deck of mods, a nod to the cyberdeck, and the mods waiting "on deck" before you deploy them.
 
-**[Read the docs](https://cyberbuildsai.github.io/REDdeck/)** &middot; [REDcode](https://github.com/CyberbuildsAI/REDcode) &middot; [REDbridge](https://github.com/CyberbuildsAI/REDbridge) &middot; [REDnode](https://github.com/CyberbuildsAI/REDnode)
+**[Read the docs](https://cyberbuildsai.github.io/REDdeck/)** &middot; [Design](https://cyberbuildsai.github.io/REDdeck/design.html) &middot; [REDcode](https://github.com/CyberbuildsAI/REDcode) &middot; [REDbridge](https://github.com/CyberbuildsAI/REDbridge) &middot; [REDnode](https://github.com/CyberbuildsAI/REDnode)
 
 > [!NOTE]
-> **Status: design phase.** The design is settled and the repo holds the extension scaffold: a Mods view over an empty library, Add mod from a folder, on/off checkboxes. Deployment is next. Nothing here manages a real game yet.
+> **Status: design phase.** The [design](https://cyberbuildsai.github.io/REDdeck/design.html) is settled and the repo holds the extension scaffold: a Mods view over an empty library, Add mod from a folder, on/off checkboxes. Deployment is next. Nothing here manages a real game yet.
 
 ## How it works
 
