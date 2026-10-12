@@ -50,6 +50,7 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
       [`**${mod.name}** ${mod.version}`, `${mod.kinds.join(", ")} · ${mod.files.length} files`, status, mod.source.path ? `from ${mod.source.path}` : ""].filter(Boolean).join("  \n"),
     );
     item.contextValue = "mod";
+    item.command = { command: "reddeck.details", title: "Details", arguments: [node] };
     item.checkboxState = mod.enabled ? vscode.TreeItemCheckboxState.Checked : vscode.TreeItemCheckboxState.Unchecked;
     const icon = status.includes("conflict") ? "warning" : status.includes("changed") ? "edit" : "package";
     const color = status.includes("conflict") || status.includes("changed") ? "editorWarning.foreground" : mod.enabled ? "reddeck.accent" : "disabledForeground";

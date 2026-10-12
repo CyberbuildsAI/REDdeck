@@ -168,6 +168,70 @@ assert.ok(fs.existsSync(path.join(game, "r6", "scripts", "UserOwn.reds")), "neve
 assert.ok(fs.existsSync(path.join(game, "r6", "scripts")), "pre-existing folder kept");
 console.log("undo: ok");
 
+// Archive conflicts: pure intersection of listings, winners first.
+{
+  const L = (mod, archive, entries) => ({ mod, archive, resources: new Map(entries) });
+  const summary = core.findArchiveConflicts([
+    L("a", "archive/pc/mod/A.archive", [["1", "base/x.mesh"], ["2", "base/y.mesh"]]),
+    L("b", "archive/pc/mod/B.archive", [["2", "base/y.mesh"], ["3", "base/z.mesh"]]),
+    L("c", "archive/pc/mod/C.archive", [["2", "base/y.mesh"]]),
+  ]);
+  assert.equal(summary.conflicts.length, 1);
+  assert.deepEqual(summary.conflicts[0].mods, ["a", "b", "c"]);
+  assert.equal(summary.won.get("a"), 2);
+  assert.equal(summary.lost.get("b"), 1);
+  assert.equal(summary.lost.get("c"), 1);
+  assert.equal(summary.pairs.get("a|b"), 1);
+  console.log("conflicts: ok");
+}
+
+// REDmod packages: the mod list in order, no tool run here.
+{
+  const redmod = core.addMod(lib, cls("redmod", "MyRedmod").placements, { name: "MyRedmod", source: { type: "folder" } });
+  assert.deepEqual(core.enabledRedmodPackages(lib), ["MyRedmod"]);
+  core.removeMod(lib, redmod);
+  console.log("redmod: ok");
+}
+
+// Game version from the real install, if it is here.
+{
+  const real = "C:/Program Files (x86)/Steam/steamapps/common/Cyberpunk 2077";
+  const v = await core.gameVersion(real);
+  console.log(`game version: ${v ?? "no game here"}`);
+}
+
+// REDbridge, if a build is next to this checkout: open a mod archive and list what is inside.
+{
+  const exe = core.findBridge("", root);
+  if (exe) {
+    const b = new core.BridgeClient(exe, process.env.DOTNET_ROOT ?? path.join(process.env.LOCALAPPDATA ?? "", "Microsoft", "dotnet"));
+    b.start();
+    const info = await b.info();
+    console.log(`bridge ${info.version} (WolvenKit ${info.wolvenKit}), game loaded: ${info.gameLoaded}`);
+    assert.ok(core.compareVersions(info.version, core.MinBridgeVersion) >= 0, `bridge ${info.version} < ${core.MinBridgeVersion}`);
+    const staging = core.vortexStagingPath();
+    let sample;
+    const findArchive = (dir) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) { const r = findArchive(p); if (r) return r; }
+        else if (e.name.toLowerCase().endsWith(".archive")) return p;
+      }
+    };
+    if (fs.existsSync(staging)) sample = findArchive(staging);
+    if (sample) {
+      const r = await b.openMod(sample);
+      assert.ok(r.files > 0);
+      console.log(`bridge openMod ${path.basename(sample)}: ${r.files} resources, first ${r.items[0].name}`);
+    } else {
+      console.log("bridge openMod: no sample archive found, skipped");
+    }
+    b.stop();
+  } else {
+    console.log("bridge: not found, skipped");
+  }
+}
+
 // Vortex, if present on this machine: list and classify, import into the temp library, never write.
 const vortex = core.listVortexMods(game);
 if (vortex.length) {

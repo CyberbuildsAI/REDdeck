@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 (2026-10-11)
+
+M2, first part.
+
+- Detail panel: click a mod to see its status, kinds, source, files by folder, conflicts by file path with the winner, and conflicts inside archives. The four verbs plus move up and down are buttons there too.
+- Archive conflicts: with REDbridge 0.4.0 or later (`reddeck.bridgePath`, or a REDbridge checkout next to this one), REDdeck opens every enabled mod's `.archive` and reports resources that two mods both contain, in plain words: "loses 3 archive files", "overrides 2 archive files". The bridge starts without a game, so this is quick. "Check archive conflicts" runs it on demand; it also runs after every change.
+- REDmod packages: after a deploy, `redMod.exe deploy` runs with the enabled packages in list order. The game must then be launched with `-modded`.
+- The game version from `Cyberpunk2077.exe` shows next to the view title and in the status bar.
+- Settings `reddeck.bridgePath` and `reddeck.dotnetRoot`.
+
 ## 0.2.0 (2026-10-11)
 
 M1: the library and deployment.

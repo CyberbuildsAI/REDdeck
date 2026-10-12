@@ -1,41 +1,54 @@
 // REDdeck: a simple mod manager for Cyberpunk 2077. The extension is a thin shell over src/core.ts:
-// the Mods view, the four verbs (add, on/off, deploy, remove), undo, and import from Vortex.
+// the Mods view, the four verbs (add, on/off, deploy, remove), undo, import from Vortex, the detail
+// panel, and the archive conflict scan through REDbridge when it is available.
 
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { classify, type Classification, type Placement } from "./classifier";
+import { BridgeClient, compareVersions, findBridge, MinBridgeVersion } from "./bridgeClient";
+import { classify } from "./classifier";
+import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, type ArchiveListing } from "./conflicts";
 import { deploy, detectChanges, modStatus, plan, readManifest, undo, vortexManages, type Change, type Decision, type Plan } from "./deploy";
+import { DetailPanel } from "./detailPanel";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
-import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, removeMod, saveMod, type Library, type ModInfo, type ModSource } from "./library";
+import { gameVersion } from "./game";
+import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { ModsView, type ModNode } from "./modsView";
+import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { importFromVortex, listVortexMods } from "./vortex";
 
 let library: Library | undefined;
 let view: ModsView;
+let tree: vscode.TreeView<ModNode>;
+let detail: DetailPanel;
 let status: vscode.StatusBarItem;
 let log: vscode.OutputChannel;
 let sevenZa: string | undefined;
-let state: { plan?: Plan; changes: Change[] } = { changes: [] };
+let extensionRoot = "";
+let bridge: BridgeClient | undefined;
+let bridgeExe = "";
+let scanTimer: NodeJS.Timeout | undefined;
+let state: { plan?: Plan; changes: Change[]; archive?: ArchiveConflictSummary; version?: string } = { changes: [] };
+const archiveCache = new Map<string, { mtimeMs: number; resources: Map<string, string> }>();
 
 export function activate(context: vscode.ExtensionContext): void {
+  extensionRoot = context.extensionPath;
   log = vscode.window.createOutputChannel("REDdeck");
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 40);
   status.command = "reddeck.deploy";
   status.show();
-  sevenZa = findSevenZip(context.extensionPath);
+  sevenZa = findSevenZip(extensionRoot);
 
-  view = new ModsView(
-    () => library,
-    (mod) => (library && state.plan ? modStatus(library, gamePath(), mod, state.plan, readManifest(gamePath()), state.changes) : ""),
-  );
-  const tree = vscode.window.createTreeView("reddeck.mods", { treeDataProvider: view, showCollapseAll: false });
+  view = new ModsView(() => library, statusFor);
+  tree = vscode.window.createTreeView("reddeck.mods", { treeDataProvider: view, showCollapseAll: false });
+  detail = new DetailPanel((action, id) => run(() => detailAction(action, id)));
 
   context.subscriptions.push(
     log,
     status,
     tree,
+    { dispose: () => bridge?.stop() },
     tree.onDidChangeCheckboxState((e) => {
       for (const [node, checked] of e.items) {
         if (node.type !== "mod" || !library) continue;
@@ -49,9 +62,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.importVortex", () => run(importVortexCommand)),
     vscode.commands.registerCommand("reddeck.deploy", () => run(deployCommand)),
     vscode.commands.registerCommand("reddeck.undo", () => run(undoCommand)),
-    vscode.commands.registerCommand("reddeck.remove", (node: ModNode) => run(() => removeCommand(node))),
-    vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(node, -1)),
-    vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(node, 1)),
+    vscode.commands.registerCommand("reddeck.remove", (node: ModNode) => run(() => removeCommand(modOf(node)))),
+    vscode.commands.registerCommand("reddeck.details", (node: ModNode) => run(() => showDetails(modOf(node)))),
+    vscode.commands.registerCommand("reddeck.checkConflicts", () => run(() => scanArchives(true))),
+    vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
+    vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
     vscode.commands.registerCommand("reddeck.openInExplorer", (node: ModNode) => {
       if (node?.type === "mod" && library) vscode.env.openExternal(vscode.Uri.file(modFolder(library, node.mod)));
     }),
@@ -61,7 +76,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.refresh", () => reload()),
     vscode.commands.registerCommand("reddeck.showLog", () => log.show(true)),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("reddeck")) reload();
+      if (e.affectsConfiguration("reddeck")) {
+        bridge?.stop();
+        bridge = undefined;
+        reload();
+      }
     }),
   );
 
@@ -69,15 +88,21 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {
-  // Nothing to stop: the library is plain files.
+  bridge?.stop();
 }
 
-function gamePath(): string {
-  return vscode.workspace.getConfiguration("reddeck").get<string>("gamePath", "");
+function modOf(node: ModNode | undefined): ModInfo | undefined {
+  return node?.type === "mod" ? node.mod : undefined;
 }
 
-function libraryPath(): string {
-  return vscode.workspace.getConfiguration("reddeck").get<string>("libraryPath", "") || defaultLibraryPath();
+function settings(): { gamePath: string; libraryPath: string; bridgePath: string; dotnetRoot: string } {
+  const cfg = vscode.workspace.getConfiguration("reddeck");
+  return {
+    gamePath: cfg.get<string>("gamePath", ""),
+    libraryPath: cfg.get<string>("libraryPath", "") || defaultLibraryPath(),
+    bridgePath: cfg.get<string>("bridgePath", ""),
+    dotnetRoot: cfg.get<string>("dotnetRoot", ""),
+  };
 }
 
 async function run(fn: () => Promise<void> | void): Promise<void> {
@@ -91,35 +116,57 @@ async function run(fn: () => Promise<void> | void): Promise<void> {
 }
 
 function reload(): void {
-  const root = libraryPath();
+  const { libraryPath, gamePath } = settings();
   try {
-    library = loadLibrary(root, gamePath());
-    log.appendLine(`Library: ${root} (${library.mods.length} mods), game: ${gamePath()}`);
+    library = loadLibrary(libraryPath, gamePath);
+    log.appendLine(`Library: ${libraryPath} (${library.mods.length} mods), game: ${gamePath}`);
   } catch (err) {
     library = undefined;
-    log.appendLine(`Could not open the library at ${root}: ${String(err)}`);
-    void vscode.window.showErrorMessage(`REDdeck could not open the library at ${root}. See the log.`);
+    log.appendLine(`Could not open the library at ${libraryPath}: ${String(err)}`);
+    void vscode.window.showErrorMessage(`REDdeck could not open the library at ${libraryPath}. See the log.`);
   }
+  bridgeExe = findBridge(settings().bridgePath, extensionRoot) ?? "";
+  void gameVersion(gamePath).then((v) => {
+    state.version = v;
+    tree.description = v ? `Cyberpunk 2077 ${v}` : undefined;
+    updateStatus();
+  });
   refresh();
 }
 
 /** Recomputes the plan and the status of every mod; cheap enough to run after every change. */
 function refresh(): void {
-  const game = gamePath();
-  if (library && fs.existsSync(game)) {
+  const { gamePath } = settings();
+  if (library && fs.existsSync(gamePath)) {
     try {
-      state = { plan: plan(library, game), changes: detectChanges(game) };
+      state = { ...state, plan: plan(library, gamePath), changes: detectChanges(gamePath) };
     } catch (err) {
       log.appendLine(`Could not plan: ${String(err)}`);
-      state = { changes: [] };
+      state = { ...state, plan: undefined, changes: [] };
     }
   } else {
-    state = { changes: [] };
+    state = { ...state, plan: undefined, changes: [] };
   }
   void vscode.commands.executeCommand("setContext", "reddeck.empty", !library || library.mods.length === 0);
-  void vscode.commands.executeCommand("setContext", "reddeck.deployed", !!readManifest(game));
+  void vscode.commands.executeCommand("setContext", "reddeck.deployed", !!readManifest(gamePath));
   updateStatus();
   view.refresh();
+  updateDetail();
+  clearTimeout(scanTimer);
+  scanTimer = setTimeout(() => void run(() => scanArchives(false)), 400);
+}
+
+function statusFor(mod: ModInfo): string {
+  if (!library || !state.plan) return "";
+  const parts = [modStatus(library, settings().gamePath, mod, state.plan, readManifest(settings().gamePath), state.changes)];
+  const a = state.archive;
+  if (a && mod.enabled) {
+    const lost = a.lost.get(mod.id) ?? 0;
+    const won = a.won.get(mod.id) ?? 0;
+    if (lost) parts.push(`loses ${lost} archive file${lost === 1 ? "" : "s"}`);
+    if (won) parts.push(`overrides ${won} archive file${won === 1 ? "" : "s"}`);
+  }
+  return parts.join(", ");
 }
 
 function updateStatus(): void {
@@ -131,17 +178,130 @@ function updateStatus(): void {
   const p = state.plan;
   const pending = p ? p.add.length + p.stale.length : 0;
   const on = library.mods.filter((m) => m.enabled).length;
+  const game = state.version ? `Cyberpunk 2077 ${state.version}` : "game not found";
   if (p?.vortex) {
     status.text = `$(package) ${on} of ${library.mods.length} mods on · Vortex manages the game`;
-    status.tooltip = "Purge in Vortex, then deploy with REDdeck. Click to see.";
+    status.tooltip = `${game}. Purge in Vortex, then deploy with REDdeck. Click to see.`;
   } else if (pending) {
     status.text = `$(package) ${on} of ${library.mods.length} mods on · Deploy (${pending} change${pending === 1 ? "" : "s"})`;
-    status.tooltip = "Click to deploy";
+    status.tooltip = `${game}. Click to deploy.`;
   } else {
     status.text = `$(package) ${on} of ${library.mods.length} mods on · deployed`;
-    status.tooltip = `Library: ${library.root}`;
+    status.tooltip = `${game}. Library: ${library.root}`;
   }
 }
+
+// ---- archive conflicts through REDbridge ------------------------------------------------------
+
+async function scanArchives(explicit: boolean): Promise<void> {
+  if (!library) return;
+  if (!bridgeExe) {
+    state.archive = undefined;
+    if (explicit) {
+      void vscode.window.showInformationMessage("Archive conflicts need REDbridge. Set reddeck.bridgePath to REDbridge.exe (or its folder) and try again.");
+    }
+    return;
+  }
+  const wanted = enabledArchives(library);
+  if (!wanted.length) {
+    state.archive = findArchiveConflicts([]);
+    view.refresh();
+    updateDetail();
+    return;
+  }
+  if (!bridge || !bridge.running) {
+    bridge = new BridgeClient(bridgeExe, settings().dotnetRoot);
+    bridge.start();
+    const info = await bridge.info();
+    log.appendLine(`REDbridge ${info.version} (WolvenKit ${info.wolvenKit}) at ${bridgeExe}`);
+    if (compareVersions(info.version, MinBridgeVersion) < 0) {
+      bridge.stop();
+      bridge = undefined;
+      bridgeExe = "";
+      throw new Error(`REDbridge ${info.version} is older than ${MinBridgeVersion}, which added archive.openMod. Run npm run update in the REDbridge folder.`);
+    }
+  }
+  const listings: ArchiveListing[] = [];
+  for (const { mod, archive } of wanted) {
+    const file = sourcePath(library, mod, archive);
+    let st: fs.Stats;
+    try {
+      st = fs.statSync(file);
+    } catch {
+      continue;
+    }
+    const cached = archiveCache.get(file);
+    if (cached && cached.mtimeMs === st.mtimeMs) {
+      listings.push({ mod: mod.id, archive, resources: cached.resources });
+      continue;
+    }
+    try {
+      const r = await bridge.openMod(file);
+      const resources = new Map(r.items.map((i) => [i.hash, i.name]));
+      archiveCache.set(file, { mtimeMs: st.mtimeMs, resources });
+      listings.push({ mod: mod.id, archive, resources });
+    } catch (err) {
+      log.appendLine(`Could not read ${file}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  state.archive = findArchiveConflicts(listings);
+  const n = state.archive.conflicts.length;
+  log.appendLine(`Archive scan: ${listings.length} archives, ${n} overlapping resource${n === 1 ? "" : "s"}`);
+  view.refresh();
+  updateDetail();
+  if (explicit) void vscode.window.showInformationMessage(n ? `${n} resources overlap between enabled mods. Open a mod's details to see who wins.` : "No resources overlap between the enabled mods' archives.");
+}
+
+// ---- details -----------------------------------------------------------------------------------
+
+function detailData(mod: ModInfo) {
+  return {
+    mod,
+    status: statusFor(mod),
+    plan: state.plan,
+    archive: state.archive,
+    names: new Map((library?.mods ?? []).map((m) => [m.id, m.name])),
+    bridge: bridgeExe,
+  };
+}
+
+function showDetails(mod: ModInfo | undefined): void {
+  if (!mod) return;
+  detail.show(detailData(mod));
+}
+
+function updateDetail(): void {
+  const id = detail.modId;
+  const mod = id ? library?.mods.find((m) => m.id === id) : undefined;
+  if (mod) detail.update(detailData(mod));
+}
+
+async function detailAction(action: string, id: string): Promise<void> {
+  const mod = library?.mods.find((m) => m.id === id);
+  if (!mod || !library) return;
+  switch (action) {
+    case "toggle":
+      mod.enabled = !mod.enabled;
+      saveMod(library, mod);
+      log.appendLine(`${mod.name}: ${mod.enabled ? "on" : "off"}`);
+      refresh();
+      break;
+    case "moveUp":
+      move(mod, -1);
+      break;
+    case "moveDown":
+      move(mod, 1);
+      break;
+    case "open":
+      void vscode.env.openExternal(vscode.Uri.file(modFolder(library, mod)));
+      break;
+    case "remove":
+      await removeCommand(mod);
+      break;
+  }
+}
+
+// ---- the verbs ---------------------------------------------------------------------------------
 
 async function addModCommand(): Promise<void> {
   if (!library) return;
@@ -221,7 +381,7 @@ function versionFrom(base: string): string {
 
 async function importVortexCommand(): Promise<void> {
   if (!library) return;
-  const mods = listVortexMods(gamePath());
+  const mods = listVortexMods(settings().gamePath);
   if (!mods.length) {
     void vscode.window.showInformationMessage("No Vortex mods for Cyberpunk 2077 were found on this machine.");
     return;
@@ -241,8 +401,8 @@ async function importVortexCommand(): Promise<void> {
 
 async function deployCommand(): Promise<void> {
   if (!library) return;
-  const game = gamePath();
-  if (vortexManages(game)) {
+  const { gamePath } = settings();
+  if (vortexManages(gamePath)) {
     const a = await vscode.window.showWarningMessage(
       "Vortex manages this game folder, and two managers cannot share one. In Vortex, choose Mods > Purge, then deploy here. Until then REDdeck only reads.",
       "Import from Vortex",
@@ -251,7 +411,7 @@ async function deployCommand(): Promise<void> {
     return;
   }
   const decisions = new Map<string, Decision>();
-  for (const c of detectChanges(game).filter((c) => c.kind === "changed")) {
+  for (const c of detectChanges(gamePath).filter((c) => c.kind === "changed")) {
     const mod = library.mods.find((m) => m.id === c.entry.mod)?.name ?? c.entry.mod;
     const a = await vscode.window.showWarningMessage(
       `${c.entry.path} changed in the game folder since REDdeck deployed it from ${mod}. Keep the changed file, or put the mod's file back?`,
@@ -265,45 +425,50 @@ async function deployCommand(): Promise<void> {
   }
   const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Deploying", cancellable: false }, async (progress) => {
     let last = 0;
-    return deploy(library!, game, decisions, (done, total) => {
+    return deploy(library!, gamePath, decisions, (done, total) => {
       const pct = Math.floor((done / total) * 100);
       progress.report({ increment: pct - last, message: `${done} of ${total}` });
       last = pct;
     });
   });
   log.appendLine(`Deployed (${result.method}): ${result.linked} added, ${result.removed} removed, ${result.kept} unchanged, ${result.backedUp} backed up${result.skipped.length ? `, skipped ${result.skipped.join(", ")}` : ""}`);
+  let redmodNote = "";
+  if (enabledRedmodPackages(library).length) {
+    const r = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Preparing REDmod mods" }, () => deployRedmod(library!, gamePath, (l) => log.appendLine(l)));
+    redmodNote = r.ran ? ` ${r.packages.length} REDmod mod${r.packages.length === 1 ? "" : "s"} prepared; launch the game with -modded.` : ` REDmod mods not prepared: ${r.output}.`;
+  }
   refresh();
   const words = result.method === "link" ? "linked" : "copied";
-  void vscode.window.showInformationMessage(`Deployed: ${result.linked} files ${words}, ${result.removed} removed.${state.plan?.conflicts.length ? ` ${state.plan.conflicts.length} conflicts resolved by order.` : ""}`);
+  void vscode.window.showInformationMessage(`Deployed: ${result.linked} files ${words}, ${result.removed} removed.${state.plan?.conflicts.length ? ` ${state.plan.conflicts.length} conflicts resolved by order.` : ""}${redmodNote}`);
 }
 
 async function undoCommand(): Promise<void> {
   if (!library) return;
-  const game = gamePath();
-  const manifest = readManifest(game);
+  const { gamePath } = settings();
+  const manifest = readManifest(gamePath);
   if (!manifest) {
     void vscode.window.showInformationMessage("Nothing is deployed.");
     return;
   }
   const a = await vscode.window.showWarningMessage(`Remove all ${manifest.files.length} deployed files from the game folder? Your library is not touched.`, { modal: true }, "Undo deploy");
   if (a !== "Undo deploy") return;
-  const result = undo(library, game);
+  const result = undo(library, gamePath);
   log.appendLine(`Undo: ${result.removed} removed${result.skipped.length ? `, left alone because they changed: ${result.skipped.join(", ")}` : ""}`);
   refresh();
   void vscode.window.showInformationMessage(`Undo: ${result.removed} files removed.${result.skipped.length ? ` ${result.skipped.length} changed files were left in place; see the log.` : ""}`);
 }
 
-async function removeCommand(node: ModNode): Promise<void> {
-  if (node?.type !== "mod" || !library) return;
-  const a = await vscode.window.showWarningMessage(`Remove ${node.mod.name} from the library? Its files leave the game on the next deploy.`, { modal: true }, "Remove");
+async function removeCommand(mod: ModInfo | undefined): Promise<void> {
+  if (!mod || !library) return;
+  const a = await vscode.window.showWarningMessage(`Remove ${mod.name} from the library? Its files leave the game on the next deploy.`, { modal: true }, "Remove");
   if (a !== "Remove") return;
-  removeMod(library, node.mod);
-  log.appendLine(`Removed ${node.mod.name}`);
+  removeMod(library, mod);
+  log.appendLine(`Removed ${mod.name}`);
   reload();
 }
 
-function move(node: ModNode, delta: -1 | 1): void {
-  if (node?.type !== "mod" || !library) return;
-  moveMod(library, node.mod, delta);
+function move(mod: ModInfo | undefined, delta: -1 | 1): void {
+  if (!mod || !library) return;
+  moveMod(library, mod, delta);
   refresh();
 }

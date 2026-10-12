@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "cyberbuildsai",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -63,6 +63,16 @@
         "title": "Add mod",
         "category": "REDdeck",
         "icon": "$(add)"
+      },
+      {
+        "command": "reddeck.details",
+        "title": "Details",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.checkConflicts",
+        "title": "Check archive conflicts",
+        "category": "REDdeck"
       },
       {
         "command": "reddeck.importVortex",
@@ -137,6 +147,11 @@
           "group": "navigation@3"
         },
         {
+          "command": "reddeck.checkConflicts",
+          "when": "view == reddeck.mods",
+          "group": "1_more@0"
+        },
+        {
           "command": "reddeck.importVortex",
           "when": "view == reddeck.mods",
           "group": "1_more@1"
@@ -169,6 +184,11 @@
           "group": "inline@2"
         },
         {
+          "command": "reddeck.details",
+          "when": "view == reddeck.mods && viewItem == mod",
+          "group": "0_details@1"
+        },
+        {
           "command": "reddeck.openInExplorer",
           "when": "view == reddeck.mods && viewItem == mod",
           "group": "1_open@1"
@@ -195,6 +215,10 @@
         {
           "command": "reddeck.openInExplorer",
           "when": "false"
+        },
+        {
+          "command": "reddeck.details",
+          "when": "false"
         }
       ]
     },
@@ -210,6 +234,16 @@
           "type": "string",
           "default": "",
           "description": "Where REDdeck keeps your mods. Empty means %USERPROFILE%\\REDdeck. Put it on the same drive as the game so deploy can use hardlinks instead of copies."
+        },
+        "reddeck.bridgePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to REDbridge.exe or its folder. With it, REDdeck shows conflicts between resources inside mod archives. Empty means a REDbridge checkout next to this one, or REDbridge on PATH."
+        },
+        "reddeck.dotnetRoot": {
+          "type": "string",
+          "default": "",
+          "description": "DOTNET_ROOT for REDbridge, when the .NET 10 runtime is installed per user rather than machine wide."
         }
       }
     },
@@ -234,7 +268,8 @@
     "package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && vsce package --no-dependencies --readme-path docs/marketplace.md --out dist/"
   },
   "dependencies": {
-    "7zip-bin": "^5.2.0"
+    "7zip-bin": "^5.2.0",
+    "vscode-jsonrpc": "^9.0.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

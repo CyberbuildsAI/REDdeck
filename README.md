@@ -17,7 +17,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 **[Read the docs](https://cyberbuildsai.github.io/REDdeck/)** &middot; [Design](https://cyberbuildsai.github.io/REDdeck/design.html) &middot; [REDcode](https://github.com/CyberbuildsAI/REDcode) &middot; [REDbridge](https://github.com/CyberbuildsAI/REDbridge) &middot; [REDnode](https://github.com/CyberbuildsAI/REDnode)
 
 > [!NOTE]
-> **Status: M1 library and deploy built, awaiting a real-game test.** Add from zip, 7z, rar or folder; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex. All of it passes `npm run smoke` against a fake game folder and a real Vortex library. The [design](https://cyberbuildsai.github.io/REDdeck/design.html) has the full picture.
+> **Status: M1 built and M2 under way, awaiting a real-game test.** Add from zip, 7z, rar or folder; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex; a detail panel; conflicts inside archives through REDbridge; REDmod deploy. All of it passes `npm run smoke` against a fake game folder, a real Vortex library and a real REDbridge. The [design](https://cyberbuildsai.github.io/REDdeck/design.html) has the full picture.
 
 ## How it works
 
