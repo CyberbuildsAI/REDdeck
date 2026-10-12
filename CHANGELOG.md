@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2 (2026-10-12)
+
+- "Deploy now" in the Conflicts panel, shown with the number of files a deploy would change, and on the toast after every Resolve choice. A resolve still changes only the library; the game folder changes when you press Deploy.
+
 ## 0.8.1 (2026-10-12)
 
 - The Conflicts panel's row actions are one Resolve dropdown per row instead of a run of buttons, so rows stay one line tall.

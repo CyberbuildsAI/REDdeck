@@ -324,6 +324,7 @@ function conflictsData() {
     names: new Map((library?.mods ?? []).map((m) => [m.id, m.name])),
     bridge: !!bridgeExe,
     scanning,
+    pending: (state.plan?.add.length ?? 0) + (state.plan?.stale.length ?? 0),
   };
 }
 
@@ -337,8 +338,16 @@ function updateConflicts(): void {
   if (conflictsPanel?.open) conflictsPanel.update(conflictsData());
 }
 
+/** A toast after a resolve, with the deploy one press away. */
+function offerDeploy(text: string): void {
+  void vscode.window.showInformationMessage(`${text} Deploy to make it real.`, "Deploy now").then((a) => {
+    if (a) void run(deployCommand);
+  });
+}
+
 async function conflictsAction(m: ConflictsMessage): Promise<void> {
   if (!library) return;
+  if (m.action === "deploy") return deployCommand();
   const mod = library.mods.find((x) => x.id === m.id);
   if (!mod) return;
   switch (m.action) {
@@ -348,6 +357,7 @@ async function conflictsAction(m: ConflictsMessage): Promise<void> {
       placeAbove(library, mod, over);
       log.appendLine(`${mod.name} placed above ${over.name}`);
       refresh();
+      offerDeploy(`${mod.name} now wins over ${over.name}.`);
       break;
     }
     case "toggle":
@@ -355,6 +365,7 @@ async function conflictsAction(m: ConflictsMessage): Promise<void> {
       saveMod(library, mod);
       log.appendLine(`${mod.name}: ${mod.enabled ? "on" : "off"}`);
       refresh();
+      offerDeploy(`${mod.name} is ${mod.enabled ? "on" : "off"}.`);
       break;
     case "details":
       showDetails(mod);

@@ -15,10 +15,12 @@ export interface ConflictsData {
   bridge: boolean;
   /** True while the archive scan is running. */
   scanning: boolean;
+  /** How many files a deploy would add or remove right now; zero means the game folder is current. */
+  pending: number;
 }
 
 export interface ConflictsMessage {
-  action: "letWin" | "toggle" | "details";
+  action: "letWin" | "toggle" | "details" | "deploy";
   id: string;
   /** For letWin: the mod the id should be placed above. */
   over?: string;
@@ -115,6 +117,9 @@ body { font-family: var(--vscode-font-family); font-size: 13px; color: var(--fg)
 h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; text-transform: uppercase; } h1 span { color: var(--yellow); }
 h2 { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); margin: 22px 0 8px; }
 p.lead { margin: 6px 0 14px; color: var(--dim); max-width: 760px; }
+.bar { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; }
+button.deploy { font: inherit; font-size: 13px; background: var(--yellow); color: #0b0d12; border: 1px solid var(--yellow); padding: 5px 16px; cursor: pointer; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+button.deploy:hover { background: transparent; color: var(--yellow); }
 select.resolve { font: inherit; font-size: 12px; color: var(--fg); background: var(--vscode-dropdown-background, var(--bg)); border: 1px solid var(--vscode-dropdown-border, var(--line)); padding: 3px 8px; cursor: pointer; min-width: 150px; }
 select.resolve:hover, select.resolve:focus { border-color: var(--yellow); outline: none; }
 table { border-collapse: collapse; width: 100%; } th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -124,13 +129,15 @@ td.acts { width: 1%; }
 details summary { cursor: pointer; } ul { margin: 4px 0 8px 18px; padding: 0; } li { list-style: none; }
 </style></head><body>
 <h1>Conflicts <span>${total}</span></h1>
-<p class="lead">Two mods want the same thing. The one higher in the Mods list wins, and that is usually fine: the later mod is often a patch for the earlier one. To change a winner, open the row's Resolve menu: "Let ... win" moves that mod just above the other, or turn one of them off. Deploy again to make it real.</p>
+<p class="lead">Two mods want the same thing. The one higher in the Mods list wins, and that is usually fine: the later mod is often a patch for the earlier one. To change a winner, open the row's Resolve menu: "Let ... win" moves that mod just above the other, or turn one of them off. Then deploy to make it real.</p>
+<div class="bar">${d.pending ? `<button class="deploy" data-msg='${esc(JSON.stringify({ action: "deploy", id: "" }))}'>Deploy now</button><span class="dim">${d.pending} file${d.pending === 1 ? "" : "s"} to change in the game folder</span>` : `<span class="dim">The game folder is up to date with these choices.</span>`}</div>
 <h2>By file path</h2>
 ${fileRows ? `<table><thead><tr><th>File</th><th>Wins</th><th>Loses</th><th></th></tr></thead><tbody>${fileRows}</tbody></table>` : `<p class="dim">No two enabled mods deploy the same file path.</p>`}
 <h2>Inside archives</h2>
 ${archiveNote}
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
+  for (const b of document.querySelectorAll("button[data-msg]")) b.addEventListener("click", () => vscode.postMessage(JSON.parse(b.dataset.msg)));
   for (const s of document.querySelectorAll("select.resolve")) s.addEventListener("change", () => { if (s.value) { vscode.postMessage(JSON.parse(s.value)); s.value = ""; } });
 </script>
 </body></html>`;
