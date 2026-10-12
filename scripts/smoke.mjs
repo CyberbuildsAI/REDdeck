@@ -181,6 +181,37 @@ console.log("changes: ok");
   console.log("project: ok");
 }
 
+// Families: versions of one mod grouped, one active, the rest off; ids carry the version.
+{
+  const a = core.addMod(lib, cls("bare", "Fam").placements, { name: "Codeware", version: "1.20.3", source: { type: "nexus", modId: 7780, fileId: 1 } });
+  a.nexus = { name: "Codeware", version: "1.20.5", latestVersion: "1.20.5", latestFileId: 3, checked: "2026-10-12T00:00:00Z" };
+  core.saveMod(lib, a);
+  const b = core.addMod(lib, cls("bare", "Fam").placements, { name: "Codeware", version: "1.20.4", source: { type: "nexus", modId: 7780, fileId: 2 }, enabled: false });
+  assert.equal(b.id, "codeware-1-20-4", "second version gets the version in its id");
+  let fam = core.familyOf(lib, a);
+  assert.equal(fam.mods.length, 2);
+  assert.equal(fam.mods[0].id, b.id, "newest first");
+  assert.equal(fam.active.id, a.id, "the enabled one is active");
+  assert.equal(fam.update.version, "1.20.5");
+  assert.equal(core.familyUpdate(lib, b), "1.20.5");
+  assert.equal(core.findSameVersion(lib, 7780, 2).id, b.id);
+  assert.equal(core.findSameVersion(lib, 7780, 99, "1.20.3").id, a.id);
+  assert.equal(core.findSameVersion(lib, 7780, 99, "9.9.9"), undefined);
+  const r = core.activateVersion(lib, b);
+  assert.equal(r.previous.id, a.id);
+  assert.ok(r.on);
+  assert.ok(b.enabled && !a.enabled, "chosen on, previous off");
+  assert.ok(lib.info.order.indexOf(b.id) < lib.info.order.indexOf(a.id), "chosen takes the previous one's place");
+  fam = core.familyOf(lib, a);
+  assert.equal(fam.active.id, b.id);
+  assert.equal(core.families(lib).filter((f) => f.key === "nexus:7780").length, 1, "one row per mod");
+  assert.equal(core.baseName("Codeware 1.20.5"), "codeware");
+  assert.equal(core.baseName("input_loader_v0.2.3"), "input loader");
+  core.removeMod(lib, a);
+  core.removeMod(lib, b);
+  console.log("families: ok");
+}
+
 // placeAbove: the loser moves to directly above the winner; already-above is a no-op.
 {
   const before = [...lib.info.order];

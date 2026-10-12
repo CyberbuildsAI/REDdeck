@@ -1,6 +1,7 @@
 // The Mods view: one list, grouped into Frameworks and Mods, with a checkbox and a status per mod.
 
 import * as vscode from "vscode";
+import { families } from "./families";
 import type { Library, ModInfo } from "./library";
 
 export type ModNode = { type: "group"; label: string; mods: ModInfo[] } | { type: "mod"; mod: ModInfo };
@@ -22,8 +23,10 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
     const lib = this.library();
     if (!lib) return [];
     if (!node) {
-      const frameworks = lib.mods.filter((m) => m.kinds.includes("framework"));
-      const mods = lib.mods.filter((m) => !m.kinds.includes("framework"));
+      // One node per mod; a mod with several versions in the library shows its active one.
+      const active = families(lib).map((f) => f.active);
+      const frameworks = active.filter((m) => m.kinds.includes("framework"));
+      const mods = active.filter((m) => !m.kinds.includes("framework"));
       const groups: ModNode[] = [];
       if (frameworks.length) groups.push({ type: "group", label: "Frameworks", mods: frameworks });
       groups.push({ type: "group", label: "Mods", mods });
@@ -45,7 +48,8 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
     const status = this.status(mod);
     const item = new vscode.TreeItem(mod.name, vscode.TreeItemCollapsibleState.None);
     item.id = mod.id;
-    item.description = [mod.version, status].filter(Boolean).join("  ·  ");
+    const others = families(this.library()!).find((f) => f.active.id === mod.id)?.mods.length ?? 1;
+    item.description = [mod.version + (others > 1 ? ` (+${others - 1})` : ""), status].filter(Boolean).join("  ·  ");
     item.tooltip = new vscode.MarkdownString(
       [`**${mod.name}** ${mod.version}`, `${mod.kinds.join(", ")} · ${mod.files.length} files`, status, mod.source.path ? `from ${mod.source.path}` : ""].filter(Boolean).join("  \n"),
     );

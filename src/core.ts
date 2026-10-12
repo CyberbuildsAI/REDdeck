@@ -4,6 +4,7 @@ export * from "./classifier";
 export * from "./conflicts";
 export * from "./deploy";
 export * from "./extract";
+export * from "./families";
 export * from "./game";
 export * from "./library";
 export * from "./loadouts";

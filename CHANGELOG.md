@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 (2026-10-12)
+
+- One row per mod. The versions of a mod in the library (same Nexus mod, or same name) are one row on the REDdeck page and one node in the Mods view. The version column is a dropdown: pick a version and it takes the mod's place in the order and its on/off state, and the other versions go off. "Get X from Nexus" sits at the bottom of the dropdown when there is a newer version. "Switch version..." does the same from the Mods view's menu.
+- No duplicates. An update or an nxm link for a file already in the library makes that version active instead of downloading it again, and a file already in downloads is not fetched twice. A second version of a mod gets its version in its id (`codeware-1-20-5`), and the same name as the first.
+- "update X available" shows only when X is newer than every version in the library, so it goes away once the update is in.
+
 ## 0.9.2 (2026-10-12)
 
 - Update from inside REDdeck. The yellow "update X available" text on the mods page, "Update to X" in a row's menu and the same button in the detail panel ask once, then download the newest file from Nexus into the library, put it in the old version's place in the order and turn the old version off. Deploy makes it real. Nexus gives direct downloads to Premium members only; for everyone else REDdeck opens the file page, and "Mod manager download" there finishes the same way when REDdeck handles nxm links.

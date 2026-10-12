@@ -104,10 +104,15 @@ export function modFolder(lib: Library, mod: ModInfo): string {
 }
 
 /** A folder-safe id from a mod name: lower case, dashes, unique within the library. */
-export function idFor(lib: Library, name: string): string {
-  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "mod";
+export function idFor(lib: Library, name: string, version?: string): string {
+  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const base = slug(name) || "mod";
+  const taken = (id: string) => lib.mods.some((m) => m.id === id);
+  if (!taken(base)) return base;
+  // A second version of the same mod gets the version in its id, so "codeware-1-20-5" not "codeware-2".
+  if (version && slug(version) && !taken(`${base}-${slug(version)}`)) return `${base}-${slug(version)}`;
   let id = base;
-  for (let n = 2; lib.mods.some((m) => m.id === id); n++) id = `${base}-${n}`;
+  for (let n = 2; taken(id); n++) id = `${base}-${n}`;
   return id;
 }
 
@@ -121,7 +126,7 @@ export interface AddOptions {
 /** Copies classified files into a new mod folder, laid out exactly as they deploy. */
 export function addMod(lib: Library, placements: Placement[], opts: AddOptions): ModInfo {
   if (!placements.length) throw new Error("Nothing to add: no files could be placed.");
-  const id = idFor(lib, opts.name);
+  const id = idFor(lib, opts.name, opts.version);
   const target = path.join(libraryFolder(lib.root), id);
   fs.mkdirSync(target, { recursive: true });
   const files = new Set<string>();

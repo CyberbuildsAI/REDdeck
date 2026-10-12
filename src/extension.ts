@@ -12,6 +12,7 @@ import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, typ
 import { deploy, detectChanges, modStatus, plan, readManifest, undo, vortexManages, type Change, type Decision, type Plan } from "./deploy";
 import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
 import { DetailPanel } from "./detailPanel";
+import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family } from "./families";
 import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
 import { gameVersion } from "./game";
@@ -84,6 +85,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.details", (node: ModNode) => run(() => showDetails(modOf(node)))),
     vscode.commands.registerCommand("reddeck.checkConflicts", () => run(showConflicts)),
     vscode.commands.registerCommand("reddeck.openPage", () => run(showPage)),
+    vscode.commands.registerCommand("reddeck.switchVersion", (node: ModNode) => run(() => switchVersionCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
     vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
     vscode.commands.registerCommand("reddeck.openInExplorer", (node: ModNode) => {
@@ -198,7 +200,8 @@ function refresh(): void {
 function statusFor(mod: ModInfo, withUpdate = true): string {
   if (!library || !state.plan) return "";
   const parts = [modStatus(library, settings().gamePath, mod, state.plan, readManifest(settings().gamePath), state.changes)];
-  if (withUpdate && mod.nexus && versionNewer(mod.nexus.latestVersion, mod.version)) parts.push(`update ${mod.nexus.latestVersion} available`);
+  const up = withUpdate ? familyUpdate(library, mod) : undefined;
+  if (up) parts.push(`update ${up} available`);
   const a = state.archive;
   if (a && mod.enabled) {
     const lost = a.lost.get(mod.id) ?? 0;
@@ -308,6 +311,8 @@ function detailData(mod: ModInfo) {
     archive: state.archive,
     names: new Map((library?.mods ?? []).map((m) => [m.id, m.name])),
     bridge: bridgeExe,
+    update: library ? familyUpdate(library, mod) : undefined,
+    versions: library ? familyOf(library, mod).mods.map((m) => ({ id: m.id, version: m.version, enabled: m.enabled })) : [],
   };
 }
 
@@ -320,12 +325,14 @@ function showDetails(mod: ModInfo | undefined): void {
 
 let modsPage: ModsPage;
 
-function pageRow(mod: ModInfo, manifestMods: Set<string>): PageRow {
+function pageRow(fam: Family, manifestMods: Set<string>): PageRow {
   const p = state.plan;
+  const mod = fam.active;
   return {
     id: mod.id,
-    name: mod.name,
+    name: fam.name,
     version: mod.version,
+    versions: fam.mods.map((m) => ({ id: m.id, version: m.version, active: m.id === mod.id })),
     kinds: mod.kinds,
     enabled: mod.enabled,
     status: statusFor(mod, false),
@@ -334,8 +341,8 @@ function pageRow(mod: ModInfo, manifestMods: Set<string>): PageRow {
     needsDeploy: !!p && (p.add.some((d) => d.mod?.id === mod.id) || p.stale.some((e) => e.mod === mod.id)),
     changed: state.changes.some((c) => c.entry.mod === mod.id && c.kind === "changed"),
     conflicts: p ? p.conflicts.filter((c) => c.winner === mod.id || c.losers.includes(mod.id)).length : 0,
-    update: mod.nexus && versionNewer(mod.nexus.latestVersion, mod.version) ? mod.nexus.latestVersion : undefined,
-    nexusId: mod.source.modId,
+    update: fam.update?.version,
+    nexusId: fam.nexusId,
   };
 }
 
@@ -345,7 +352,7 @@ async function pageData() {
   const manifestMods = new Set((manifest?.files ?? []).map((e) => e.mod));
   const when = manifest?.time ? new Date(manifest.time) : undefined;
   return {
-    rows: (library?.mods ?? []).map((m) => pageRow(m, manifestMods)),
+    rows: library ? families(library).map((f) => pageRow(f, manifestMods)) : [],
     game: state.version ? `Cyberpunk 2077 ${state.version}` : "game not found",
     library: library?.root ?? s.libraryPath,
     method: state.plan?.method ?? ("link" as const),
@@ -395,6 +402,9 @@ async function pageAction(m: PageMessage): Promise<void> {
     case "details":
       showDetails(mod);
       break;
+    case "activate":
+      switchVersion(mod);
+      break;
     case "moveUp":
       move(mod, -1);
       break;
@@ -414,6 +424,34 @@ async function pageAction(m: PageMessage): Promise<void> {
       await removeCommand(mod);
       break;
   }
+}
+
+/** Makes this version the one the mod's row stands for. */
+function switchVersion(chosen: ModInfo): void {
+  if (!library) return;
+  const r = activateVersion(library, chosen);
+  if (r.previous.id === chosen.id) return;
+  log.appendLine(`${chosen.name}: version ${chosen.version} active (was ${r.previous.version})`);
+  refresh();
+  offerDeploy(`${chosen.name} ${chosen.version} is now the active version${r.on ? "" : " (still off)"}.`);
+}
+
+/** Quick pick of a mod's versions, from the Mods view. */
+async function switchVersionCommand(mod: ModInfo | undefined): Promise<void> {
+  if (!mod || !library) return;
+  const fam = familyOf(library, mod);
+  const items = [
+    ...fam.mods.map((m) => ({ label: m.version || "(no version)", description: m.id === fam.active.id ? "active" : "", detail: `added ${m.added.slice(0, 10)}, ${m.files.length} files`, mod: m })),
+    ...(fam.update ? [{ label: `$(cloud-download) Get ${fam.update.version} from Nexus`, description: "", detail: "Downloads it into the library and makes it active", mod: undefined }] : []),
+  ];
+  if (items.length === 1) {
+    void vscode.window.showInformationMessage(`${fam.name} has one version in the library, ${fam.active.version || "unversioned"}.${fam.nexusId ? "" : " Versions are tracked for mods that come from Nexus."}`);
+    return;
+  }
+  const pick = await vscode.window.showQuickPick(items, { title: `${fam.name}: which version?`, placeHolder: "The chosen version takes this mod's place; the others go off" });
+  if (!pick) return;
+  if (pick.mod) switchVersion(pick.mod);
+  else await updateModCommand(fam.active);
 }
 
 // ---- conflicts panel ---------------------------------------------------------------------------
@@ -920,6 +958,14 @@ async function fetchFromNexus(modId: number, fileId: number, key?: string, expir
   if (!client) return;
   const [info, files] = await Promise.all([client.mod(modId), client.files(modId)]);
   const file = files.files.find((f) => f.file_id === fileId);
+  const same = findSameVersion(library, modId, fileId, file?.version);
+  if (same) {
+    const r = activateVersion(library, same);
+    log.appendLine(`${same.name} ${same.version} is already in the library (${same.id}); made it the active version`);
+    refresh();
+    void vscode.window.showInformationMessage(`${info.name} ${same.version} is already in the library${r.previous.id === same.id ? "." : " and is now the active version."}`);
+    return;
+  }
   const links = await client.downloadLinks(modId, fileId, key, expires).catch((err: Error) => {
     if (/403|forbidden|premium/i.test(err.message)) throw new PremiumError();
     throw err;
@@ -929,32 +975,32 @@ async function fetchFromNexus(modId: number, fileId: number, key?: string, expir
   const fileName = file?.file_name ?? `${info.name}-${nxm.modId}-${nxm.fileId}.zip`;
   const dest = path.join(library.root, "downloads", fileName);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
-  await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Downloading ${info.name}` }, async (progress) => {
-    let last = 0;
-    await download(links[0].URI, dest, (received, total) => {
-      if (!total) return;
-      const pct = Math.floor((received / total) * 100);
-      progress.report({ increment: pct - last, message: `${Math.round(received / 1048576)} of ${Math.round(total / 1048576)} MB` });
-      last = pct;
+  const have = fs.existsSync(dest) && !!file && Math.abs(fs.statSync(dest).size - file.size_kb * 1024) < 2048;
+  if (have) log.appendLine(`${fileName} is already in downloads, not downloading again`);
+  else {
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Downloading ${info.name}` }, async (progress) => {
+      let last = 0;
+      await download(links[0].URI, dest, (received, total) => {
+        if (!total) return;
+        const pct = Math.floor((received / total) * 100);
+        progress.report({ increment: pct - last, message: `${Math.round(received / 1048576)} of ${Math.round(total / 1048576)} MB` });
+        last = pct;
+      });
     });
-  });
+  }
   log.appendLine(`Downloaded ${fileName} (${info.name} ${file?.version ?? ""}) from Nexus mod ${nxm.modId}, md5 ${md5Of(dest)}`);
   const existing = library.mods.find((m) => m.source.modId === nxm.modId);
-  await addFrom(dest, { name: existing ? `${info.name} ${file?.version ?? ""}`.trim() : info.name, version: file?.version ?? info.version, source: { type: "nexus", modId: nxm.modId, fileId: nxm.fileId, path: dest } });
+  await addFrom(dest, { name: existing?.name ?? info.name, version: file?.version ?? info.version, source: { type: "nexus", modId: nxm.modId, fileId: nxm.fileId, path: dest } });
   const added = library.mods[library.mods.length - 1];
   if (added && added.source.modId === nxm.modId && added.source.fileId === nxm.fileId) {
     added.nexus = { name: info.name, version: info.version, latestVersion: file?.version ?? info.version, latestFileId: nxm.fileId, latestFileName: fileName, checked: new Date().toISOString(), author: info.author, summary: info.summary };
     saveMod(library, added);
   }
   if (existing && added && added.id !== existing.id) {
-    placeAbove(library, added, existing);
-    if (existing.enabled) {
-      existing.enabled = false;
-      saveMod(library, existing);
-    }
-    log.appendLine(`${added.name} takes the place of ${existing.name} ${existing.version}, which is now off`);
+    const r = activateVersion(library, added);
+    log.appendLine(`${added.name} ${added.version} takes the place of ${r.previous.version}, which is now off`);
     refresh();
-    offerDeploy(`${added.name} ${added.version} added; ${existing.name} ${existing.version} turned off.`);
+    offerDeploy(`${added.name} ${added.version} added in place of ${r.previous.version}${r.on ? "" : " (the mod is off)"}.`);
   }
 }
 
@@ -969,18 +1015,20 @@ async function updateModCommand(mod: ModInfo | undefined): Promise<void> {
   if (!mod || !library || !mod.source.modId) return;
   const client = await nexusClient(true);
   if (!client) return;
-  let fileId = mod.nexus?.latestFileId;
-  let latest = mod.nexus?.latestVersion;
-  if (!fileId || !latest || !versionNewer(latest, mod.version)) {
+  const fam = familyOf(library, mod);
+  const newestHere = fam.mods[0].version;
+  let fileId = fam.update?.fileId;
+  let latest = fam.update?.version;
+  if (!fileId || !latest) {
     const newest = newestFile(await client.files(mod.source.modId));
     fileId = newest?.file_id;
     latest = newest?.version;
   }
-  if (!fileId || !latest || !versionNewer(latest, mod.version)) {
-    void vscode.window.showInformationMessage(`${mod.name} ${mod.version} is the newest file on Nexus.`);
+  if (!fileId || !latest || !versionNewer(latest, newestHere)) {
+    void vscode.window.showInformationMessage(`${fam.name} ${newestHere} is the newest file on Nexus${fam.active.version !== newestHere ? `, and it is in the library; pick it from the version list` : ""}.`);
     return;
   }
-  const a = await vscode.window.showInformationMessage(`Update ${mod.name} from ${mod.version} to ${latest}?`, { modal: true, detail: "REDdeck downloads the newest file from Nexus into the library, puts it in this mod's place and turns this version off. The game folder changes when you deploy." }, "Update");
+  const a = await vscode.window.showInformationMessage(`Update ${fam.name} from ${fam.active.version} to ${latest}?`, { modal: true, detail: "REDdeck downloads the newest file from Nexus into the library, puts it in this mod's place and turns this version off. The game folder changes when you deploy." }, "Update");
   if (a !== "Update") return;
   try {
     await fetchFromNexus(mod.source.modId, fileId);

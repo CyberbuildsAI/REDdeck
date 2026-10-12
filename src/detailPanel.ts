@@ -5,7 +5,6 @@ import * as vscode from "vscode";
 import type { ArchiveConflictSummary } from "./conflicts";
 import type { Plan } from "./deploy";
 import type { ModInfo } from "./library";
-import { versionNewer } from "./nexus";
 
 export interface DetailData {
   mod: ModInfo;
@@ -14,6 +13,10 @@ export interface DetailData {
   archive: ArchiveConflictSummary | undefined;
   names: Map<string, string>;
   bridge: string;
+  /** A version on Nexus newer than every version of this mod in the library. */
+  update?: string;
+  /** This mod's versions in the library, newest first. */
+  versions: { id: string; version: string; enabled: boolean }[];
 }
 
 export class DetailPanel {
@@ -83,7 +86,8 @@ function render(d: DetailData, csp: string): string {
     })
     .join("");
   const source = mod.source.type === "nexus" ? `Nexus mod ${mod.source.modId}` : mod.source.type === "vortex" ? `imported from Vortex${mod.source.modId ? ` (Nexus mod ${mod.source.modId})` : ""}` : mod.source.path ? `${mod.source.type}: ${esc(mod.source.path)}` : mod.source.type;
-  const update = mod.nexus && versionNewer(mod.nexus.latestVersion, mod.version) ? mod.nexus.latestVersion : undefined;
+  const update = d.update;
+  const versionsLine = d.versions.length > 1 ? `<div class="dim">Versions in the library: ${d.versions.map((v) => (v.id === mod.id ? `<b>${esc(v.version)}</b> (this one)` : `${esc(v.version)}${v.enabled ? " (on)" : ""}`)).join(", ")}. Pick one from the version list on the REDdeck page.</div>` : "";
   const nexusLine = mod.source.modId
     ? `<div class="dim">Nexus mod ${mod.source.modId}${mod.nexus?.author ? ` by ${esc(mod.nexus.author)}` : ""}${mod.nexus?.checked ? `, checked ${esc(mod.nexus.checked.slice(0, 10))}` : ""}. ${update ? `<span class="warn">Version ${esc(update)} is on Nexus.</span>` : mod.nexus ? "Up to date." : "Not checked yet."}</div>${mod.nexus?.summary ? `<p class="dim">${esc(mod.nexus.summary)}</p>` : ""}`
     : "";
@@ -117,6 +121,7 @@ details { margin: 4px 0; } summary { cursor: pointer; } ul { margin: 4px 0 8px 1
 <div class="status">${esc(d.status)}${d.names.size ? "" : ""}</div>
 <div class="meta">${[...mod.kinds].sort((a, b) => (a === "framework" ? -1 : b === "framework" ? 1 : 0)).map((k) => `<span class="chip ${k === "framework" ? "on" : ""}">${k}</span>`).join("")}<span class="chip">${mod.files.length} files</span><span class="chip ${mod.enabled ? "on" : ""}">${mod.enabled ? "on" : "off"}</span></div>
 <div class="dim">${source}. Added ${esc(mod.added.slice(0, 10))}.</div>
+${versionsLine}
 ${nexusLine}
 <div class="bar">
   <button data-action="toggle">${mod.enabled ? "Turn off" : "Turn on"}</button>
