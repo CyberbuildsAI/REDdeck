@@ -12,6 +12,7 @@ import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, typ
 import { deploy, detectChanges, modStatus, plan, readManifest, undo, vortexManages, type Change, type Decision, type Plan } from "./deploy";
 import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
 import { DetailPanel } from "./detailPanel";
+import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
 import { gameVersion } from "./game";
 import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
@@ -56,6 +57,7 @@ export function activate(context: vscode.ExtensionContext): void {
   tree = vscode.window.createTreeView("reddeck.mods", { treeDataProvider: view, showCollapseAll: false });
   detail = new DetailPanel((action, id) => run(() => detailAction(action, id)));
   conflictsPanel = new ConflictsPanel((m) => run(() => conflictsAction(m)));
+  modsPage = new ModsPage((m) => run(() => pageAction(m)));
 
   context.subscriptions.push(
     log,
@@ -81,6 +83,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.remove", (node: ModNode) => run(() => removeCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.details", (node: ModNode) => run(() => showDetails(modOf(node)))),
     vscode.commands.registerCommand("reddeck.checkConflicts", () => run(showConflicts)),
+    vscode.commands.registerCommand("reddeck.openPage", () => run(showPage)),
     vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
     vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
     vscode.commands.registerCommand("reddeck.openInExplorer", (node: ModNode) => {
@@ -187,6 +190,7 @@ function refresh(): void {
   view.refresh();
   updateDetail();
   updateConflicts();
+  void updatePage();
   clearTimeout(scanTimer);
   scanTimer = setTimeout(() => void run(() => scanArchives(false)), 400);
 }
@@ -310,6 +314,103 @@ function detailData(mod: ModInfo) {
 function showDetails(mod: ModInfo | undefined): void {
   if (!mod) return;
   detail.show(detailData(mod));
+}
+
+// ---- the mods page -------------------------------------------------------------------------------
+
+let modsPage: ModsPage;
+
+function pageRow(mod: ModInfo, manifestMods: Set<string>): PageRow {
+  const p = state.plan;
+  return {
+    id: mod.id,
+    name: mod.name,
+    version: mod.version,
+    kinds: mod.kinds,
+    enabled: mod.enabled,
+    status: statusFor(mod),
+    framework: mod.kinds.includes("framework"),
+    deployed: manifestMods.has(mod.id),
+    needsDeploy: !!p && (p.add.some((d) => d.mod?.id === mod.id) || p.stale.some((e) => e.mod === mod.id)),
+    changed: state.changes.some((c) => c.entry.mod === mod.id && c.kind === "changed"),
+    conflicts: p ? p.conflicts.filter((c) => c.winner === mod.id || c.losers.includes(mod.id)).length : 0,
+    update: mod.nexus && versionNewer(mod.nexus.latestVersion, mod.version) ? mod.nexus.latestVersion : undefined,
+    nexusId: mod.source.modId,
+  };
+}
+
+async function pageData() {
+  const s = settings();
+  const manifest = readManifest(s.gamePath);
+  const manifestMods = new Set((manifest?.files ?? []).map((e) => e.mod));
+  const when = manifest?.time ? new Date(manifest.time) : undefined;
+  return {
+    rows: (library?.mods ?? []).map((m) => pageRow(m, manifestMods)),
+    game: state.version ? `Cyberpunk 2077 ${state.version}` : "game not found",
+    library: library?.root ?? s.libraryPath,
+    method: state.plan?.method ?? ("link" as const),
+    lastDeploy: when ? when.toLocaleString() : undefined,
+    pending: (state.plan?.add.length ?? 0) + (state.plan?.stale.length ?? 0),
+    signedIn: !!(await secrets.get(NexusKeySecret)),
+    vortex: !!state.plan?.vortex,
+  };
+}
+
+async function showPage(): Promise<void> {
+  modsPage.show(await pageData());
+}
+
+async function updatePage(): Promise<void> {
+  if (modsPage?.open) modsPage.update(await pageData());
+}
+
+async function pageAction(m: PageMessage): Promise<void> {
+  const mod = m.id ? library?.mods.find((x) => x.id === m.id) : undefined;
+  switch (m.action) {
+    case "add":
+      return addModCommand();
+    case "deploy":
+      return deployCommand();
+    case "undo":
+      return undoCommand();
+    case "updates":
+      return checkUpdatesCommand(false);
+    case "signIn":
+      await nexusSignInCommand();
+      return;
+    case "conflicts":
+      return showConflicts();
+    case "library":
+      if (library) void vscode.env.openExternal(vscode.Uri.file(library.root));
+      return;
+  }
+  if (!mod || !library) return;
+  switch (m.action) {
+    case "toggle":
+      mod.enabled = !mod.enabled;
+      saveMod(library, mod);
+      log.appendLine(`${mod.name}: ${mod.enabled ? "on" : "off"}`);
+      refresh();
+      break;
+    case "details":
+      showDetails(mod);
+      break;
+    case "moveUp":
+      move(mod, -1);
+      break;
+    case "moveDown":
+      move(mod, 1);
+      break;
+    case "open":
+      void vscode.env.openExternal(vscode.Uri.file(modFolder(library, mod)));
+      break;
+    case "nexus":
+      await nexusOpenCommand(mod);
+      break;
+    case "remove":
+      await removeCommand(mod);
+      break;
+  }
 }
 
 // ---- conflicts panel ---------------------------------------------------------------------------

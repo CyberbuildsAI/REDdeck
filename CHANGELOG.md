@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0 (2026-10-12)
+
+- The mods page: the wide table from the design doc, in the editor area. "Open REDdeck" (the table icon on the Mods view, or the command) shows every mod with its version, kind chips and status in columns, grouped into Frameworks and Mods, with a checkbox per row and a row menu (details, move up and down, open folder, open on Nexus, remove). Across the top: Add mod, Check updates or Nexus sign in, Conflicts with a count, Undo deploy and Deploy with the number of pending changes. At the bottom: the library path, whether deploy hardlinks or copies, and the last deploy time.
+- A search box filters by name, version, kind or status as you type, and facet chips narrow the list to On, Off, Deployed, Not deployed, Needs deploy, Changed in game folder, Conflicts or Update available, each with its count. The search and facet survive refreshes.
+
 ## 0.8.2 (2026-10-12)
 
 - "Deploy now" in the Conflicts panel, shown with the number of files a deploy would change, and on the toast after every Resolve choice. A resolve still changes only the library; the game folder changes when you press Deploy.
