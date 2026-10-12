@@ -123,6 +123,15 @@ export function canHardlink(libraryRoot: string, gamePath: string): boolean {
   }
 }
 
+/** Whether the library file behind a deployed entry was replaced since the deploy (a rebuilt mod). */
+function sourceReplaced(entry: ManifestEntry, method: Manifest["method"], d: Desired): boolean {
+  if (d.content !== undefined) return false;
+  const src = identity(d.src);
+  if (!src) return false;
+  if (method === "link" && entry.ino) return src.ino !== entry.ino;
+  return src.size !== entry.size || Math.abs(src.mtimeMs - entry.mtimeMs) >= 2000;
+}
+
 /** Whether a deployed file is still the one REDdeck put there. */
 function stillOurs(entry: ManifestEntry, method: Manifest["method"], gamePath: string): ChangeKind | "ok" {
   const id = identity(gameFile(gamePath, entry.path));
@@ -168,7 +177,8 @@ export function plan(lib: Library, gamePath: string): Plan {
   const add = [...desired.values()].filter((d) => {
     const e = current.get(key(d.rel));
     if (!e || (d.mod?.id ?? Generated) !== e.mod) return true;
-    return stillOurs(e, method, gamePath) !== "ok";
+    if (stillOurs(e, method, gamePath) !== "ok") return true;
+    return sourceReplaced(e, method, d);
   });
   return { method, desired: [...desired.values()], conflicts: [...conflicts.values()], stale, add, vortex: vortexManages(gamePath) };
 }
@@ -293,6 +303,7 @@ export function deploy(lib: Library, gamePath: string, decisions: Map<string, De
         result.skipped.push(d.rel);
         continue;
       }
+      // "ok" here means the library file was replaced (a rebuilt mod): relink without asking.
       fs.rmSync(target, { force: true });
     } else if (fs.existsSync(target)) {
       // A file we never deployed is in the way: keep it safe, bring it back on undo.

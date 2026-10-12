@@ -18,6 +18,7 @@ import { ModsView, type ModNode } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
 import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
+import { classifyProject, findProjectFile, projectName, syncProjects } from "./project";
 import { importFromVortex, listVortexMods } from "./vortex";
 
 let library: Library | undefined;
@@ -68,6 +69,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand("reddeck.addMod", () => run(addModCommand)),
     vscode.commands.registerCommand("reddeck.importVortex", () => run(importVortexCommand)),
+    vscode.commands.registerCommand("reddeck.addProject", (uri?: vscode.Uri) => run(() => addProjectCommand(uri?.fsPath))),
     vscode.commands.registerCommand("reddeck.deploy", () => run(deployCommand)),
     vscode.commands.registerCommand("reddeck.undo", () => run(undoCommand)),
     vscode.commands.registerCommand("reddeck.remove", (node: ModNode) => run(() => removeCommand(modOf(node)))),
@@ -154,6 +156,13 @@ function reload(): void {
 /** Recomputes the plan and the status of every mod; cheap enough to run after every change. */
 function refresh(): void {
   const { gamePath } = settings();
+  if (library) {
+    try {
+      for (const m of syncProjects(library)) log.appendLine(`${m.name}: packed output changed, library copy refreshed (${m.files.length} files)`);
+    } catch (err) {
+      log.appendLine(`Project sync failed: ${String(err)}`);
+    }
+  }
   if (library && fs.existsSync(gamePath)) {
     try {
       state = { ...state, plan: plan(library, gamePath), changes: detectChanges(gamePath) };
@@ -334,11 +343,13 @@ async function addModCommand(): Promise<void> {
       { label: "$(file-zip) A zip, 7z or rar file", detail: "The file you downloaded from Nexus Mods", source: "file" as const },
       { label: "$(folder) A folder", detail: "A folder laid out like the game folder, or a loose set of mod files", source: "folder" as const },
       { label: "$(cloud-download) Import from Vortex", detail: "Copy the mods Vortex has for Cyberpunk 2077 into the library", source: "vortex" as const },
+      { label: "$(tools) A REDcode or WolvenKit project", detail: "The packed output of a .cpmodproj; re-synced every time you pack again", source: "project" as const },
     ],
     { placeHolder: "Add a mod from" },
   );
   if (!choice) return;
   if (choice.source === "vortex") return importVortexCommand();
+  if (choice.source === "project") return addProjectCommand(undefined);
   const picked = await vscode.window.showOpenDialog(
     choice.source === "file"
       ? { canSelectFiles: true, canSelectMany: true, openLabel: "Add", filters: { "Mod archives": ["zip", "7z", "rar"] }, title: "Add mod" }
@@ -401,6 +412,28 @@ function versionFrom(base: string): string {
   if (m) return m[3].replace(/-/g, ".");
   const v = /\b(v?\d+(?:\.\d+)+)\b/i.exec(base);
   return v ? v[1].replace(/^v/i, "") : "";
+}
+
+/** Adds a project's packed output as a mod that follows the project. */
+async function addProjectCommand(target: string | undefined): Promise<void> {
+  if (!library) return;
+  let projectFile = target ? findProjectFile(target) : undefined;
+  if (!projectFile) {
+    const picked = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectMany: false, openLabel: "Add project", filters: { "WolvenKit project": ["cpmodproj"] }, title: "Add a REDcode or WolvenKit project" });
+    if (!picked?.length) return;
+    projectFile = picked[0].fsPath;
+  }
+  const existing = library.mods.find((m) => m.source.type === "project" && m.source.path?.toLowerCase() === projectFile!.toLowerCase());
+  if (existing) {
+    void vscode.window.showInformationMessage(`${existing.name} already follows this project. Pack the project again and REDdeck picks up the new files.`);
+    return;
+  }
+  const c = classifyProject(projectFile);
+  if (!c.placements.length) throw new Error(`${projectName(projectFile)} has no packed output yet. Pack the project in REDcode or WolvenKit first (packed/ next to the project file).`);
+  const mod = addMod(library, c.placements, { name: projectName(projectFile), version: "dev", source: { type: "project", path: projectFile } });
+  log.appendLine(`Added ${mod.name} from project ${projectFile} (${mod.files.length} files, ${mod.kinds.join(", ")})`);
+  refresh();
+  void vscode.window.showInformationMessage(`${mod.name} added from its project. Deploy to test it; after every pack, deploy again.`);
 }
 
 async function importVortexCommand(): Promise<void> {

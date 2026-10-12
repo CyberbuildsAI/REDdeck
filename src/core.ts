@@ -8,5 +8,6 @@ export * from "./game";
 export * from "./library";
 export * from "./nexus";
 export * from "./nxm";
+export * from "./project";
 export * from "./redmod";
 export * from "./vortex";

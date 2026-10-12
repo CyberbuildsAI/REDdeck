@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "cyberbuildsai",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -67,6 +67,11 @@
       {
         "command": "reddeck.details",
         "title": "Details",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.addProject",
+        "title": "Add from REDcode project",
         "category": "REDdeck"
       },
       {
@@ -211,6 +216,11 @@
           "command": "reddeck.nexusAddLink",
           "when": "view == reddeck.mods",
           "group": "1_more@3"
+        },
+        {
+          "command": "reddeck.addProject",
+          "when": "view == reddeck.mods",
+          "group": "1_more@4"
         }
       ],
       "view/item/context": [
@@ -269,6 +279,13 @@
         {
           "command": "reddeck.nexusOpen",
           "when": "false"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "reddeck.addProject",
+          "when": "resourceExtname == .cpmodproj",
+          "group": "reddeck@1"
         }
       ]
     },

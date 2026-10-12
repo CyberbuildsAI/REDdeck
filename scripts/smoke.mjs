@@ -144,6 +144,43 @@ core.deploy(lib, game);
 assert.ok(fs.existsSync(changedFile));
 console.log("changes: ok");
 
+// A rebuilt mod: the library file is replaced (new inode), and deploy relinks it without asking.
+{
+  const libFile = path.join(libRoot, "library", "loose", "r6", "scripts", "Loose", "Loose.reds");
+  fs.rmSync(libFile);
+  fs.writeFileSync(libFile, "rebuilt");
+  const p2 = core.plan(lib, game);
+  assert.deepEqual(p2.add.map((d) => d.rel), ["r6/scripts/Loose/Loose.reds"]);
+  assert.ok(core.detectChanges(game).every((c) => c.kind !== "changed"), "the game file itself did not change (its old source is just gone)");
+  const r3 = core.deploy(lib, game);
+  assert.equal(r3.linked, 1);
+  assert.equal(fs.readFileSync(changedFile, "utf8"), "rebuilt");
+  assert.equal(fs.statSync(changedFile).nlink, 2);
+  console.log("rebuilt: ok");
+}
+
+// A project: its packed folder is the mod; packing again refreshes the library copy.
+{
+  const proj = path.join(tmp, "proj");
+  write(path.join(proj, "TestMod.cpmodproj"), "<CP77Mod><Name>TestMod</Name><ModName>Test Mod</ModName></CP77Mod>");
+  write(path.join(proj, "packed", "archive", "pc", "mod", "TestMod.archive"), "v1");
+  assert.equal(core.findProjectFile(proj), path.join(proj, "TestMod.cpmodproj"));
+  assert.equal(core.projectName(path.join(proj, "TestMod.cpmodproj")), "Test Mod");
+  const c2 = core.classifyProject(path.join(proj, "TestMod.cpmodproj"));
+  const pm = core.addMod(lib, c2.placements, { name: "Test Mod", version: "dev", source: { type: "project", path: path.join(proj, "TestMod.cpmodproj") } });
+  assert.deepEqual(pm.files, ["archive/pc/mod/TestMod.archive"]);
+  assert.deepEqual(core.syncProjects(lib), [], "nothing changed yet");
+  await new Promise((r) => setTimeout(r, 1100));
+  write(path.join(proj, "packed", "archive", "pc", "mod", "TestMod.archive"), "v2");
+  write(path.join(proj, "packed", "r6", "tweaks", "TestMod", "x.yaml"), "y");
+  const synced = core.syncProjects(lib);
+  assert.deepEqual(synced.map((m) => m.id), ["test-mod"]);
+  assert.deepEqual(pm.files, ["archive/pc/mod/TestMod.archive", "r6/tweaks/TestMod/x.yaml"]);
+  assert.equal(fs.readFileSync(path.join(libRoot, "library", "test-mod", "archive", "pc", "mod", "TestMod.archive"), "utf8"), "v2");
+  core.removeMod(lib, pm);
+  console.log("project: ok");
+}
+
 // Turn a mod off: its files leave on the next deploy.
 rooted.enabled = false;
 core.saveMod(lib, rooted);

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 (2026-10-11)
+
+M4, the REDdeck side of the REDcode loop.
+
+- "Add from REDcode project" (also in Add mod, and on a `.cpmodproj` in the Explorer) takes a REDcode or WolvenKit project's packed output as a mod that follows the project. Every refresh compares the packed folder with the library copy and re-syncs it when the project was packed again; the list then says "changed, deploy again".
+- Deploy relinks a mod whose library file was replaced (a rebuilt archive, a re-synced project) without asking. The question about a changed file is only for files changed in the game folder.
+
 ## 0.4.0 (2026-10-11)
 
 M3: Nexus Mods.
