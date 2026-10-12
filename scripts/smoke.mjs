@@ -181,6 +181,25 @@ console.log("changes: ok");
   console.log("project: ok");
 }
 
+// Pending changes with reasons: a replaced path is one row, an off mod's files are removes.
+{
+  const p0 = core.plan(lib, game);
+  const before = core.pendingChanges(lib, game, p0);
+  const deployedIds = new Set(core.readManifest(game).files.map((e) => e.mod));
+  const off = lib.mods.find((m) => m.enabled && deployedIds.has(m.id) && m.files.every((f) => !p0.conflicts.some((c) => c.path.toLowerCase() === f.toLowerCase())));
+  off.enabled = false;
+  core.saveMod(lib, off);
+  const rows = core.pendingChanges(lib, game, core.plan(lib, game));
+  const removes = rows.filter((r) => r.kind === "remove" && r.mod === off.id);
+  assert.ok(removes.length > 0, "off mod's deployed files are removes");
+  assert.ok(removes.every((r) => r.detail === "the mod is off"));
+  assert.ok(rows.every((r, i) => rows.filter((x) => x.path === r.path).length === 1), "one row per path");
+  off.enabled = true;
+  core.saveMod(lib, off);
+  assert.equal(core.pendingChanges(lib, game, core.plan(lib, game)).length, before.length);
+  console.log(`pending changes: ok (${removes.length} removes when ${off.id} is off)`);
+}
+
 // Families: versions of one mod grouped, one active, the rest off; ids carry the version.
 {
   const a = core.addMod(lib, cls("bare", "Fam").placements, { name: "Codeware", version: "1.20.3", source: { type: "nexus", modId: 7780, fileId: 1 } });

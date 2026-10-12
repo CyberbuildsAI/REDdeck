@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0 (2026-10-12)
+
+- Pending changes, file by file. On the REDdeck page a mod's "not deployed yet" or "changed, deploy again" status is a link: it opens a quick pick of what the next deploy does for that mod (add, replace, put back, relink, remove) with the reason, plus Deploy now and a way into the full panel. The change count next to Deploy, and "Show pending changes" in the Mods view menu, open the Pending changes panel: every file the next deploy touches, with a search box and chips per mod and per kind. `reddeck pending` prints the same from the command line. For inspecting a deployment before pressing the button, or chasing a file problem.
+
 ## 0.10.1 (2026-10-12)
 
 - The Deploy button's change count is the number of paths a deploy touches. A file replaced by another version counted twice before, so switching a 9-file mod's version said 18.

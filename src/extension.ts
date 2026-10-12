@@ -9,7 +9,8 @@ import * as vscode from "vscode";
 import { BridgeClient, compareVersions, findBridge, MinBridgeVersion } from "./bridgeClient";
 import { classify } from "./classifier";
 import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, type ArchiveListing } from "./conflicts";
-import { deploy, detectChanges, modStatus, plan, readManifest, undo, vortexManages, type Change, type Decision, type Plan } from "./deploy";
+import { deploy, detectChanges, modStatus, pendingChanges, plan, readManifest, undo, vortexManages, type Change, type Decision, type PendingChange, type Plan } from "./deploy";
+import { ChangesPanel, type ChangesMessage } from "./changesPanel";
 import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
 import { DetailPanel } from "./detailPanel";
 import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family } from "./families";
@@ -59,6 +60,7 @@ export function activate(context: vscode.ExtensionContext): void {
   detail = new DetailPanel((action, id) => run(() => detailAction(action, id)));
   conflictsPanel = new ConflictsPanel((m) => run(() => conflictsAction(m)));
   modsPage = new ModsPage((m) => run(() => pageAction(m)));
+  changesPanel = new ChangesPanel((m) => run(() => changesAction(m)));
 
   context.subscriptions.push(
     log,
@@ -85,6 +87,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.details", (node: ModNode) => run(() => showDetails(modOf(node)))),
     vscode.commands.registerCommand("reddeck.checkConflicts", () => run(showConflicts)),
     vscode.commands.registerCommand("reddeck.openPage", () => run(showPage)),
+    vscode.commands.registerCommand("reddeck.showChanges", () => run(() => showChanges())),
     vscode.commands.registerCommand("reddeck.switchVersion", (node: ModNode) => run(() => switchVersionCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
     vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
@@ -193,6 +196,7 @@ function refresh(): void {
   updateDetail();
   updateConflicts();
   void updatePage();
+  updateChanges();
   clearTimeout(scanTimer);
   scanTimer = setTimeout(() => void run(() => scanArchives(false)), 400);
 }
@@ -397,6 +401,8 @@ async function pageAction(m: PageMessage): Promise<void> {
     case "library":
       if (library) void vscode.env.openExternal(vscode.Uri.file(library.root));
       return;
+    case "changes":
+      return showChanges(m.id);
   }
   if (!mod || !library) return;
   switch (m.action) {
@@ -459,6 +465,50 @@ async function switchVersionCommand(mod: ModInfo | undefined): Promise<void> {
   if (!pick) return;
   if (pick.mod) switchVersion(pick.mod);
   else await updateModCommand(fam.active);
+}
+
+// ---- pending changes -----------------------------------------------------------------------------
+
+let changesPanel: ChangesPanel;
+
+function nameOf(id: string): string {
+  if (id === "reddeck") return "REDdeck";
+  return library?.mods.find((m) => m.id === id)?.name ?? id;
+}
+
+function changesData(filterMod?: string) {
+  const rows: (PendingChange & { modName: string; prevName?: string })[] = library && state.plan ? pendingChanges(library, settings().gamePath, state.plan).map((c) => ({ ...c, modName: nameOf(c.mod), prevName: c.prevMod ? nameOf(c.prevMod) : undefined })) : [];
+  return { rows, filterMod, method: state.plan?.method ?? ("link" as const) };
+}
+
+/** The full panel; with a mod id, a quick pick of that mod's changes first. */
+async function showChanges(modId?: string): Promise<void> {
+  if (!modId) {
+    changesPanel.show(changesData());
+    return;
+  }
+  const all = changesData().rows;
+  const mine = all.filter((r) => r.mod === modId || r.prevMod === modId);
+  const name = nameOf(modId);
+  const label: Record<PendingChange["kind"], string> = { add: "$(add) add", replace: "$(arrow-swap) replace", restore: "$(history) put back", relink: "$(link) relink", remove: "$(trash) remove" };
+  const items = [
+    ...mine.map((r) => ({ label: `${label[r.kind]}  ${r.path}`, description: r.prevName ? `${r.detail} ${r.prevName}` : r.detail, action: "" })),
+    { label: "", kind: vscode.QuickPickItemKind.Separator, action: "" },
+    ...(all.length ? [{ label: "$(rocket) Deploy now", description: `${all.length} change${all.length === 1 ? "" : "s"} in all`, action: "deploy" }] : []),
+    { label: "$(list-unordered) See all pending changes", description: "opens the Pending changes panel", action: "panel" },
+  ];
+  const pick = await vscode.window.showQuickPick(items, { title: mine.length ? `${name}: ${mine.length} change${mine.length === 1 ? "" : "s"} on the next deploy` : `${name}: nothing to change on the next deploy`, placeHolder: "What the next deploy does for this mod" });
+  if (pick?.action === "deploy") await deployCommand();
+  else if (pick?.action === "panel") changesPanel.show(changesData(modId));
+}
+
+function updateChanges(): void {
+  if (changesPanel?.open) changesPanel.update(changesData());
+}
+
+async function changesAction(m: ChangesMessage): Promise<void> {
+  if (m.action === "deploy") return deployCommand();
+  if (m.action === "details") showDetails(library?.mods.find((x) => x.id === m.id));
 }
 
 // ---- conflicts panel ---------------------------------------------------------------------------

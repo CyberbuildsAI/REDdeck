@@ -22,7 +22,7 @@ export async function run(): Promise<void> {
   assert.ok(ext.isActive, "extension did not activate");
 
   const commands = await vscode.commands.getCommands(true);
-  for (const c of ["reddeck.addMod", "reddeck.importVortex", "reddeck.addProject", "reddeck.saveLoadout", "reddeck.loadLoadout", "reddeck.nexusSignIn", "reddeck.nexusSignOut", "reddeck.nexusSetKey", "reddeck.deploy", "reddeck.undo", "reddeck.remove", "reddeck.details", "reddeck.checkConflicts", "reddeck.openPage", "reddeck.switchVersion", "reddeck.moveUp", "reddeck.moveDown", "reddeck.openInExplorer", "reddeck.openLibrary", "reddeck.refresh", "reddeck.showLog"]) {
+  for (const c of ["reddeck.addMod", "reddeck.importVortex", "reddeck.addProject", "reddeck.saveLoadout", "reddeck.loadLoadout", "reddeck.nexusSignIn", "reddeck.nexusSignOut", "reddeck.nexusSetKey", "reddeck.deploy", "reddeck.undo", "reddeck.remove", "reddeck.details", "reddeck.checkConflicts", "reddeck.openPage", "reddeck.showChanges", "reddeck.switchVersion", "reddeck.moveUp", "reddeck.moveDown", "reddeck.openInExplorer", "reddeck.openLibrary", "reddeck.refresh", "reddeck.showLog"]) {
     assert.ok(commands.includes(c), `command ${c} not registered`);
   }
 
@@ -50,6 +50,11 @@ export async function run(): Promise<void> {
   await new Promise((r) => setTimeout(r, 1500));
   const tabs = vscode.window.tabGroups.all.flatMap((g) => g.tabs.map((t) => t.label));
   assert.ok(tabs.includes("Conflicts"), `no Conflicts tab among ${tabs.join(", ")}`);
+
+  // The pending changes panel opens as a tab.
+  await vscode.commands.executeCommand("reddeck.showChanges");
+  await new Promise((r) => setTimeout(r, 500));
+  assert.ok(vscode.window.tabGroups.all.flatMap((g) => g.tabs.map((t) => t.label)).includes("Pending changes"), "no Pending changes tab");
 
   // The mods page opens as a REDdeck tab.
   await vscode.commands.executeCommand("reddeck.openPage");

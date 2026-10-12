@@ -36,7 +36,7 @@ export interface PageData {
 }
 
 export interface PageMessage {
-  action: "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
+  action: "changes" | "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
   id?: string;
 }
 
@@ -123,7 +123,7 @@ function render(d: PageData, csp: string): string {
 <td class="name"><a data-msg='${msg({ action: "details", id: r.id })}'>${esc(r.name)}</a></td>
 <td class="vercell">${versionCell}</td>
 <td>${[...r.kinds].sort((a, b) => (a === "framework" ? -1 : b === "framework" ? 1 : 0)).map((k) => `<span class="kind ${k === "framework" ? "fw" : ""}">${esc(k)}</span>`).join("")}</td>
-<td class="${statusClass}">${esc(r.status)}${r.update ? `<a class="upd" data-msg='${msg({ action: "update", id: r.id })}' title="Download ${esc(r.update)} from Nexus and put it in this mod's place">update ${esc(r.update)} available</a>` : ""}</td>
+<td class="${statusClass}">${r.needsDeploy || r.changed ? `<a class="st" data-msg='${msg({ action: "changes", id: r.id })}' title="What the next deploy does for this mod">${esc(r.status)}</a>` : esc(r.status)}${r.update ? `<a class="upd" data-msg='${msg({ action: "update", id: r.id })}' title="Download ${esc(r.update)} from Nexus and put it in this mod's place">update ${esc(r.update)} available</a>` : ""}</td>
 <td class="acts"><select class="menu"><option value="">...</option>${menu.map((e) => `<option value='${msg(e.m)}'>${e.label}</option>`).join("")}</select></td>
 </tr>`;
   };
@@ -158,6 +158,8 @@ td.chk { width: 1%; } td.acts { width: 1%; } td.name a { cursor: pointer; color:
 tr.offrow td.name a, tr.offrow td.mono { color: var(--dim); }
 .kind { font-family: var(--vscode-editor-font-family); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border: 1px solid var(--line); color: var(--dim); margin-right: 4px; } .kind.fw { color: var(--yellow); border-color: var(--yellow); }
 .mono { font-family: var(--vscode-editor-font-family); font-size: 12px; } .dim { color: var(--dim); } .ok { color: var(--green); } .warn { color: var(--yellow); } .pend { color: var(--cyan); }
+a.st { color: inherit; cursor: pointer; } a.st:hover { text-decoration: underline; }
+a.changes { color: var(--yellow); cursor: pointer; font-size: 12px; } a.changes:hover { text-decoration: underline; }
 .upd { display: block; color: var(--yellow); font-size: 12px; cursor: pointer; } .upd:hover { text-decoration: underline; }
 select.ver { font-family: var(--vscode-editor-font-family); font-size: 12px; color: var(--fg); background: var(--vscode-dropdown-background, var(--bg)); border: 1px solid var(--vscode-dropdown-border, var(--line)); padding: 2px 6px; cursor: pointer; }
 select.ver:hover, select.ver:focus { border-color: var(--yellow); outline: none; } select.ver option.get { color: var(--yellow); }
@@ -176,7 +178,8 @@ input[type=checkbox] { accent-color: var(--yellow); width: 15px; height: 15px; c
   <button data-msg='${msg({ action: d.signedIn ? "updates" : "signIn" })}' title="${d.signedIn ? "Ask Nexus for newer files" : "Sign in to Nexus Mods"}">${d.signedIn ? "Check updates" : "Nexus sign in"}</button>
   <button data-msg='${msg({ action: "conflicts" })}'>Conflicts${d.rows.some((r) => r.conflicts) ? ` <b>${d.rows.filter((r) => r.conflicts).length}</b>` : ""}</button>
   ${d.lastDeploy ? `<button data-msg='${msg({ action: "undo" })}' title="Remove every deployed file and put backups back">Undo deploy</button>` : ""}
-  <button class="deploy ${d.pending ? "" : "idle"}" data-msg='${msg({ action: "deploy" })}'>${d.pending ? `Deploy (${d.pending} change${d.pending === 1 ? "" : "s"})` : "Deployed"}</button>
+  ${d.pending ? `<a class="changes" data-msg='${msg({ action: "changes" })}' title="Every file the next deploy touches, and why">${d.pending} change${d.pending === 1 ? "" : "s"}</a>` : ""}
+  <button class="deploy ${d.pending ? "" : "idle"}" data-msg='${msg({ action: "deploy" })}'>${d.pending ? "Deploy" : "Deployed"}</button>
 </div>
 ${d.vortex ? `<div class="note">Vortex manages this game folder. Purge in Vortex before deploying with REDdeck.</div>` : ""}
 <div class="filters">

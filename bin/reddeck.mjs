@@ -10,6 +10,7 @@
 //   reddeck deploy [--keep PATH...] [--restore PATH...]
 //   reddeck undo
 //   reddeck changes                    files changed in the game folder since the deploy
+//   reddeck pending                    what the next deploy adds, replaces, puts back or removes, and why
 //   reddeck conflicts                  conflicts by file path (archive conflicts need the extension)
 //   reddeck loadout save <name> | load <file> | list
 //   reddeck vortex list | import
@@ -127,6 +128,12 @@ switch (cmd) {
   case "changes": {
     const changes = core.detectChanges(game);
     out({ changes }, changes.map((c) => `${c.kind.padEnd(14)} ${c.entry.path} (${c.entry.mod})`).join("\n") || "no changes");
+    break;
+  }
+  case "pending": {
+    const p = core.plan(lib, game);
+    const rows = core.pendingChanges(lib, game, p);
+    out({ pending: rows }, rows.map((r) => `${r.kind.padEnd(8)} ${r.path.padEnd(60)} ${r.mod.padEnd(26)} ${r.detail}${r.prevMod ? ` ${r.prevMod}` : ""}`).join("\n") || "nothing to deploy");
     break;
   }
   case "conflicts": {
