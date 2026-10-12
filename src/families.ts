@@ -24,7 +24,8 @@ export interface Family {
 export function baseName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/\bv?\d+(?:[.\-_]\d+)+[a-z0-9]*\b/g, " ")
+    .replace(/[_\-]+/g, " ")
+    .replace(/\bv?\d+(?:\.\d+)+[a-z0-9]*\b/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
