@@ -4,9 +4,9 @@
 # Built and deployed by .github/workflows/pages.yml.
 
 title: REDdeck
-url: https://cyberbuildsai.github.io
+url: https://edgemodders.github.io
 baseurl: /REDdeck
-repo: https://github.com/CyberbuildsAI/REDdeck
+repo: https://github.com/Edgemodders/REDdeck
 
 markdown: kramdown
 kramdown:

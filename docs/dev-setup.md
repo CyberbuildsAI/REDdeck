@@ -1,6 +1,6 @@
 # Development setup
 
-Everything needed to work on REDdeck, in order. A fresh machine should be able to follow this top to bottom. The shared tools (Git, Node, Python, winget) are the same as in [REDnode's setup guide](https://cyberbuildsai.github.io/REDnode/dev-setup.html).
+Everything needed to work on REDdeck, in order. A fresh machine should be able to follow this top to bottom. The shared tools (Git, Node, Python, winget) are the same as in [REDnode's setup guide](https://edgemodders.github.io/REDnode/dev-setup.html).
 
 Reference machine: Windows 11 Home (build 26200), 16 GB RAM, no administrator session available.
 
@@ -17,7 +17,7 @@ Reference machine: Windows 11 Home (build 26200), 16 GB RAM, no administrator se
 ## 2. Repository and GitHub
 
 ```powershell
-git clone https://github.com/CyberbuildsAI/REDdeck.git
+git clone https://github.com/Edgemodders/REDdeck.git
 cd REDdeck
 git config user.name  "CyberbuildsAI"
 git config user.email "340969962+CyberbuildsAI@users.noreply.github.com"
@@ -52,7 +52,7 @@ A real-game test needs a game folder that Vortex does not manage. REDdeck refuse
 
 ## 4. Docs site and brand images
 
-The site at https://cyberbuildsai.github.io/REDdeck/ is built by `.github/workflows/pages.yml` on every push to `main`. **Settings > Pages > Source** must be **GitHub Actions**.
+The site at https://edgemodders.github.io/REDdeck/ is built by `.github/workflows/pages.yml` on every push to `main`. **Settings > Pages > Source** must be **GitHub Actions**.
 
 ```powershell
 .\tools\brand\render.ps1   # banner, social preview, icon, badges

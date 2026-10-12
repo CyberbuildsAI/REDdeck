@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/CyberbuildsAI/REDdeck"
+    "url": "https://github.com/Edgemodders/REDdeck"
   },
   "engines": {
     "vscode": "^1.80.0",

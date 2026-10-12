@@ -3,21 +3,21 @@
 </p>
 
 <p align="center">
-  <a href="https://cyberbuildsai.github.io/REDdeck/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
+  <a href="https://edgemodders.github.io/REDdeck/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
   <img src="docs/assets/brand/badges/status.svg" alt="status: design phase">
   <img src="docs/assets/brand/badges/game.svg" alt="game: Cyberpunk 2077">
   <img src="docs/assets/brand/badges/vscode.svg" alt="VS Code: 1.80+">
   <a href="LICENSE"><img src="docs/assets/brand/badges/license.svg" alt="license: MIT"></a>
 </p>
 
-A mod manager for Cyberpunk 2077 that lives inside VS Code and [REDcode](https://github.com/CyberbuildsAI/REDcode). One list of mods, four verbs, no jargon.
+A mod manager for Cyberpunk 2077 that lives inside VS Code and [REDcode](https://github.com/Edgemodders/REDcode). One list of mods, four verbs, no jargon.
 
-REDdeck keeps your mods in a library outside the game folder, deploys the ones you turn on with hardlinks, and undoes it just as cleanly. It recognises the frameworks (RED4ext, CET, redscript, ArchiveXL, TweakXL and friends), prepares REDmod packages, writes the archive load order, and, with [REDbridge](https://github.com/CyberbuildsAI/REDbridge) present, shows conflicts between files *inside* mod archives, which file-level managers cannot see. The name: a deck of mods, a nod to the cyberdeck, and the mods waiting "on deck" before you deploy them.
+REDdeck keeps your mods in a library outside the game folder, deploys the ones you turn on with hardlinks, and undoes it just as cleanly. It recognises the frameworks (RED4ext, CET, redscript, ArchiveXL, TweakXL and friends), prepares REDmod packages, writes the archive load order, and, with [REDbridge](https://github.com/Edgemodders/REDbridge) present, shows conflicts between files *inside* mod archives, which file-level managers cannot see. The name: a deck of mods, a nod to the cyberdeck, and the mods waiting "on deck" before you deploy them.
 
-**[Read the docs](https://cyberbuildsai.github.io/REDdeck/)** &middot; [Design](https://cyberbuildsai.github.io/REDdeck/design.html) &middot; [REDcode](https://github.com/CyberbuildsAI/REDcode) &middot; [REDbridge](https://github.com/CyberbuildsAI/REDbridge) &middot; [REDnode](https://github.com/CyberbuildsAI/REDnode)
+**[Read the docs](https://edgemodders.github.io/REDdeck/)** &middot; [Design](https://edgemodders.github.io/REDdeck/design.html) &middot; [REDcode](https://github.com/Edgemodders/REDcode) &middot; [REDbridge](https://github.com/Edgemodders/REDbridge) &middot; [REDnode](https://github.com/Edgemodders/REDnode)
 
 > [!NOTE]
-> **Status: M1 to M5 built in one day, awaiting a real-game test.** Add from zip, 7z, rar, folder or Nexus link; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex; a detail panel; conflicts inside archives through REDbridge; REDmod deploy; Nexus update checks and nxm download links; a project's packed output as a mod that follows the project; loadouts; a `reddeck` command line with `--json`. `npm run test:ui` runs it all inside a real VS Code. The core passes `npm run smoke` against a fake game folder, a real Vortex library and a real REDbridge; the Nexus calls themselves have not been run against a live account yet. The [design](https://cyberbuildsai.github.io/REDdeck/design.html) has the full picture.
+> **Status: M1 to M5 built in one day, awaiting a real-game test.** Add from zip, 7z, rar, folder or Nexus link; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex; a detail panel; conflicts inside archives through REDbridge; REDmod deploy; Nexus update checks and nxm download links; a project's packed output as a mod that follows the project; loadouts; a `reddeck` command line with `--json`. `npm run test:ui` runs it all inside a real VS Code. The core passes `npm run smoke` against a fake game folder, a real Vortex library and a real REDbridge; the Nexus calls themselves have not been run against a live account yet. The [design](https://edgemodders.github.io/REDdeck/design.html) has the full picture.
 
 ## How it works
 
@@ -54,14 +54,14 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 ## Build
 
 ```powershell
-git clone https://github.com/CyberbuildsAI/REDdeck.git
+git clone https://github.com/Edgemodders/REDdeck.git
 cd REDdeck
 npm install
 npm run build       # or: npm run watch
 npm run smoke       # classify, add, deploy, undo against a temp folder
 ```
 
-Open the folder in VS Code and press F5 to run the extension in a second window. Details in the [setup guide](https://cyberbuildsai.github.io/REDdeck/dev-setup.html).
+Open the folder in VS Code and press F5 to run the extension in a second window. Details in the [setup guide](https://edgemodders.github.io/REDdeck/dev-setup.html).
 
 ## Command line
 

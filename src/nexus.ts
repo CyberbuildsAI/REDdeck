@@ -81,7 +81,7 @@ export class NexusClient {
       headers: {
         apikey: this.apiKey,
         accept: "application/json",
-        "user-agent": `REDdeck/${this.version} (Windows; +https://github.com/CyberbuildsAI/REDdeck)`,
+        "user-agent": `REDdeck/${this.version} (Windows; +https://github.com/Edgemodders/REDdeck)`,
         "application-name": "REDdeck",
         "application-version": this.version,
       },

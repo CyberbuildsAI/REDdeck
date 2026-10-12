@@ -18,4 +18,4 @@ REDdeck is a mod manager for Cyberpunk 2077 that runs inside VS Code and REDcode
 | M4 Loop | REDdeck side built: a `.cpmodproj`'s packed output as a mod that is re-synced after every pack and relinked on deploy. Left: the REDcode side (a one-click hand-off and Test in game), REDnode packages as a kind |
 | M5 Share | Loadouts and the `reddeck` command line built. Left: MCP tools beside REDbridge's, publish to Open VSX and the Marketplace |
 
-Source code and issues: [github.com/CyberbuildsAI/REDdeck](https://github.com/CyberbuildsAI/REDdeck)
+Source code and issues: [github.com/Edgemodders/REDdeck](https://github.com/Edgemodders/REDdeck)

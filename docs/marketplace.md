@@ -9,7 +9,7 @@ A simple mod manager for Cyberpunk 2077 that lives inside VS Code and REDcode. O
 
 It keeps your mods in a library outside the game folder, resolves conflicts by list order, notices when a deployed file was changed by something else and asks one question, and imports the mods Vortex has for the game. With REDbridge present it shows conflicts between files inside mod archives.
 
-Docs and design: https://cyberbuildsai.github.io/REDdeck/
+Docs and design: https://edgemodders.github.io/REDdeck/
 
 Settings: `reddeck.gamePath` (the Cyberpunk 2077 folder) and `reddeck.libraryPath` (where mods are kept; put it on the game's drive so deploy can use hardlinks).
 

@@ -4,7 +4,7 @@ REDdeck is a mod manager for Cyberpunk 2077 built as a VS Code extension. It is 
 
 ## Current status and next step
 
-- **Design:** `docs/design.html`, published at https://cyberbuildsai.github.io/REDdeck/design.html. Read it before any feature work; it has the UI mockup, the word list, the library layout, the deployment rules and the roadmap. It is a standalone HTML page in the HUD style; edit it in place and keep the draft number in its status bar current.
+- **Design:** `docs/design.html`, published at https://edgemodders.github.io/REDdeck/design.html. Read it before any feature work; it has the UI mockup, the word list, the library layout, the deployment rules and the roadmap. It is a standalone HTML page in the HUD style; edit it in place and keep the draft number in its status bar current.
 - **M0 done (2026-10-11):** repo in the house style, extension scaffold, settings for the game and library paths.
 - **M1 built (2026-10-11), not yet tested against a real game:** `src/classifier.ts` (one classifier, option folders become a choice), `src/library.ts` (library.json, mod.json, files laid out as they deploy), `src/deploy.ts` (plan, hardlink or copy, manifest `reddeck.deployment.json`, backups, undo, external changes, modlist.txt), `src/extract.ts` (bundled 7za for zip and 7z, system 7-Zip or WinRAR for rar), `src/vortex.ts` (list and import, read-only). `npm run smoke` passes against a fake game folder and this machine's Vortex library. The laptop's game is still managed by Vortex, so the first real deploy happens after a Vortex purge or on the owner's other PC.
 - **M2 in progress (2026-10-11):** done: `src/detailPanel.ts` (webview, click a mod), `src/conflicts.ts` + `src/bridgeClient.ts` (archive conflicts through REDbridge 0.4.0 `archive.openMod`, bridge started without a game, listings cached by mtime), `src/redmod.ts` (`redMod.exe deploy -modlist` after a deploy), `src/game.ts` (exe version via PowerShell). Left for M2: a framework version check, which needs Nexus data (M3).
@@ -36,5 +36,5 @@ Simplicity with a friendly and obvious UI. Rules that follow from it:
 
 ## Docs site
 
-- `docs/` is published by GitHub Pages at https://cyberbuildsai.github.io/REDdeck/ through `.github/workflows/pages.yml`. Settings > Pages > Source must be GitHub Actions.
+- `docs/` is published by GitHub Pages at https://edgemodders.github.io/REDdeck/ through `.github/workflows/pages.yml`. Settings > Pages > Source must be GitHub Actions.
 - Write docs as markdown in `docs/`. Jekyll renders them with the HUD layout. Add every new page to `nav` in `docs/_config.yml`.
