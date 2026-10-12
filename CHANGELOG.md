@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0 (2026-10-12)
+
+- "Nexus: sign in" replaces copying a key. With the application slug Nexus registers for REDdeck (setting `reddeck.nexusApplication`), it opens the Nexus authorise page and the key arrives on its own when you click Authorise, the same single sign-on Vortex uses. Without a slug it opens the API Access page and asks you to paste the key, which is the old flow with one step fewer. "Nexus: sign out" forgets the key. "Nexus: set API key (paste)" stays for people who prefer it.
+
 ## 0.6.1 (2026-10-12)
 
 - The extension id is now `edgemodders.reddeck`: the repos moved to the Edgemodders organization and the publisher follows. If you had registered nxm links with 0.6.0, run "Nexus: handle download links" again so the forwarder points at the new id.

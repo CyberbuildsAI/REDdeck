@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -134,8 +134,19 @@
         "category": "REDdeck"
       },
       {
+        "command": "reddeck.nexusSignIn",
+        "title": "Nexus: sign in",
+        "category": "REDdeck",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "reddeck.nexusSignOut",
+        "title": "Nexus: sign out",
+        "category": "REDdeck"
+      },
+      {
         "command": "reddeck.nexusSetKey",
-        "title": "Nexus: set API key",
+        "title": "Nexus: set API key (paste)",
         "category": "REDdeck"
       },
       {
@@ -221,6 +232,11 @@
           "command": "reddeck.showLog",
           "when": "view == reddeck.mods",
           "group": "2_folders@2"
+        },
+        {
+          "command": "reddeck.nexusSignIn",
+          "when": "view == reddeck.mods",
+          "group": "1_more@0"
         },
         {
           "command": "reddeck.nexusAddLink",
@@ -335,7 +351,12 @@
         "reddeck.nexusCheckUpdatesOnStart": {
           "type": "boolean",
           "default": true,
-          "description": "Ask Nexus Mods once a day whether the mods with a Nexus id have a newer file. Needs an API key (REDdeck: Nexus: set API key)."
+          "description": "Ask Nexus Mods once a day whether the mods with a Nexus id have a newer file. Needs you signed in (REDdeck: Nexus: sign in)."
+        },
+        "reddeck.nexusApplication": {
+          "type": "string",
+          "default": "",
+          "description": "The application slug Nexus Mods registered for REDdeck. With it, Nexus: sign in is one click on the Nexus authorise page. Empty means sign-in opens the API Access page and asks you to paste the key."
         }
       }
     },

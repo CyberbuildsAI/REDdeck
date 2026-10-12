@@ -79,7 +79,7 @@ node bin/reddeck.mjs conflicts --json          # every command prints JSON with 
 - **M0 Decide.** Name, repository, the word list, the extension scaffold.
 - **M1 Library.** Add from archives and folders, the library layout, hardlink deploy with manifest and undo, changes made outside REDdeck, Vortex detection and import.
 - **M2 Kinds.** Frameworks group with game version check, REDmod packages, file and archive conflicts with reorder.
-- **M3 Nexus.** API key, mod metadata, updates, nxm links.
+- **M3 Nexus.** Sign in (single sign-on once Nexus registers the app, paste a key until then), mod metadata, updates, nxm links.
 - **M4 Loop.** Install and test a REDcode project with one click. REDnode packages as a mod kind.
 - **M5 Share.** Loadouts, a `reddeck` CLI, MCP tools, publish to Open VSX and the Marketplace.
 

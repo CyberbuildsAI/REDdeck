@@ -301,6 +301,56 @@ console.log("undo: ok");
   }
 }
 
+// Nexus sign-in against a fake Nexus socket: token, authorise page, a dropped connection, the key.
+{
+  const sockets = [];
+  const fakeSocket = () => {
+    const listeners = {};
+    const s = {
+      sent: [],
+      closed: false,
+      addEventListener: (t, f) => (listeners[t] ??= []).push(f),
+      emit: (t, ev) => (listeners[t] ?? []).forEach((f) => f(ev)),
+      send: (d) => s.sent.push(JSON.parse(d)),
+      close: () => (s.closed = true),
+    };
+    sockets.push(s);
+    return s;
+  };
+  const opened = [];
+  const pending = core.signIn({ application: "reddeck-test", open: (u) => opened.push(u), connect: fakeSocket, timeoutMs: 5000 });
+  const tick = () => new Promise((r) => setTimeout(r, 5));
+  sockets[0].emit("open");
+  assert.deepEqual(sockets[0].sent[0], { id: sockets[0].sent[0].id, token: null, protocol: 2 });
+  assert.match(sockets[0].sent[0].id, /^[0-9a-f-]{36}$/);
+  sockets[0].emit("message", { data: JSON.stringify({ success: true, data: { connection_token: "tok" }, error: null }) });
+  await tick();
+  assert.equal(opened.length, 1);
+  assert.ok(opened[0].includes(`sso?id=${sockets[0].sent[0].id}&application=reddeck-test`));
+  sockets[0].emit("close");
+  await new Promise((r) => setTimeout(r, 1100));
+  assert.equal(sockets.length, 2, "reconnects after a drop");
+  sockets[1].emit("open");
+  assert.deepEqual(sockets[1].sent[0], { id: sockets[0].sent[0].id, token: "tok", protocol: 2 });
+  sockets[1].emit("message", { data: JSON.stringify({ success: true, data: { api_key: "KEY123" }, error: null }) });
+  assert.equal(await pending, "KEY123");
+  assert.equal(opened.length, 1, "authorise page opened once");
+  assert.ok(sockets[1].closed);
+  // Refused.
+  const s2 = [];
+  const refused = core.signIn({ application: "x", open: () => undefined, connect: () => { const s = fakeSocket(); s2.push(s); return s; }, timeoutMs: 5000 });
+  s2[0].emit("open");
+  s2[0].emit("message", { data: JSON.stringify({ success: false, data: null, error: "Invalid application" }) });
+  await assert.rejects(refused, /Invalid application/);
+  // Cancelled.
+  const ac = new AbortController();
+  const cancelled = core.signIn({ application: "x", open: () => undefined, connect: fakeSocket, signal: ac.signal, timeoutMs: 5000 });
+  ac.abort();
+  await assert.rejects(cancelled, /cancelled/);
+  assert.equal(typeof core.hasWebSocket(), "boolean");
+  console.log("nexus sign-in: ok");
+}
+
 // Nexus: pure parts only; no network.
 {
   const nxm = core.parseNxm("nxm://cyberpunk2077/mods/7780/files/144164?key=abc123&expires=1760000000&user_id=42");

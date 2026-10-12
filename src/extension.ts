@@ -17,6 +17,7 @@ import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveM
 import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
 import { ModsView, type ModNode } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
+import { ApiKeysPage, hasWebSocket, signIn } from "./nexusSso";
 import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { classifyProject, findProjectFile, projectName, syncProjects } from "./project";
@@ -86,6 +87,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.openLibrary", () => {
       if (library) vscode.env.openExternal(vscode.Uri.file(library.root));
     }),
+    vscode.commands.registerCommand("reddeck.nexusSignIn", () => run(() => nexusSignInCommand().then(() => undefined))),
+    vscode.commands.registerCommand("reddeck.nexusSignOut", () => run(nexusSignOutCommand)),
     vscode.commands.registerCommand("reddeck.nexusSetKey", () => run(() => nexusSetKeyCommand().then(() => undefined))),
     vscode.commands.registerCommand("reddeck.nexusOpen", (node: ModNode) => run(() => nexusOpenCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.checkUpdates", () => run(() => checkUpdatesCommand(false))),
@@ -569,24 +572,74 @@ const NexusKeySecret = "reddeck.nexusApiKey";
 
 async function nexusClient(ask: boolean): Promise<NexusClient | undefined> {
   let key = await secrets.get(NexusKeySecret);
-  if (!key && ask) key = await nexusSetKeyCommand();
+  if (!key && ask) key = await nexusSignInCommand();
   return key ? new NexusClient(key, extensionVersion) : undefined;
+}
+
+/** Checks a key with Nexus and keeps it. */
+async function storeNexusKey(key: string): Promise<string> {
+  const client = new NexusClient(key, extensionVersion);
+  const user = await client.validate();
+  await secrets.store(NexusKeySecret, key);
+  log.appendLine(`Nexus: signed in as ${user.name}${user.is_premium ? " (Premium)" : ""}`);
+  void vscode.window.showInformationMessage(`Nexus: signed in as ${user.name}${user.is_premium ? " (Premium)" : ""}.`);
+  return key;
+}
+
+/**
+ * Sign in. With an application slug from Nexus this is one click on the Nexus authorise page and
+ * the key arrives on its own. Without one, it opens the API Access page and asks for the key.
+ */
+async function nexusSignInCommand(): Promise<string | undefined> {
+  const application = vscode.workspace.getConfiguration("reddeck").get<string>("nexusApplication", "").trim();
+  if (application && hasWebSocket()) {
+    let key: string | undefined;
+    try {
+      key = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: "Signing in to Nexus Mods", cancellable: true },
+        async (progress, cancel) => {
+          const controller = new AbortController();
+          cancel.onCancellationRequested(() => controller.abort());
+          progress.report({ message: "approve REDdeck in the browser tab that opened" });
+          return signIn({ application, open: (url) => vscode.env.openExternal(vscode.Uri.parse(url)), signal: controller.signal, log: (line) => log.appendLine(line) });
+        },
+      );
+    } catch (err) {
+      if (err instanceof Error && /cancelled/.test(err.message)) return undefined;
+      throw err;
+    }
+    return key ? storeNexusKey(key) : undefined;
+  }
+  void vscode.env.openExternal(vscode.Uri.parse(ApiKeysPage));
+  const key = await vscode.window.showInputBox({
+    title: "Sign in to Nexus Mods",
+    prompt: "The API Access page just opened in your browser. Copy the Personal API Key at the bottom of it and paste it here. It stays in VS Code's secret storage.",
+    password: true,
+    ignoreFocusOut: true,
+  });
+  if (!key?.trim()) return undefined;
+  return storeNexusKey(key.trim());
 }
 
 async function nexusSetKeyCommand(): Promise<string | undefined> {
   const key = await vscode.window.showInputBox({
     title: "Nexus Mods API key",
-    prompt: "Your personal API key from nexusmods.com > Settings > API keys. It stays in VS Code's secret storage.",
+    prompt: "Your personal API key from nexusmods.com > Settings > API Access. It stays in VS Code's secret storage.",
     password: true,
     ignoreFocusOut: true,
   });
   if (!key?.trim()) return undefined;
-  const client = new NexusClient(key.trim(), extensionVersion);
-  const user = await client.validate();
-  await secrets.store(NexusKeySecret, key.trim());
-  log.appendLine(`Nexus: signed in as ${user.name}${user.is_premium ? " (Premium)" : ""}`);
-  void vscode.window.showInformationMessage(`Nexus: signed in as ${user.name}${user.is_premium ? " (Premium)" : ""}.`);
-  return key.trim();
+  return storeNexusKey(key.trim());
+}
+
+async function nexusSignOutCommand(): Promise<void> {
+  if (!(await secrets.get(NexusKeySecret))) {
+    void vscode.window.showInformationMessage("Not signed in to Nexus Mods.");
+    return;
+  }
+  await secrets.delete(NexusKeySecret);
+  log.appendLine("Nexus: signed out");
+  void vscode.window.showInformationMessage("Signed out of Nexus Mods. The key is gone from secret storage; revoke it on the API Access page if you want it dead.");
 }
 
 async function nexusOpenCommand(mod: ModInfo | undefined): Promise<void> {

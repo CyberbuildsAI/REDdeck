@@ -2,6 +2,7 @@
 
 A simple mod manager for Cyberpunk 2077 that lives inside VS Code and REDcode. One list of mods, four verbs, no jargon.
 
+- **Sign in** to Nexus Mods once; updates and download links follow.
 - **Add** a zip, 7z or rar from Nexus Mods, or a folder. REDdeck works out what kind of mod it is and where its files go.
 - Turn a mod **on** or **off**. Nothing touches the game until you deploy.
 - **Deploy** links the enabled mods into the game with hardlinks, writes the archive load order, and records a manifest. Undo deploy removes exactly that and nothing else.
