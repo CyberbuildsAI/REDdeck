@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -346,7 +346,7 @@
         "reddeck.dotnetRoot": {
           "type": "string",
           "default": "",
-          "description": "DOTNET_ROOT for REDbridge, when the .NET 10 runtime is installed per user rather than machine wide."
+          "description": "DOTNET_ROOT for the REDbridge process only. Empty means the per-user .NET 10 runtime in %LOCALAPPDATA%\\Microsoft\\dotnet when there is one, else whatever the machine has. Never set DOTNET_ROOT as a user environment variable: every .NET program then looks only there."
         },
         "reddeck.nexusCheckUpdatesOnStart": {
           "type": "boolean",

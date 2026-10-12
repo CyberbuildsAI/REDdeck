@@ -273,7 +273,8 @@ console.log("undo: ok");
 {
   const exe = core.findBridge("", root);
   if (exe) {
-    const b = new core.BridgeClient(exe, process.env.DOTNET_ROOT ?? path.join(process.env.LOCALAPPDATA ?? "", "Microsoft", "dotnet"));
+    const b = new core.BridgeClient(exe);
+    console.log(`bridge dotnet root: ${b.dotnetRoot ?? "(machine-wide)"}`);
     b.start();
     const info = await b.info();
     console.log(`bridge ${info.version} (WolvenKit ${info.wolvenKit}), game loaded: ${info.gameLoaded}`);

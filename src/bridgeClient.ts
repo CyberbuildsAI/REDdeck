@@ -38,10 +38,14 @@ export class BridgeClient {
   private connection: MessageConnection | undefined;
   readonly log: string[] = [];
 
+  readonly dotnetRoot: string | undefined;
+
   constructor(
     readonly exe: string,
-    readonly dotnetRoot?: string,
-  ) {}
+    dotnetRoot?: string,
+  ) {
+    this.dotnetRoot = dotnetRoot || defaultDotnetRoot();
+  }
 
   get running(): boolean {
     return this.process !== undefined && this.process.exitCode === null;
@@ -106,6 +110,22 @@ export function findBridge(configured: string, extensionRoot: string): string | 
     ...(process.env.PATH ?? "").split(path.delimiter).filter(Boolean).map((d) => path.join(d, "REDbridge.exe")),
   ];
   return candidates.find(isFile);
+}
+
+/**
+ * Where a per-user .NET 10 runtime lives when there is one, for the bridge process only. REDbridge
+ * needs .NET 10; a machine-wide install may have only older runtimes. The variable is set for the
+ * child process, never for the user: a user-level DOTNET_ROOT makes every .NET program on the
+ * machine look only there, which broke Vortex's .NET 9 check once.
+ */
+export function defaultDotnetRoot(): string | undefined {
+  const root = path.join(process.env.LOCALAPPDATA ?? "", "Microsoft", "dotnet");
+  try {
+    const has10 = fs.readdirSync(path.join(root, "shared", "Microsoft.NETCore.App")).some((v) => v.startsWith("10."));
+    return has10 ? root : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Compares dotted version strings numerically: negative when a is older than b. */

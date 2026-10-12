@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1 (2026-10-12)
+
+- REDdeck finds a per-user .NET 10 runtime for REDbridge on its own, so `reddeck.dotnetRoot` is only for unusual layouts. Do not set DOTNET_ROOT as a user environment variable for REDbridge: every .NET program on the machine then looks only there, and Vortex's .NET 9 check fails.
+
 ## 0.7.0 (2026-10-12)
 
 - "Nexus: sign in" replaces copying a key. With the application slug Nexus registers for REDdeck (setting `reddeck.nexusApplication`), it opens the Nexus authorise page and the key arrives on its own when you click Authorise, the same single sign-on Vortex uses. Without a slug it opens the API Access page and asks you to paste the key, which is the old flow with one step fewer. "Nexus: sign out" forgets the key. "Nexus: set API key (paste)" stays for people who prefer it.
