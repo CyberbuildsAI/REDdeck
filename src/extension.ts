@@ -197,6 +197,13 @@ function refresh(): void {
   scanTimer = setTimeout(() => void run(() => scanArchives(false)), 400);
 }
 
+/** Paths a deploy would add, replace or remove: a replaced path counts once. */
+function pendingCount(): number {
+  const p = state.plan;
+  if (!p) return 0;
+  return new Set([...p.add.map((d) => d.rel), ...p.stale.map((e) => e.path)].map((x) => x.toLowerCase())).size;
+}
+
 function statusFor(mod: ModInfo, withUpdate = true): string {
   if (!library || !state.plan) return "";
   const parts = [modStatus(library, settings().gamePath, mod, state.plan, readManifest(settings().gamePath), state.changes)];
@@ -357,7 +364,7 @@ async function pageData() {
     library: library?.root ?? s.libraryPath,
     method: state.plan?.method ?? ("link" as const),
     lastDeploy: when ? when.toLocaleString() : undefined,
-    pending: (state.plan?.add.length ?? 0) + (state.plan?.stale.length ?? 0),
+    pending: pendingCount(),
     signedIn: !!(await secrets.get(NexusKeySecret)),
     vortex: !!state.plan?.vortex,
   };
@@ -466,7 +473,7 @@ function conflictsData() {
     names: new Map((library?.mods ?? []).map((m) => [m.id, m.name])),
     bridge: !!bridgeExe,
     scanning,
-    pending: (state.plan?.add.length ?? 0) + (state.plan?.stale.length ?? 0),
+    pending: pendingCount(),
   };
 }
 

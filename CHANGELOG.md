@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1 (2026-10-12)
+
+- The Deploy button's change count is the number of paths a deploy touches. A file replaced by another version counted twice before, so switching a 9-file mod's version said 18.
+
 ## 0.10.0 (2026-10-12)
 
 - One row per mod. The versions of a mod in the library (same Nexus mod, or same name) are one row on the REDdeck page and one node in the Mods view. The version column is a dropdown: pick a version and it takes the mod's place in the order and its on/off state, and the other versions go off. "Get X from Nexus" sits at the bottom of the dropdown when there is a newer version. "Switch version..." does the same from the Mods view's menu.
