@@ -1,10 +1,10 @@
 # RED<span class="y">pack</span> docs
 
-REDpack is a mod manager for Cyberpunk 2077 that runs inside VS Code and REDcode. One list of mods, four verbs: add, turn on or off, deploy, remove. These pages track its setup and, as it grows, how to use it.
+REDdeck is a mod manager for Cyberpunk 2077 that runs inside VS Code and REDcode. One list of mods, four verbs: add, turn on or off, deploy, remove. These pages track its setup and, as it grows, how to use it.
 
 | Document | What it covers |
 |---|---|
-| [Dev setup](dev-setup.md) | Every tool and step needed to build REDpack on a new machine |
+| [Dev setup](dev-setup.md) | Every tool and step needed to build REDdeck on a new machine |
 
 The design document is not published yet. It will appear here with the first working release.
 
@@ -19,4 +19,4 @@ The design document is not published yet. It will appear here with the first wor
 | M4 Loop | Install and test from a REDcode project, REDnode packages |
 | M5 Share | Loadouts, CLI, MCP, publish |
 
-Source code and issues: [github.com/CyberbuildsAI/REDpack](https://github.com/CyberbuildsAI/REDpack)
+Source code and issues: [github.com/CyberbuildsAI/REDdeck](https://github.com/CyberbuildsAI/REDdeck)

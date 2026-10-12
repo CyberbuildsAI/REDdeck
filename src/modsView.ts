@@ -45,7 +45,7 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
     item.tooltip = `${mod.name}\n${mod.files} files\n${mod.enabled ? "On" : "Off"}, not deployed yet`;
     item.contextValue = "mod";
     item.checkboxState = mod.enabled ? vscode.TreeItemCheckboxState.Checked : vscode.TreeItemCheckboxState.Unchecked;
-    item.iconPath = new vscode.ThemeIcon("package", new vscode.ThemeColor("redpack.accent"));
+    item.iconPath = new vscode.ThemeIcon("package", new vscode.ThemeColor("reddeck.accent"));
     return item;
   }
 }

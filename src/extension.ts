@@ -1,4 +1,4 @@
-// REDpack: a simple mod manager for Cyberpunk 2077. This is the M0 scaffold: the Mods view over
+// REDdeck: a simple mod manager for Cyberpunk 2077. This is the M0 scaffold: the Mods view over
 // a library folder, Add mod from a folder, on/off, remove. Deploy is a placeholder until M1.
 
 import * as path from "node:path";
@@ -12,13 +12,13 @@ let status: vscode.StatusBarItem;
 let log: vscode.OutputChannel;
 
 export function activate(context: vscode.ExtensionContext): void {
-  log = vscode.window.createOutputChannel("REDpack");
+  log = vscode.window.createOutputChannel("REDdeck");
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 40);
-  status.command = "redpack.showLog";
+  status.command = "reddeck.showLog";
   status.show();
 
   view = new ModsView(() => library);
-  const tree = vscode.window.createTreeView("redpack.mods", { treeDataProvider: view, showCollapseAll: false });
+  const tree = vscode.window.createTreeView("reddeck.mods", { treeDataProvider: view, showCollapseAll: false });
 
   context.subscriptions.push(
     log,
@@ -34,16 +34,16 @@ export function activate(context: vscode.ExtensionContext): void {
       updateStatus();
       view.refresh();
     }),
-    vscode.commands.registerCommand("redpack.addMod", () => addMod()),
-    vscode.commands.registerCommand("redpack.deploy", () => deploy()),
-    vscode.commands.registerCommand("redpack.remove", (node: ModNode) => remove(node)),
-    vscode.commands.registerCommand("redpack.openInExplorer", (node: ModNode) => {
+    vscode.commands.registerCommand("reddeck.addMod", () => addMod()),
+    vscode.commands.registerCommand("reddeck.deploy", () => deploy()),
+    vscode.commands.registerCommand("reddeck.remove", (node: ModNode) => remove(node)),
+    vscode.commands.registerCommand("reddeck.openInExplorer", (node: ModNode) => {
       if (node?.type === "mod" && library) vscode.env.openExternal(vscode.Uri.file(modFolder(library, node.mod)));
     }),
-    vscode.commands.registerCommand("redpack.refresh", () => reload()),
-    vscode.commands.registerCommand("redpack.showLog", () => log.show(true)),
+    vscode.commands.registerCommand("reddeck.refresh", () => reload()),
+    vscode.commands.registerCommand("reddeck.showLog", () => log.show(true)),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("redpack")) reload();
+      if (e.affectsConfiguration("reddeck")) reload();
     }),
   );
 
@@ -55,7 +55,7 @@ export function deactivate(): void {
 }
 
 function settings(): { gamePath: string; libraryPath: string } {
-  const cfg = vscode.workspace.getConfiguration("redpack");
+  const cfg = vscode.workspace.getConfiguration("reddeck");
   return {
     gamePath: cfg.get<string>("gamePath", ""),
     libraryPath: cfg.get<string>("libraryPath", "") || defaultLibraryPath(),
@@ -70,21 +70,21 @@ function reload(): void {
   } catch (err) {
     library = undefined;
     log.appendLine(`Could not open the library at ${libraryPath}: ${String(err)}`);
-    vscode.window.showErrorMessage(`REDpack could not open the library at ${libraryPath}. See the log.`);
+    vscode.window.showErrorMessage(`REDdeck could not open the library at ${libraryPath}. See the log.`);
   }
-  void vscode.commands.executeCommand("setContext", "redpack.empty", !library || library.mods.length === 0);
+  void vscode.commands.executeCommand("setContext", "reddeck.empty", !library || library.mods.length === 0);
   updateStatus();
   view.refresh();
 }
 
 function updateStatus(): void {
   if (!library) {
-    status.text = "$(package) REDpack: no library";
+    status.text = "$(package) REDdeck: no library";
     return;
   }
   const on = library.mods.filter((m) => m.enabled).length;
   status.text = `$(package) ${on} of ${library.mods.length} mods on`;
-  status.tooltip = `REDpack library: ${library.root}`;
+  status.tooltip = `REDdeck library: ${library.root}`;
 }
 
 async function addMod(): Promise<void> {
@@ -107,7 +107,7 @@ async function addMod(): Promise<void> {
   try {
     const mod = addFolder(library, source, name.trim());
     log.appendLine(`Added ${mod.name} (${mod.files} files, ${mod.kinds.join(", ")}) from ${source}`);
-    void vscode.commands.executeCommand("setContext", "redpack.empty", false);
+    void vscode.commands.executeCommand("setContext", "reddeck.empty", false);
     updateStatus();
     view.refresh();
   } catch (err) {

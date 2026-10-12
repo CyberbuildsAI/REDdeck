@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>{% if page.title and page.url != "/" %}{{ page.title }} · {% endif %}REDpack</title>
+<title>{% if page.title and page.url != "/" %}{{ page.title }} · {% endif %}REDdeck</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 <body>
 
 <div class="bar"><div class="wrap">
-  <a class="home" href="{{ '/' | relative_url }}"><span class="dot"></span><b>REDPACK</b> / DOCS</a>
+  <a class="home" href="{{ '/' | relative_url }}"><span class="dot"></span><b>REDDECK</b> / DOCS</a>
   <nav>
     {% for item in site.nav %}<a href="{{ item.url | relative_url }}"{% if page.url == item.url %} aria-current="page"{% endif %}>{{ item.title }}</a>{% endfor %}
   </nav>
@@ -24,7 +24,7 @@
 
 <footer class="wrap">
   <span>SOURCE: <a href="{{ site.repo }}/blob/main/docs/{{ page.path }}">docs/{{ page.path }}</a></span>
-  <span>REDPACK &middot; MIT</span>
+  <span>REDDECK &middot; MIT</span>
 </footer>
 
 </body>

@@ -62,7 +62,7 @@ a { color: var(--cyan); }
   margin: 0 0 18px; text-wrap: balance;
 }
 .doc > h1:first-child::before {
-  content: "// REDpack docs"; display: block; margin-bottom: 12px;
+  content: "// REDdeck docs"; display: block; margin-bottom: 12px;
   font-family: var(--mono); font-size: 12px; font-weight: 400; letter-spacing: .2em; color: var(--cyan);
 }
 .doc h1 .y, .doc h2 .y { color: var(--yellow); }

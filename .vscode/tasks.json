@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build redpack",
+      "label": "build reddeck",
       "type": "npm",
       "script": "build",
       "problemMatcher": [],

@@ -2,10 +2,10 @@
 # Every markdown page in docs/ renders with the HUD layout in _layouts/default.html.
 # Built and deployed by .github/workflows/pages.yml.
 
-title: REDpack
+title: REDdeck
 url: https://cyberbuildsai.github.io
-baseurl: /REDpack
-repo: https://github.com/CyberbuildsAI/REDpack
+baseurl: /REDdeck
+repo: https://github.com/CyberbuildsAI/REDdeck
 
 markdown: kramdown
 kramdown:

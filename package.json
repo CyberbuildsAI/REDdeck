@@ -1,6 +1,6 @@
 {
-  "name": "redpack",
-  "displayName": "REDpack",
+  "name": "reddeck",
+  "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
   "version": "0.1.0",
   "publisher": "cyberbuildsai",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/CyberbuildsAI/REDpack"
+    "url": "https://github.com/CyberbuildsAI/REDdeck"
   },
   "engines": {
     "vscode": "^1.80.0",
@@ -36,122 +36,122 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "redpack",
-          "title": "REDpack",
+          "id": "reddeck",
+          "title": "REDdeck",
           "icon": "images/activity.svg"
         }
       ]
     },
     "views": {
-      "redpack": [
+      "reddeck": [
         {
-          "id": "redpack.mods",
+          "id": "reddeck.mods",
           "name": "Mods"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "redpack.mods",
-        "contents": "No mods yet.\nAdd a mod folder, or a zip from Nexus Mods, and turn it on. Nothing touches the game until you deploy.\n[Add mod](command:redpack.addMod)",
-        "when": "redpack.empty"
+        "view": "reddeck.mods",
+        "contents": "No mods yet.\nAdd a mod folder, or a zip from Nexus Mods, and turn it on. Nothing touches the game until you deploy.\n[Add mod](command:reddeck.addMod)",
+        "when": "reddeck.empty"
       }
     ],
     "commands": [
       {
-        "command": "redpack.addMod",
+        "command": "reddeck.addMod",
         "title": "Add mod",
-        "category": "REDpack",
+        "category": "REDdeck",
         "icon": "$(add)"
       },
       {
-        "command": "redpack.deploy",
+        "command": "reddeck.deploy",
         "title": "Deploy",
-        "category": "REDpack",
+        "category": "REDdeck",
         "icon": "$(rocket)"
       },
       {
-        "command": "redpack.remove",
+        "command": "reddeck.remove",
         "title": "Remove",
-        "category": "REDpack"
+        "category": "REDdeck"
       },
       {
-        "command": "redpack.openInExplorer",
+        "command": "reddeck.openInExplorer",
         "title": "Reveal in File Explorer",
-        "category": "REDpack"
+        "category": "REDdeck"
       },
       {
-        "command": "redpack.refresh",
+        "command": "reddeck.refresh",
         "title": "Refresh",
-        "category": "REDpack",
+        "category": "REDdeck",
         "icon": "$(refresh)"
       },
       {
-        "command": "redpack.showLog",
+        "command": "reddeck.showLog",
         "title": "Show log",
-        "category": "REDpack"
+        "category": "REDdeck"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "redpack.addMod",
-          "when": "view == redpack.mods",
+          "command": "reddeck.addMod",
+          "when": "view == reddeck.mods",
           "group": "navigation@1"
         },
         {
-          "command": "redpack.deploy",
-          "when": "view == redpack.mods",
+          "command": "reddeck.deploy",
+          "when": "view == reddeck.mods",
           "group": "navigation@2"
         },
         {
-          "command": "redpack.refresh",
-          "when": "view == redpack.mods",
+          "command": "reddeck.refresh",
+          "when": "view == reddeck.mods",
           "group": "navigation@3"
         }
       ],
       "view/item/context": [
         {
-          "command": "redpack.openInExplorer",
-          "when": "view == redpack.mods && viewItem == mod",
+          "command": "reddeck.openInExplorer",
+          "when": "view == reddeck.mods && viewItem == mod",
           "group": "1_open@1"
         },
         {
-          "command": "redpack.remove",
-          "when": "view == redpack.mods && viewItem == mod",
+          "command": "reddeck.remove",
+          "when": "view == reddeck.mods && viewItem == mod",
           "group": "9_remove@1"
         }
       ],
       "commandPalette": [
         {
-          "command": "redpack.remove",
+          "command": "reddeck.remove",
           "when": "false"
         },
         {
-          "command": "redpack.openInExplorer",
+          "command": "reddeck.openInExplorer",
           "when": "false"
         }
       ]
     },
     "configuration": {
-      "title": "REDpack",
+      "title": "REDdeck",
       "properties": {
-        "redpack.gamePath": {
+        "reddeck.gamePath": {
           "type": "string",
           "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cyberpunk 2077",
           "description": "The Cyberpunk 2077 install folder (the one containing bin, archive and r6)."
         },
-        "redpack.libraryPath": {
+        "reddeck.libraryPath": {
           "type": "string",
           "default": "",
-          "description": "Where REDpack keeps your mods. Empty means %USERPROFILE%\\REDpack. Put it on the same drive as the game so deploy can use hardlinks."
+          "description": "Where REDdeck keeps your mods. Empty means %USERPROFILE%\\REDdeck. Put it on the same drive as the game so deploy can use hardlinks."
         }
       }
     },
     "colors": [
       {
-        "id": "redpack.accent",
-        "description": "Accent for REDpack icons and the status bar item.",
+        "id": "reddeck.accent",
+        "description": "Accent for REDdeck icons and the status bar item.",
         "defaults": {
           "dark": "#fcee0a",
           "light": "#8a7a00",
