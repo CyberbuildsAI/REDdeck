@@ -56,15 +56,18 @@ function esc(s: string): string {
 function render(d: ConflictsData, csp: string): string {
   const nonce = Math.random().toString(36).slice(2);
   const name = (id: string) => esc(d.names.get(id) ?? id);
-  const btn = (m: ConflictsMessage, label: string, cls = "") => `<button class="${cls}" data-msg='${esc(JSON.stringify(m))}'>${label}</button>`;
+  // One dropdown per row keeps the rows one line tall. Choosing an entry acts at once.
+  const menu = (entries: { m: ConflictsMessage; label: string }[]) =>
+    `<select class="resolve"><option value="">Resolve...</option>${entries.map((e) => `<option value='${esc(JSON.stringify(e.m))}'>${e.label}</option>`).join("")}</select>`;
 
   // By file path: one row per file.
   const fileRows = d.fileConflicts
     .map(
       (c) =>
-        `<tr><td class="mono">${esc(c.path)}</td><td><span class="ok">${name(c.winner)}</span></td><td>${c.losers.map(name).join(", ")}</td><td class="acts">${c.losers
-          .map((l) => btn({ action: "letWin", id: l, over: c.winner }, `Let ${name(l)} win`))
-          .join("")}${[c.winner, ...c.losers].map((m) => btn({ action: "toggle", id: m }, `Turn off ${name(m)}`, "quiet")).join("")}</td></tr>`,
+        `<tr><td class="mono">${esc(c.path)}</td><td><span class="ok">${name(c.winner)}</span></td><td>${c.losers.map(name).join(", ")}</td><td class="acts">${menu([
+          ...c.losers.map((l) => ({ m: { action: "letWin" as const, id: l, over: c.winner }, label: `Let ${name(l)} win` })),
+          ...[c.winner, ...c.losers].map((m) => ({ m: { action: "toggle" as const, id: m }, label: `Turn off ${name(m)}` })),
+        ])}</td></tr>`,
     )
     .join("");
 
@@ -86,7 +89,11 @@ function render(d: ConflictsData, csp: string): string {
         `<tr><td><details><summary>${g.resources.length} resource${g.resources.length === 1 ? "" : "s"}</summary><ul>${g.resources
           .slice(0, 200)
           .map((r) => `<li class="mono">${esc(r)}</li>`)
-          .join("")}${g.resources.length > 200 ? `<li class="dim">and ${g.resources.length - 200} more</li>` : ""}</ul></details></td><td><span class="ok">${name(g.winner)}</span></td><td>${name(g.loser)}</td><td class="acts">${btn({ action: "letWin", id: g.loser, over: g.winner }, `Let ${name(g.loser)} win`)}${btn({ action: "toggle", id: g.winner }, `Turn off ${name(g.winner)}`, "quiet")}${btn({ action: "toggle", id: g.loser }, `Turn off ${name(g.loser)}`, "quiet")}</td></tr>`,
+          .join("")}${g.resources.length > 200 ? `<li class="dim">and ${g.resources.length - 200} more</li>` : ""}</ul></details></td><td><span class="ok">${name(g.winner)}</span></td><td>${name(g.loser)}</td><td class="acts">${menu([
+          { m: { action: "letWin", id: g.loser, over: g.winner }, label: `Let ${name(g.loser)} win` },
+          { m: { action: "toggle", id: g.winner }, label: `Turn off ${name(g.winner)}` },
+          { m: { action: "toggle", id: g.loser }, label: `Turn off ${name(g.loser)}` },
+        ])}</td></tr>`,
     )
     .join("");
   const archiveNote = d.scanning
@@ -108,9 +115,8 @@ body { font-family: var(--vscode-font-family); font-size: 13px; color: var(--fg)
 h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; text-transform: uppercase; } h1 span { color: var(--yellow); }
 h2 { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); margin: 22px 0 8px; }
 p.lead { margin: 6px 0 14px; color: var(--dim); max-width: 760px; }
-button { font: inherit; font-size: 12px; background: transparent; color: var(--fg); border: 1px solid var(--line); padding: 3px 10px; cursor: pointer; margin: 2px 4px 2px 0; white-space: nowrap; }
-button:hover { border-color: var(--yellow); color: var(--yellow); }
-button.quiet { color: var(--dim); } button.quiet:hover { border-color: var(--red); color: var(--red); }
+select.resolve { font: inherit; font-size: 12px; color: var(--fg); background: var(--vscode-dropdown-background, var(--bg)); border: 1px solid var(--vscode-dropdown-border, var(--line)); padding: 3px 8px; cursor: pointer; min-width: 150px; }
+select.resolve:hover, select.resolve:focus { border-color: var(--yellow); outline: none; }
 table { border-collapse: collapse; width: 100%; } th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); font-weight: 500; }
 td.acts { width: 1%; }
@@ -118,14 +124,14 @@ td.acts { width: 1%; }
 details summary { cursor: pointer; } ul { margin: 4px 0 8px 18px; padding: 0; } li { list-style: none; }
 </style></head><body>
 <h1>Conflicts <span>${total}</span></h1>
-<p class="lead">Two mods want the same thing. The one higher in the Mods list wins, and that is usually fine: the later mod is often a patch for the earlier one. To change a winner, press "Let ... win", which moves that mod just above the other, or turn one of them off. Deploy again to make it real.</p>
+<p class="lead">Two mods want the same thing. The one higher in the Mods list wins, and that is usually fine: the later mod is often a patch for the earlier one. To change a winner, open the row's Resolve menu: "Let ... win" moves that mod just above the other, or turn one of them off. Deploy again to make it real.</p>
 <h2>By file path</h2>
 ${fileRows ? `<table><thead><tr><th>File</th><th>Wins</th><th>Loses</th><th></th></tr></thead><tbody>${fileRows}</tbody></table>` : `<p class="dim">No two enabled mods deploy the same file path.</p>`}
 <h2>Inside archives</h2>
 ${archiveNote}
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
-  for (const b of document.querySelectorAll("button[data-msg]")) b.addEventListener("click", () => vscode.postMessage(JSON.parse(b.dataset.msg)));
+  for (const s of document.querySelectorAll("select.resolve")) s.addEventListener("change", () => { if (s.value) { vscode.postMessage(JSON.parse(s.value)); s.value = ""; } });
 </script>
 </body></html>`;
 }

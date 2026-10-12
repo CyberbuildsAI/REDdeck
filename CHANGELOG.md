@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1 (2026-10-12)
+
+- The Conflicts panel's row actions are one Resolve dropdown per row instead of a run of buttons, so rows stay one line tall.
+
 ## 0.8.0 (2026-10-12)
 
 - A Conflicts panel. The deploy toast says "1 conflict, resolved by order" with a "Show conflicts" button; "Show conflicts" in the view menu opens the same page. It lists every conflict by file path and, with REDbridge, inside archives grouped by the pair of mods, with who wins and who loses, and a "Let ... win" button beside each that moves the loser to directly above the winner. "Turn off ..." is there too. Deploy again to make it real.
