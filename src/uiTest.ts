@@ -16,8 +16,8 @@ export async function run(): Promise<void> {
   await cfg.update("libraryPath", lib, vscode.ConfigurationTarget.Global);
   await cfg.update("gamePath", game, vscode.ConfigurationTarget.Global);
 
-  const ext = vscode.extensions.getExtension("cyberbuildsai.reddeck");
-  assert.ok(ext, "extension cyberbuildsai.reddeck not found");
+  const ext = vscode.extensions.getExtension("edgemodders.reddeck");
+  assert.ok(ext, "extension edgemodders.reddeck not found");
   await ext.activate();
   assert.ok(ext.isActive, "extension did not activate");
 

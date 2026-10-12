@@ -2,8 +2,8 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.6.0",
-  "publisher": "cyberbuildsai",
+  "version": "0.6.1",
+  "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
   "galleryBanner": {

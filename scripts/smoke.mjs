@@ -318,7 +318,7 @@ console.log("undo: ok");
   ], file_updates: [] });
   assert.equal(newest.file_id, 2);
   assert.equal(core.modPageUrl(7780), "https://www.nexusmods.com/cyberpunk2077/mods/7780");
-  assert.match(core.forwarderCommand(), /vscode:\/\/cyberbuildsai\.reddeck\/nxm\?url=/);
+  assert.match(core.forwarderCommand(), /vscode:\/\/edgemodders\.reddeck\/nxm\?url=/);
   assert.equal(core.describeHandler(core.forwarderCommand()), "REDdeck");
   assert.equal(core.describeHandler('"C:\\Vortex\\Vortex.exe" -d "%1"'), "Vortex");
   const handler = await core.currentNxmHandler();

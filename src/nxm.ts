@@ -1,6 +1,6 @@
 // nxm:// links: what the "Mod manager download" button on Nexus opens. VS Code cannot register a
 // protocol for an extension, so REDdeck registers a small PowerShell forwarder under the current
-// user's classes that opens vscode://cyberbuildsai.reddeck/nxm?url=<link>, which the extension's
+// user's classes that opens vscode://edgemodders.reddeck/nxm?url=<link>, which the extension's
 // URI handler receives. Registration is explicit, and so is giving the links back.
 
 import { execFile } from "node:child_process";
@@ -9,7 +9,7 @@ import { promisify } from "node:util";
 const run = promisify(execFile);
 
 export const UriScheme = "vscode";
-export const UriAuthority = "cyberbuildsai.reddeck";
+export const UriAuthority = "edgemodders.reddeck";
 
 export interface NxmLink {
   game: string;
