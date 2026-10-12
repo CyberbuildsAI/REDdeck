@@ -181,6 +181,38 @@ console.log("changes: ok");
   console.log("project: ok");
 }
 
+// Loadouts: save the current set, change things, load it back.
+{
+  const file = core.saveLoadout(lib, "smoke", "2.31");
+  assert.ok(fs.existsSync(file));
+  const was = lib.mods.map((m) => [m.id, m.enabled]);
+  lib.mods[0].enabled = !lib.mods[0].enabled;
+  core.saveMod(lib, lib.mods[0]);
+  const extra = core.addMod(lib, cls("bare", "Extra").placements, { name: "Extra", source: { type: "folder" } });
+  const r = core.applyLoadout(lib, file);
+  assert.deepEqual(lib.mods.filter((m) => m.id !== "extra").map((m) => [m.id, m.enabled]), was);
+  assert.deepEqual(r.extra, ["Extra"]);
+  assert.equal(lib.mods.find((m) => m.id === "extra").enabled, false);
+  assert.equal(core.listLoadouts(libRoot).length, 1);
+  core.removeMod(lib, extra);
+  console.log("loadouts: ok");
+}
+
+// The command line over the same library.
+{
+  const cli = (...a) => execFileSync(process.execPath, [path.join(root, "bin", "reddeck.mjs"), "--library", libRoot, "--game", game, ...a], { encoding: "utf8" }).trim();
+  const listed = JSON.parse(cli("list", "--json"));
+  assert.equal(listed.mods.length, lib.mods.length);
+  assert.ok(cli("off", "bare").includes("bare: off"));
+  assert.ok(cli("on", "bare").includes("bare: on"));
+  assert.ok(cli("conflicts").includes("wins over"));
+  assert.ok(cli("loadout", "list").includes("smoke"));
+  const dep = JSON.parse(cli("deploy", "--json"));
+  assert.equal(typeof dep.linked, "number");
+  assert.match(cli("changes"), /no changes|missing|changed/);
+  console.log("cli: ok");
+}
+
 // Turn a mod off: its files leave on the next deploy.
 rooted.enabled = false;
 core.saveMod(lib, rooted);

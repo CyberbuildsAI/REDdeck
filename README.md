@@ -17,7 +17,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 **[Read the docs](https://cyberbuildsai.github.io/REDdeck/)** &middot; [Design](https://cyberbuildsai.github.io/REDdeck/design.html) &middot; [REDcode](https://github.com/CyberbuildsAI/REDcode) &middot; [REDbridge](https://github.com/CyberbuildsAI/REDbridge) &middot; [REDnode](https://github.com/CyberbuildsAI/REDnode)
 
 > [!NOTE]
-> **Status: M1 to M4 built, awaiting a real-game test.** Add from zip, 7z, rar, folder or Nexus link; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex; a detail panel; conflicts inside archives through REDbridge; REDmod deploy; Nexus update checks and nxm download links; a project's packed output as a mod that follows the project. `npm run test:ui` runs it all inside a real VS Code. The core passes `npm run smoke` against a fake game folder, a real Vortex library and a real REDbridge; the Nexus calls themselves have not been run against a live account yet. The [design](https://cyberbuildsai.github.io/REDdeck/design.html) has the full picture.
+> **Status: M1 to M5 built in one day, awaiting a real-game test.** Add from zip, 7z, rar, folder or Nexus link; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex; a detail panel; conflicts inside archives through REDbridge; REDmod deploy; Nexus update checks and nxm download links; a project's packed output as a mod that follows the project; loadouts; a `reddeck` command line with `--json`. `npm run test:ui` runs it all inside a real VS Code. The core passes `npm run smoke` against a fake game folder, a real Vortex library and a real REDbridge; the Nexus calls themselves have not been run against a live account yet. The [design](https://cyberbuildsai.github.io/REDdeck/design.html) has the full picture.
 
 ## How it works
 
@@ -45,6 +45,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 | Path | Contents |
 |---|---|
 | `src/` | The extension. `core.ts` gathers the VS Code-free parts: classifier, library, deploy, extract, vortex |
+| `bin/reddeck.mjs` | The command line over the same core |
 | `scripts/smoke.mjs` | End-to-end test of the core against a fake game folder |
 | `images/` | Activity bar icon and extension icon |
 | `docs/` | Documentation site |
@@ -61,6 +62,17 @@ npm run smoke       # classify, add, deploy, undo against a temp folder
 ```
 
 Open the folder in VS Code and press F5 to run the extension in a second window. Details in the [setup guide](https://cyberbuildsai.github.io/REDdeck/dev-setup.html).
+
+## Command line
+
+```
+node bin/reddeck.mjs list                      # what is in the library and its status
+node bin/reddeck.mjs add "C:\Downloads\Mod.zip" --name "My Mod"
+node bin/reddeck.mjs on my-mod && node bin/reddeck.mjs deploy
+node bin/reddeck.mjs conflicts --json          # every command prints JSON with --json
+```
+
+`--library` and `--game` override the folders. The library's JSON files are the only state, so an assistant can read them directly and use the command line to act.
 
 ## Roadmap
 

@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "cyberbuildsai",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -163,6 +163,16 @@
         "command": "reddeck.nexusReleaseLinks",
         "title": "Nexus: stop handling download links",
         "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.saveLoadout",
+        "title": "Save loadout",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.loadLoadout",
+        "title": "Load loadout",
+        "category": "REDdeck"
       }
     ],
     "menus": {
@@ -221,6 +231,16 @@
           "command": "reddeck.addProject",
           "when": "view == reddeck.mods",
           "group": "1_more@4"
+        },
+        {
+          "command": "reddeck.saveLoadout",
+          "when": "view == reddeck.mods",
+          "group": "3_loadouts@1"
+        },
+        {
+          "command": "reddeck.loadLoadout",
+          "when": "view == reddeck.mods",
+          "group": "3_loadouts@2"
         }
       ],
       "view/item/context": [
@@ -351,5 +371,8 @@
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "typescript": "~5.9.3"
+  },
+  "bin": {
+    "reddeck": "bin/reddeck.mjs"
   }
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 (2026-10-11)
+
+M5, first part: loadouts and the command line.
+
+- "Save loadout" writes which mods are on and in what order to `loadouts/<name>.json` in the library; "Load loadout" applies one: the mods it names go on or off and into its order, mods it does not name are turned off, mods it names that are not in the library are listed. A loadout is a plain file to keep in a project or share.
+- `reddeck` command line over the same library and deployer: list, add, on, off, up, down, remove, deploy, undo, changes, conflicts, loadout save/load/list, vortex list/import. `--json` on every command, for scripts and assistants. Run it with `node bin/reddeck.mjs` from a checkout, or `npx reddeck` once published.
+
 ## 0.5.0 (2026-10-11)
 
 M4, the REDdeck side of the REDcode loop.

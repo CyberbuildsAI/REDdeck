@@ -14,6 +14,7 @@ import { DetailPanel } from "./detailPanel";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
 import { gameVersion } from "./game";
 import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
+import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
 import { ModsView, type ModNode } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
 import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
@@ -70,6 +71,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.addMod", () => run(addModCommand)),
     vscode.commands.registerCommand("reddeck.importVortex", () => run(importVortexCommand)),
     vscode.commands.registerCommand("reddeck.addProject", (uri?: vscode.Uri) => run(() => addProjectCommand(uri?.fsPath))),
+    vscode.commands.registerCommand("reddeck.saveLoadout", () => run(saveLoadoutCommand)),
+    vscode.commands.registerCommand("reddeck.loadLoadout", () => run(loadLoadoutCommand)),
     vscode.commands.registerCommand("reddeck.deploy", () => run(deployCommand)),
     vscode.commands.registerCommand("reddeck.undo", () => run(undoCommand)),
     vscode.commands.registerCommand("reddeck.remove", (node: ModNode) => run(() => removeCommand(modOf(node)))),
@@ -434,6 +437,36 @@ async function addProjectCommand(target: string | undefined): Promise<void> {
   log.appendLine(`Added ${mod.name} from project ${projectFile} (${mod.files.length} files, ${mod.kinds.join(", ")})`);
   refresh();
   void vscode.window.showInformationMessage(`${mod.name} added from its project. Deploy to test it; after every pack, deploy again.`);
+}
+
+async function saveLoadoutCommand(): Promise<void> {
+  if (!library) return;
+  const name = await vscode.window.showInputBox({ title: "Save loadout", prompt: "A name for this set of mods, as they are on and ordered right now", value: new Date().toISOString().slice(0, 10) });
+  if (!name?.trim()) return;
+  const file = saveLoadout(library, name.trim(), state.version);
+  log.appendLine(`Loadout saved: ${file}`);
+  void vscode.window.showInformationMessage(`Loadout "${name.trim()}" saved with ${library.mods.length} mods.`, "Open folder").then((a) => a && vscode.env.openExternal(vscode.Uri.file(path.dirname(file))));
+}
+
+async function loadLoadoutCommand(): Promise<void> {
+  if (!library) return;
+  const loadouts = listLoadouts(library.root);
+  const items = [
+    ...loadouts.map((l) => ({ label: l.name, description: `${l.mods} mods, saved ${l.saved.slice(0, 10)}`, file: l.file })),
+    { label: "$(folder-opened) Pick a loadout file...", description: "", file: "" },
+  ];
+  const pick = await vscode.window.showQuickPick(items, { title: "Load a loadout", placeHolder: "Mods it names go on or off and into its order; mods it does not name are turned off." });
+  if (!pick) return;
+  let file = pick.file;
+  if (!file) {
+    const picked = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectMany: false, filters: { Loadout: ["json"] }, openLabel: "Load" });
+    if (!picked?.length) return;
+    file = picked[0].fsPath;
+  }
+  const r = applyLoadout(library, file);
+  log.appendLine(`Loadout applied from ${file}: ${r.on} on, ${r.off} off, missing ${r.missing.join(", ") || "none"}, turned off ${r.extra.join(", ") || "none"}`);
+  refresh();
+  void vscode.window.showInformationMessage(`Loadout applied: ${r.on} on, ${r.off} off.${r.missing.length ? ` Not in the library: ${r.missing.join(", ")}.` : ""}${r.extra.length ? ` Turned off: ${r.extra.length} not in the loadout.` : ""} Deploy to make it real.`);
 }
 
 async function importVortexCommand(): Promise<void> {

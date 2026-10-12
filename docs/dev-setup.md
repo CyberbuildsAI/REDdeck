@@ -31,6 +31,7 @@ npm install
 | `npm run build` | Bundles `src/extension.ts` to `dist/extension.js` with esbuild |
 | `npm run watch` | The same, rebuilding on every change |
 | `npm run typecheck` | `tsc --noEmit` over `src/` |
+| `node bin/reddeck.mjs <command>` | The command line over `dist/core.js`; `--library` and `--game` pick the folders, `--json` prints JSON |
 | `npm run smoke` | Runs `scripts/smoke.mjs`: classifies sample layouts, adds them to a temp library, deploys into a fake game folder with hardlinks, changes a file by hand, undoes, and imports from Vortex if it is installed (read-only) |
 | `npm run package` | Builds a `.vsix` into `dist/` with vsce |
 
