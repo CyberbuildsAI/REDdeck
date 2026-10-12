@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 (2026-10-12)
+
+- The yellow framework chip always comes first in a mod's kinds, on the page and in the detail panel.
+
 ## 0.9.0 (2026-10-12)
 
 - The mods page: the wide table from the design doc, in the editor area. "Open REDdeck" (the table icon on the Mods view, or the command) shows every mod with its version, kind chips and status in columns, grouped into Frameworks and Mods, with a checkbox per row and a row menu (details, move up and down, open folder, open on Nexus, remove). Across the top: Add mod, Check updates or Nexus sign in, Conflicts with a count, Undo deploy and Deploy with the number of pending changes. At the bottom: the library path, whether deploy hardlinks or copies, and the last deploy time.

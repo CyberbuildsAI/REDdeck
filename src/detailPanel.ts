@@ -115,7 +115,7 @@ details { margin: 4px 0; } summary { cursor: pointer; } ul { margin: 4px 0 8px 1
 </style></head><body>
 <h1>${esc(mod.name)} <span>${esc(mod.version)}</span></h1>
 <div class="status">${esc(d.status)}${d.names.size ? "" : ""}</div>
-<div class="meta">${mod.kinds.map((k) => `<span class="chip ${k === "framework" ? "on" : ""}">${k}</span>`).join("")}<span class="chip">${mod.files.length} files</span><span class="chip ${mod.enabled ? "on" : ""}">${mod.enabled ? "on" : "off"}</span></div>
+<div class="meta">${[...mod.kinds].sort((a, b) => (a === "framework" ? -1 : b === "framework" ? 1 : 0)).map((k) => `<span class="chip ${k === "framework" ? "on" : ""}">${k}</span>`).join("")}<span class="chip">${mod.files.length} files</span><span class="chip ${mod.enabled ? "on" : ""}">${mod.enabled ? "on" : "off"}</span></div>
 <div class="dim">${source}. Added ${esc(mod.added.slice(0, 10))}.</div>
 ${nexusLine}
 <div class="bar">

@@ -112,7 +112,7 @@ function render(d: PageData, csp: string): string {
 <td class="chk"><input type="checkbox" ${r.enabled ? "checked" : ""} data-msg='${msg({ action: "toggle", id: r.id })}' title="${r.enabled ? "Turn off" : "Turn on"}"></td>
 <td class="name"><a data-msg='${msg({ action: "details", id: r.id })}'>${esc(r.name)}</a></td>
 <td class="mono">${esc(r.version)}</td>
-<td>${r.kinds.map((k) => `<span class="kind ${k === "framework" ? "fw" : ""}">${esc(k)}</span>`).join("")}</td>
+<td>${[...r.kinds].sort((a, b) => (a === "framework" ? -1 : b === "framework" ? 1 : 0)).map((k) => `<span class="kind ${k === "framework" ? "fw" : ""}">${esc(k)}</span>`).join("")}</td>
 <td class="${statusClass}">${esc(r.status)}${r.update ? `<span class="upd">update ${esc(r.update)} available</span>` : ""}</td>
 <td class="acts"><select class="menu"><option value="">...</option>${menu.map((e) => `<option value='${msg(e.m)}'>${e.label}</option>`).join("")}</select></td>
 </tr>`;
