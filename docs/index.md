@@ -1,4 +1,4 @@
-# RED<span class="y">pack</span> docs
+# RED<span class="y">deck</span> docs
 
 REDdeck is a mod manager for Cyberpunk 2077 that runs inside VS Code and REDcode. One list of mods, four verbs: add, turn on or off, deploy, remove. These pages track its setup and, as it grows, how to use it.
 
