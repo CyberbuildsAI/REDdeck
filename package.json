@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "cyberbuildsai",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -127,6 +127,37 @@
         "command": "reddeck.showLog",
         "title": "Show log",
         "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.nexusSetKey",
+        "title": "Nexus: set API key",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.nexusOpen",
+        "title": "Open on Nexus Mods",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.checkUpdates",
+        "title": "Nexus: check for updates",
+        "category": "REDdeck",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "reddeck.nexusAddLink",
+        "title": "Nexus: add from a link",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.nexusHandleLinks",
+        "title": "Nexus: handle download links (nxm)",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.nexusReleaseLinks",
+        "title": "Nexus: stop handling download links",
+        "category": "REDdeck"
       }
     ],
     "menus": {
@@ -143,6 +174,11 @@
         },
         {
           "command": "reddeck.refresh",
+          "when": "view == reddeck.mods",
+          "group": "navigation@4"
+        },
+        {
+          "command": "reddeck.checkUpdates",
           "when": "view == reddeck.mods",
           "group": "navigation@3"
         },
@@ -170,6 +206,11 @@
           "command": "reddeck.showLog",
           "when": "view == reddeck.mods",
           "group": "2_folders@2"
+        },
+        {
+          "command": "reddeck.nexusAddLink",
+          "when": "view == reddeck.mods",
+          "group": "1_more@3"
         }
       ],
       "view/item/context": [
@@ -187,6 +228,11 @@
           "command": "reddeck.details",
           "when": "view == reddeck.mods && viewItem == mod",
           "group": "0_details@1"
+        },
+        {
+          "command": "reddeck.nexusOpen",
+          "when": "view == reddeck.mods && viewItem == mod",
+          "group": "1_open@0"
         },
         {
           "command": "reddeck.openInExplorer",
@@ -219,6 +265,10 @@
         {
           "command": "reddeck.details",
           "when": "false"
+        },
+        {
+          "command": "reddeck.nexusOpen",
+          "when": "false"
         }
       ]
     },
@@ -244,6 +294,11 @@
           "type": "string",
           "default": "",
           "description": "DOTNET_ROOT for REDbridge, when the .NET 10 runtime is installed per user rather than machine wide."
+        },
+        "reddeck.nexusCheckUpdatesOnStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask Nexus Mods once a day whether the mods with a Nexus id have a newer file. Needs an API key (REDdeck: Nexus: set API key)."
         }
       }
     },
@@ -265,7 +320,8 @@
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke": "node scripts/smoke.mjs",
-    "package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && vsce package --no-dependencies --readme-path docs/marketplace.md --out dist/"
+    "package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && vsce package --no-dependencies --readme-path docs/marketplace.md --out dist/",
+    "test:ui": "node scripts/ui-test.mjs"
   },
   "dependencies": {
     "7zip-bin": "^5.2.0",
@@ -274,6 +330,7 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/vscode": "1.80.0",
+    "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "typescript": "~5.9.3"

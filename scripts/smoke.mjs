@@ -232,6 +232,30 @@ console.log("undo: ok");
   }
 }
 
+// Nexus: pure parts only; no network.
+{
+  const nxm = core.parseNxm("nxm://cyberpunk2077/mods/7780/files/144164?key=abc123&expires=1760000000&user_id=42");
+  assert.deepEqual(nxm, { game: "cyberpunk2077", modId: 7780, fileId: 144164, key: "abc123", expires: 1760000000, userId: 42 });
+  assert.throws(() => core.parseNxm("https://www.nexusmods.com/cyberpunk2077/mods/7780"), /Not an nxm link/);
+  assert.throws(() => core.parseNxm("nxm://cyberpunk2077/collections/abc/revisions/1"), /collections/);
+  assert.equal(core.versionNewer("1.20.4", "1.20.3"), true);
+  assert.equal(core.versionNewer("1.20.3", "1.20.3"), false);
+  assert.equal(core.versionNewer("1.9", "1.10"), false);
+  assert.equal(core.versionNewer("2.0", ""), false);
+  const newest = core.newestFile({ files: [
+    { file_id: 1, name: "old", version: "1.0", category_name: "OLD_VERSION", is_primary: false, uploaded_timestamp: 1 },
+    { file_id: 2, name: "main", version: "1.1", category_name: "MAIN", is_primary: true, uploaded_timestamp: 2 },
+    { file_id: 3, name: "opt", version: "1.2", category_name: "OPTIONAL", is_primary: false, uploaded_timestamp: 3 },
+  ], file_updates: [] });
+  assert.equal(newest.file_id, 2);
+  assert.equal(core.modPageUrl(7780), "https://www.nexusmods.com/cyberpunk2077/mods/7780");
+  assert.match(core.forwarderCommand(), /vscode:\/\/cyberbuildsai\.reddeck\/nxm\?url=/);
+  assert.equal(core.describeHandler(core.forwarderCommand()), "REDdeck");
+  assert.equal(core.describeHandler('"C:\\Vortex\\Vortex.exe" -d "%1"'), "Vortex");
+  const handler = await core.currentNxmHandler();
+  console.log(`nexus: ok (nxm links on this machine: ${core.describeHandler(handler)})`);
+}
+
 // Vortex, if present on this machine: list and classify, import into the temp library, never write.
 const vortex = core.listVortexMods(game);
 if (vortex.length) {

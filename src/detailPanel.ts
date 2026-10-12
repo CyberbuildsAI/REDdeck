@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import type { ArchiveConflictSummary } from "./conflicts";
 import type { Plan } from "./deploy";
 import type { ModInfo } from "./library";
+import { versionNewer } from "./nexus";
 
 export interface DetailData {
   mod: ModInfo;
@@ -82,6 +83,10 @@ function render(d: DetailData, csp: string): string {
     })
     .join("");
   const source = mod.source.type === "nexus" ? `Nexus mod ${mod.source.modId}` : mod.source.type === "vortex" ? `imported from Vortex${mod.source.modId ? ` (Nexus mod ${mod.source.modId})` : ""}` : mod.source.path ? `${mod.source.type}: ${esc(mod.source.path)}` : mod.source.type;
+  const update = mod.nexus && versionNewer(mod.nexus.latestVersion, mod.version) ? mod.nexus.latestVersion : undefined;
+  const nexusLine = mod.source.modId
+    ? `<div class="dim">Nexus mod ${mod.source.modId}${mod.nexus?.author ? ` by ${esc(mod.nexus.author)}` : ""}${mod.nexus?.checked ? `, checked ${esc(mod.nexus.checked.slice(0, 10))}` : ""}. ${update ? `<span class="warn">Version ${esc(update)} is on Nexus.</span>` : mod.nexus ? "Up to date." : "Not checked yet."}</div>${mod.nexus?.summary ? `<p class="dim">${esc(mod.nexus.summary)}</p>` : ""}`
+    : "";
   const archiveNote = !archive
     ? `<p class="dim">${d.bridge ? "Checking archives..." : "Archive conflicts need REDbridge. Set <span class='mono'>reddeck.bridgePath</span> to see which resources inside .archive files overlap with other mods."}</p>`
     : archiveRows.length
@@ -112,11 +117,14 @@ details { margin: 4px 0; } summary { cursor: pointer; } ul { margin: 4px 0 8px 1
 <div class="status">${esc(d.status)}${d.names.size ? "" : ""}</div>
 <div class="meta">${mod.kinds.map((k) => `<span class="chip ${k === "framework" ? "on" : ""}">${k}</span>`).join("")}<span class="chip">${mod.files.length} files</span><span class="chip ${mod.enabled ? "on" : ""}">${mod.enabled ? "on" : "off"}</span></div>
 <div class="dim">${source}. Added ${esc(mod.added.slice(0, 10))}.</div>
+${nexusLine}
 <div class="bar">
   <button data-action="toggle">${mod.enabled ? "Turn off" : "Turn on"}</button>
   <button data-action="moveUp" title="Wins conflicts against the mods below it">Move up</button>
   <button data-action="moveDown">Move down</button>
   <button data-action="open">Open folder</button>
+  ${mod.source.modId ? `<button data-action="nexus">Open on Nexus</button>` : ""}
+  ${update ? `<button data-action="update">Get ${esc(update)} on Nexus</button>` : ""}
   <button data-action="remove" class="danger">Remove</button>
 </div>
 <h2>Conflicts by file path</h2>

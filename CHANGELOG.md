@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 (2026-10-11)
+
+M3: Nexus Mods.
+
+- "Nexus: set API key" stores your personal API key in VS Code's secret storage and checks it against Nexus.
+- "Nexus: check for updates" asks Nexus for the newest file of every mod that has a Nexus id (added from a link, or imported from Vortex) and shows "update 1.2.3 available" in the list and the detail panel. It also runs once a day on start when a key is stored; `reddeck.nexusCheckUpdatesOnStart` turns that off.
+- "Nexus: handle download links" registers REDdeck for nxm links for the current user, through a small PowerShell forwarder that opens a `vscode://cyberbuildsai.reddeck/nxm` link; the extension downloads the file into the library and adds it with the name and version from Nexus. "Nexus: stop handling download links" gives them back. It says who had them before (Vortex, usually).
+- "Nexus: add from a link" takes a pasted nxm link. Free members need the link from the site's Mod manager download button, which carries a key; Premium members get direct links.
+- "Open on Nexus Mods" on any mod with a Nexus id, in the list and the detail panel, which also shows the author and summary once checked.
+- `npm run test:ui` runs REDdeck inside a real VS Code: activation, commands, a deploy, the archive scan and the detail panel.
+
 ## 0.3.0 (2026-10-11)
 
 M2, first part.

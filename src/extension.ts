@@ -15,6 +15,8 @@ import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
 import { gameVersion } from "./game";
 import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { ModsView, type ModNode } from "./modsView";
+import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
+import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { importFromVortex, listVortexMods } from "./vortex";
 
@@ -26,6 +28,9 @@ let status: vscode.StatusBarItem;
 let log: vscode.OutputChannel;
 let sevenZa: string | undefined;
 let extensionRoot = "";
+let extensionVersion = "0.0.0";
+let secrets: vscode.SecretStorage;
+let globalState: vscode.Memento;
 let bridge: BridgeClient | undefined;
 let bridgeExe = "";
 let scanTimer: NodeJS.Timeout | undefined;
@@ -34,6 +39,9 @@ const archiveCache = new Map<string, { mtimeMs: number; resources: Map<string, s
 
 export function activate(context: vscode.ExtensionContext): void {
   extensionRoot = context.extensionPath;
+  extensionVersion = String((context.extension.packageJSON as { version?: string }).version ?? "0.0.0");
+  secrets = context.secrets;
+  globalState = context.globalState;
   log = vscode.window.createOutputChannel("REDdeck");
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 40);
   status.command = "reddeck.deploy";
@@ -73,6 +81,13 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.openLibrary", () => {
       if (library) vscode.env.openExternal(vscode.Uri.file(library.root));
     }),
+    vscode.commands.registerCommand("reddeck.nexusSetKey", () => run(() => nexusSetKeyCommand().then(() => undefined))),
+    vscode.commands.registerCommand("reddeck.nexusOpen", (node: ModNode) => run(() => nexusOpenCommand(modOf(node)))),
+    vscode.commands.registerCommand("reddeck.checkUpdates", () => run(() => checkUpdatesCommand(false))),
+    vscode.commands.registerCommand("reddeck.nexusAddLink", () => run(nexusAddLinkCommand)),
+    vscode.commands.registerCommand("reddeck.nexusHandleLinks", () => run(nexusHandleLinksCommand)),
+    vscode.commands.registerCommand("reddeck.nexusReleaseLinks", () => run(nexusReleaseLinksCommand)),
+    vscode.window.registerUriHandler({ handleUri: (uri) => void run(() => handleUri(uri)) }),
     vscode.commands.registerCommand("reddeck.refresh", () => reload()),
     vscode.commands.registerCommand("reddeck.showLog", () => log.show(true)),
     vscode.workspace.onDidChangeConfiguration((e) => {
@@ -95,13 +110,14 @@ function modOf(node: ModNode | undefined): ModInfo | undefined {
   return node?.type === "mod" ? node.mod : undefined;
 }
 
-function settings(): { gamePath: string; libraryPath: string; bridgePath: string; dotnetRoot: string } {
+function settings(): { gamePath: string; libraryPath: string; bridgePath: string; dotnetRoot: string; checkUpdates: boolean } {
   const cfg = vscode.workspace.getConfiguration("reddeck");
   return {
     gamePath: cfg.get<string>("gamePath", ""),
     libraryPath: cfg.get<string>("libraryPath", "") || defaultLibraryPath(),
     bridgePath: cfg.get<string>("bridgePath", ""),
     dotnetRoot: cfg.get<string>("dotnetRoot", ""),
+    checkUpdates: cfg.get<boolean>("nexusCheckUpdatesOnStart", true),
   };
 }
 
@@ -132,6 +148,7 @@ function reload(): void {
     updateStatus();
   });
   refresh();
+  void run(maybeCheckUpdates);
 }
 
 /** Recomputes the plan and the status of every mod; cheap enough to run after every change. */
@@ -159,6 +176,7 @@ function refresh(): void {
 function statusFor(mod: ModInfo): string {
   if (!library || !state.plan) return "";
   const parts = [modStatus(library, settings().gamePath, mod, state.plan, readManifest(settings().gamePath), state.changes)];
+  if (mod.nexus && versionNewer(mod.nexus.latestVersion, mod.version)) parts.push(`update ${mod.nexus.latestVersion} available`);
   const a = state.archive;
   if (a && mod.enabled) {
     const lost = a.lost.get(mod.id) ?? 0;
@@ -298,6 +316,12 @@ async function detailAction(action: string, id: string): Promise<void> {
     case "remove":
       await removeCommand(mod);
       break;
+    case "nexus":
+      await nexusOpenCommand(mod);
+      break;
+    case "update":
+      if (mod.source.modId) void vscode.env.openExternal(vscode.Uri.parse(`${modPageUrl(mod.source.modId)}?tab=files${mod.nexus?.latestFileId ? `&file_id=${mod.nexus.latestFileId}` : ""}`));
+      break;
   }
 }
 
@@ -325,12 +349,12 @@ async function addModCommand(): Promise<void> {
 }
 
 /** Adds one file or folder: extract if needed, classify, ask about options, copy into the library. */
-async function addFrom(source: string): Promise<void> {
+async function addFrom(source: string, preset?: { name: string; version: string; source: ModSource }): Promise<void> {
   if (!library) return;
   const isFile = fs.statSync(source).isFile();
   if (isFile && !isArchiveFile(source)) throw new Error(`${path.basename(source)} is not a zip, 7z or rar file.`);
   const defaultName = cleanName(path.basename(source, isFile ? path.extname(source) : ""));
-  const name = await vscode.window.showInputBox({ prompt: "Name for this mod", value: defaultName, validateInput: (v) => (v.trim() ? undefined : "A name is needed") });
+  const name = preset?.name ?? (await vscode.window.showInputBox({ prompt: "Name for this mod", value: defaultName, validateInput: (v) => (v.trim() ? undefined : "A name is needed") }));
   if (!name) return;
 
   let folder = source;
@@ -353,8 +377,8 @@ async function addFrom(source: string): Promise<void> {
     if (!c.placements.length) {
       throw new Error(`Nothing in ${path.basename(source)} looks like a Cyberpunk mod file.${c.unplaced.length ? ` Unplaced: ${c.unplaced.slice(0, 5).join(", ")}` : ""}`);
     }
-    const sourceInfo: ModSource = isFile ? { type: "file", path: keepDownload(library, source) } : { type: "folder", path: source };
-    const mod = addMod(library, c.placements, { name: name.trim(), version: versionFrom(path.basename(source)), source: sourceInfo });
+    const sourceInfo: ModSource = preset?.source ?? (isFile ? { type: "file", path: keepDownload(library, source) } : { type: "folder", path: source });
+    const mod = addMod(library, c.placements, { name: name.trim(), version: preset?.version ?? versionFrom(path.basename(source)), source: sourceInfo });
     log.appendLine(`Added ${mod.name} (${mod.files.length} files, ${mod.kinds.join(", ")}) from ${source}`);
     if (c.unplaced.length) {
       log.appendLine(`  not placed: ${c.unplaced.join(", ")}`);
@@ -471,4 +495,174 @@ function move(mod: ModInfo | undefined, delta: -1 | 1): void {
   if (!mod || !library) return;
   moveMod(library, mod, delta);
   refresh();
+}
+
+// ---- Nexus Mods ----------------------------------------------------------------------------------
+
+const NexusKeySecret = "reddeck.nexusApiKey";
+
+async function nexusClient(ask: boolean): Promise<NexusClient | undefined> {
+  let key = await secrets.get(NexusKeySecret);
+  if (!key && ask) key = await nexusSetKeyCommand();
+  return key ? new NexusClient(key, extensionVersion) : undefined;
+}
+
+async function nexusSetKeyCommand(): Promise<string | undefined> {
+  const key = await vscode.window.showInputBox({
+    title: "Nexus Mods API key",
+    prompt: "Your personal API key from nexusmods.com > Settings > API keys. It stays in VS Code's secret storage.",
+    password: true,
+    ignoreFocusOut: true,
+  });
+  if (!key?.trim()) return undefined;
+  const client = new NexusClient(key.trim(), extensionVersion);
+  const user = await client.validate();
+  await secrets.store(NexusKeySecret, key.trim());
+  log.appendLine(`Nexus: signed in as ${user.name}${user.is_premium ? " (Premium)" : ""}`);
+  void vscode.window.showInformationMessage(`Nexus: signed in as ${user.name}${user.is_premium ? " (Premium)" : ""}.`);
+  return key.trim();
+}
+
+async function nexusOpenCommand(mod: ModInfo | undefined): Promise<void> {
+  if (!mod) return;
+  if (!mod.source.modId) {
+    void vscode.window.showInformationMessage(`${mod.name} has no Nexus id. Mods added from a Nexus link or imported from Vortex have one.`);
+    return;
+  }
+  await vscode.env.openExternal(vscode.Uri.parse(modPageUrl(mod.source.modId)));
+}
+
+/** Once a day, when a key is stored and the setting allows. Never prompts. */
+async function maybeCheckUpdates(): Promise<void> {
+  if (!settings().checkUpdates || !library?.mods.some((m) => m.source.modId)) return;
+  const last = globalState.get<number>("reddeck.lastUpdateCheck", 0);
+  if (Date.now() - last < 24 * 3600 * 1000) return;
+  if (!(await secrets.get(NexusKeySecret))) return;
+  await checkUpdatesCommand(true);
+}
+
+async function checkUpdatesCommand(quiet: boolean): Promise<void> {
+  if (!library) return;
+  const client = await nexusClient(!quiet);
+  if (!client) return;
+  const mods = library.mods.filter((m) => m.source.modId);
+  if (!mods.length) {
+    if (!quiet) void vscode.window.showInformationMessage("No mod in the library has a Nexus id yet. Mods added from a Nexus link, or imported from Vortex, have one.");
+    return;
+  }
+  let updates = 0;
+  let failed = 0;
+  await vscode.window.withProgress({ location: quiet ? vscode.ProgressLocation.Window : vscode.ProgressLocation.Notification, title: "Checking Nexus for updates" }, async (progress) => {
+    for (const [i, mod] of mods.entries()) {
+      progress.report({ message: `${i + 1} of ${mods.length}: ${mod.name}` });
+      try {
+        const files = await client.files(mod.source.modId!);
+        const newest = newestFile(files);
+        const info = mod.nexus?.name ? undefined : await client.mod(mod.source.modId!);
+        mod.nexus = {
+          name: info?.name ?? mod.nexus?.name ?? mod.name,
+          version: info?.version ?? mod.nexus?.version ?? "",
+          latestVersion: newest?.version ?? "",
+          latestFileId: newest?.file_id ?? 0,
+          latestFileName: newest?.file_name ?? "",
+          checked: new Date().toISOString(),
+          author: info?.author ?? mod.nexus?.author,
+          summary: info?.summary ?? mod.nexus?.summary,
+        };
+        saveMod(library!, mod);
+        if (newest && versionNewer(newest.version, mod.version)) updates++;
+      } catch (err) {
+        failed++;
+        log.appendLine(`Nexus check failed for ${mod.name}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  });
+  await globalState.update("reddeck.lastUpdateCheck", Date.now());
+  refresh();
+  const rate = client.rate ? ` (${client.rate.dailyRemaining} Nexus requests left today)` : "";
+  log.appendLine(`Nexus: ${mods.length} mods checked, ${updates} updates, ${failed} failed${rate}`);
+  if (!quiet || updates) {
+    void vscode.window.showInformationMessage(updates ? `${updates} mod${updates === 1 ? " has" : "s have"} a newer file on Nexus. Open a mod's details to see.` : `All ${mods.length} Nexus mods are up to date.${failed ? ` ${failed} could not be checked, see the log.` : ""}`);
+  }
+}
+
+async function nexusAddLinkCommand(): Promise<void> {
+  const link = await vscode.window.showInputBox({ title: "Add from a Nexus link", prompt: "Paste an nxm:// link (from the Mod manager download button) or a mod page link", ignoreFocusOut: true });
+  if (!link?.trim()) return;
+  await addFromLink(link.trim());
+}
+
+async function handleUri(uri: vscode.Uri): Promise<void> {
+  if (uri.path !== "/nxm") return;
+  const url = new URLSearchParams(uri.query).get("url");
+  if (!url) throw new Error("The link REDdeck received had no nxm URL in it.");
+  await addFromLink(url);
+}
+
+async function addFromLink(link: string): Promise<void> {
+  if (!library) return;
+  const page = /nexusmods\.com\/cyberpunk2077\/mods\/(\d+)/i.exec(link);
+  if (page) {
+    void vscode.window
+      .showInformationMessage(`That is a mod page. On it, pick a file and press "Mod manager download"; the link comes here when REDdeck handles them (REDdeck: Nexus: handle download links).`, "Open the page")
+      .then((a) => a && vscode.env.openExternal(vscode.Uri.parse(link)));
+    return;
+  }
+  const nxm = parseNxm(link);
+  if (nxm.game !== "cyberpunk2077") throw new Error(`That link is for ${nxm.game}, not Cyberpunk 2077.`);
+  const client = await nexusClient(true);
+  if (!client) return;
+  const [info, files] = await Promise.all([client.mod(nxm.modId), client.files(nxm.modId)]);
+  const file = files.files.find((f) => f.file_id === nxm.fileId);
+  const links = await client.downloadLinks(nxm.modId, nxm.fileId, nxm.key, nxm.expires).catch((err: Error) => {
+    if (/403|forbidden|premium/i.test(err.message)) throw new Error("Nexus only gives direct links to Premium members. Use the Mod manager download button on the site, which sends a link with a key.");
+    throw err;
+  });
+  if (!links.length) throw new Error("Nexus returned no download link.");
+  const fileName = file?.file_name ?? `${info.name}-${nxm.modId}-${nxm.fileId}.zip`;
+  const dest = path.join(library.root, "downloads", fileName);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Downloading ${info.name}` }, async (progress) => {
+    let last = 0;
+    await download(links[0].URI, dest, (received, total) => {
+      if (!total) return;
+      const pct = Math.floor((received / total) * 100);
+      progress.report({ increment: pct - last, message: `${Math.round(received / 1048576)} of ${Math.round(total / 1048576)} MB` });
+      last = pct;
+    });
+  });
+  log.appendLine(`Downloaded ${fileName} (${info.name} ${file?.version ?? ""}) from Nexus mod ${nxm.modId}, md5 ${md5Of(dest)}`);
+  const existing = library.mods.find((m) => m.source.modId === nxm.modId);
+  await addFrom(dest, { name: existing ? `${info.name} ${file?.version ?? ""}`.trim() : info.name, version: file?.version ?? info.version, source: { type: "nexus", modId: nxm.modId, fileId: nxm.fileId, path: dest } });
+  const added = library.mods[library.mods.length - 1];
+  if (added && added.source.modId === nxm.modId && added.source.fileId === nxm.fileId) {
+    added.nexus = { name: info.name, version: info.version, latestVersion: file?.version ?? info.version, latestFileId: nxm.fileId, latestFileName: fileName, checked: new Date().toISOString(), author: info.author, summary: info.summary };
+    saveMod(library, added);
+  }
+  if (existing) {
+    void vscode.window.showInformationMessage(`${info.name} was already in the library as ${existing.name} ${existing.version}. The new file is its own entry; turn the old one off or remove it.`);
+  }
+}
+
+async function nexusHandleLinksCommand(): Promise<void> {
+  const before = await currentNxmHandler();
+  const who = describeHandler(before);
+  if (who !== "nobody" && who !== "REDdeck") {
+    const a = await vscode.window.showWarningMessage(`${who} handles Nexus download links right now. Hand them to REDdeck? ${who} can take them back from its own settings.`, { modal: true }, "Hand them to REDdeck");
+    if (!a) return;
+  }
+  await registerNxmHandler();
+  log.appendLine(`nxm links: now handled by REDdeck (before: ${who})`);
+  void vscode.window.showInformationMessage("REDdeck now handles Nexus download links. On a mod page, press Mod manager download and the file lands in the library.");
+}
+
+async function nexusReleaseLinksCommand(): Promise<void> {
+  const who = describeHandler(await currentNxmHandler());
+  if (who !== "REDdeck") {
+    void vscode.window.showInformationMessage(`Nexus download links are handled by ${who}, not REDdeck.`);
+    return;
+  }
+  await unregisterNxmHandler();
+  log.appendLine("nxm links: REDdeck no longer handles them");
+  void vscode.window.showInformationMessage("REDdeck no longer handles Nexus download links. Start Vortex once to give them back to it.");
 }

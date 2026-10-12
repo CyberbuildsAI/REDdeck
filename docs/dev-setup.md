@@ -43,6 +43,10 @@ Archives: zip and 7z are opened by the `7za.exe` from the `7zip-bin` package, wh
 Archive conflicts need a REDbridge build (0.4.0 or later). With the REDbridge repo cloned and built next to this one, REDdeck finds `..\REDbridge\src\REDbridgein\Release
 et10.0\REDbridge.exe` on its own; otherwise set `reddeck.bridgePath`. With a per-user .NET runtime also set `reddeck.dotnetRoot` (the smoke test reads `DOTNET_ROOT` or falls back to `%LOCALAPPDATA%\Microsoft\dotnet`).
 
+Nexus: the API key is entered with the command `REDdeck: Nexus: set API key` and kept in VS Code's secret storage, never in settings or the library. REDdeck sends `REDdeck/<version>` as its user agent and application name, as Nexus asks. Rate limits are 2,500 requests a day; an update check costs one or two requests per mod.
+
+`npm run test:ui` downloads a VS Code build into `.vscode-test/` (about 350 MB, once) and runs `src/uiTest.ts` inside it with a scratch library and a fake game folder.
+
 A real-game test needs a game folder that Vortex does not manage. REDdeck refuses to deploy while `vortex.deployment.json` is present; purge in Vortex first, or point `reddeck.gamePath` at a copy of the game folder.
 
 ## 4. Docs site and brand images

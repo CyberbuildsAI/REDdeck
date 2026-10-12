@@ -11,3 +11,6 @@ dist/**/*.map
 *.vsix
 CLAUDE.md
 README.md
+dist/uiTest.js
+dist/core.js
+.vscode-test/**

@@ -28,6 +28,8 @@ export interface ModInfo {
   source: ModSource;
   /** Paths under the game folder, forward slashes, in no particular order. */
   files: string[];
+  /** What Nexus last said about this mod, when it has a mod id. */
+  nexus?: { name: string; version: string; latestVersion: string; latestFileId: number; latestFileName: string; checked: string; author?: string; summary?: string };
 }
 
 /** `library.json` at the library root. */

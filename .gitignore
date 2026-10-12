@@ -15,3 +15,6 @@ node_modules/
 # a local mod library used for testing
 library/
 test-library/
+
+# VS Code builds downloaded by the UI test
+.vscode-test/

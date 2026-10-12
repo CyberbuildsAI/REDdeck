@@ -17,7 +17,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 **[Read the docs](https://cyberbuildsai.github.io/REDdeck/)** &middot; [Design](https://cyberbuildsai.github.io/REDdeck/design.html) &middot; [REDcode](https://github.com/CyberbuildsAI/REDcode) &middot; [REDbridge](https://github.com/CyberbuildsAI/REDbridge) &middot; [REDnode](https://github.com/CyberbuildsAI/REDnode)
 
 > [!NOTE]
-> **Status: M1 built and M2 under way, awaiting a real-game test.** Add from zip, 7z, rar or folder; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex; a detail panel; conflicts inside archives through REDbridge; REDmod deploy. All of it passes `npm run smoke` against a fake game folder, a real Vortex library and a real REDbridge. The [design](https://cyberbuildsai.github.io/REDdeck/design.html) has the full picture.
+> **Status: M1 to M3 built, awaiting a real-game test.** Add from zip, 7z, rar, folder or Nexus link; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex; a detail panel; conflicts inside archives through REDbridge; REDmod deploy; Nexus update checks and nxm download links. The core passes `npm run smoke` against a fake game folder, a real Vortex library and a real REDbridge; the Nexus calls themselves have not been run against a live account yet. The [design](https://cyberbuildsai.github.io/REDdeck/design.html) has the full picture.
 
 ## How it works
 
@@ -34,7 +34,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 
 | You do | REDdeck does |
 |---|---|
-| **Add** a zip, 7z, rar, folder or Nexus link | Works out what kind of mod it is and where its files go. Asks only when it cannot tell. |
+| **Add** a zip, 7z, rar, folder or Nexus link | Works out what kind of mod it is and where its files go. Asks only when it cannot tell. With REDdeck handling nxm links, the Mod manager download button on Nexus lands the file in the library. |
 | Turn a mod **on** or **off** | Nothing on disk yet. The Deploy button counts the changes waiting. |
 | **Deploy** | Hardlinks the enabled mods into the game, writes the load order, prepares REDmod packages, records a manifest. |
 | **Remove** | Deletes the mod from the library. Deployed files come out on the next deploy. |
