@@ -181,6 +181,22 @@ console.log("changes: ok");
   console.log("project: ok");
 }
 
+// placeAbove: the loser moves to directly above the winner; already-above is a no-op.
+{
+  const before = [...lib.info.order];
+  const [first, , third] = lib.mods;
+  core.placeAbove(lib, third, first);
+  assert.equal(lib.info.order.indexOf(third.id), lib.info.order.indexOf(first.id) - 1);
+  assert.equal(lib.mods[0].id, third.id);
+  core.placeAbove(lib, third, first);
+  assert.equal(lib.mods[0].id, third.id, "no-op when already above");
+  lib.info.order = before;
+  const rank = new Map(before.map((id, k) => [id, k]));
+  lib.mods.sort((a, b) => rank.get(a.id) - rank.get(b.id));
+  core.saveLibrary(lib);
+  console.log("placeAbove: ok");
+}
+
 // Loadouts: save the current set, change things, load it back.
 {
   const file = core.saveLoadout(lib, "smoke", "2.31");

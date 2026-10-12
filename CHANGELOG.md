@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0 (2026-10-12)
+
+- A Conflicts panel. The deploy toast says "1 conflict, resolved by order" with a "Show conflicts" button; "Show conflicts" in the view menu opens the same page. It lists every conflict by file path and, with REDbridge, inside archives grouped by the pair of mods, with who wins and who loses, and a "Let ... win" button beside each that moves the loser to directly above the winner. "Turn off ..." is there too. Deploy again to make it real.
+- The archive scan's own toast now has the same "Show conflicts" button and no longer sends you to a mod's details.
+
 ## 0.7.1 (2026-10-12)
 
 - REDdeck finds a per-user .NET 10 runtime for REDbridge on its own, so `reddeck.dotnetRoot` is only for unusual layouts. Do not set DOTNET_ROOT as a user environment variable for REDbridge: every .NET program on the machine then looks only there, and Vortex's .NET 9 check fails.

@@ -45,9 +45,11 @@ export async function run(): Promise<void> {
   assert.ok(fs.existsSync(path.join(game, "reddeck.deployment.json")), "no manifest after deploy");
   assert.equal(fs.readFileSync(path.join(game, "archive", "pc", "mod", "modlist.txt"), "utf8").trim(), "UiTest.archive");
 
-  // The archive scan either runs through a bridge or reports that it needs one; both are fine here.
+  // Show conflicts opens the conflicts panel; the archive scan runs through a bridge or reports that it needs one.
   await vscode.commands.executeCommand("reddeck.checkConflicts");
   await new Promise((r) => setTimeout(r, 1500));
+  const tabs = vscode.window.tabGroups.all.flatMap((g) => g.tabs.map((t) => t.label));
+  assert.ok(tabs.includes("Conflicts"), `no Conflicts tab among ${tabs.join(", ")}`);
 
   // Details for the mod opens a webview panel without throwing.
   await vscode.commands.executeCommand("reddeck.details", { type: "mod", mod: JSON.parse(fs.readFileSync(path.join(modDir, "mod.json"), "utf8")) });

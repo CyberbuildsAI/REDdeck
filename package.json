@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -76,8 +76,9 @@
       },
       {
         "command": "reddeck.checkConflicts",
-        "title": "Check archive conflicts",
-        "category": "REDdeck"
+        "title": "Show conflicts",
+        "category": "REDdeck",
+        "icon": "$(warning)"
       },
       {
         "command": "reddeck.importVortex",

@@ -156,6 +156,19 @@ export function removeMod(lib: Library, mod: ModInfo): void {
 }
 
 /** Moves a mod up (wins more conflicts) or down in the order. */
+/** Moves a mod to directly above another, so it wins their conflicts. No-op if already above. */
+export function placeAbove(lib: Library, mod: ModInfo, target: ModInfo): void {
+  const order = lib.info.order.filter((id) => id !== mod.id);
+  const t = order.indexOf(target.id);
+  if (t < 0 || mod.id === target.id) return;
+  if (lib.info.order.indexOf(mod.id) < lib.info.order.indexOf(target.id)) return;
+  order.splice(t, 0, mod.id);
+  lib.info.order = order;
+  const rank = new Map(order.map((id, k) => [id, k]));
+  lib.mods.sort((a, b) => (rank.get(a.id) ?? 1e9) - (rank.get(b.id) ?? 1e9));
+  saveLibrary(lib);
+}
+
 export function moveMod(lib: Library, mod: ModInfo, delta: -1 | 1): void {
   const i = lib.info.order.indexOf(mod.id);
   const j = i + delta;

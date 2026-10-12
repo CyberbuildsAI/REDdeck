@@ -10,10 +10,11 @@ import { BridgeClient, compareVersions, findBridge, MinBridgeVersion } from "./b
 import { classify } from "./classifier";
 import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, type ArchiveListing } from "./conflicts";
 import { deploy, detectChanges, modStatus, plan, readManifest, undo, vortexManages, type Change, type Decision, type Plan } from "./deploy";
+import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
 import { DetailPanel } from "./detailPanel";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
 import { gameVersion } from "./game";
-import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
+import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
 import { ModsView, type ModNode } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
@@ -54,6 +55,7 @@ export function activate(context: vscode.ExtensionContext): void {
   view = new ModsView(() => library, statusFor);
   tree = vscode.window.createTreeView("reddeck.mods", { treeDataProvider: view, showCollapseAll: false });
   detail = new DetailPanel((action, id) => run(() => detailAction(action, id)));
+  conflictsPanel = new ConflictsPanel((m) => run(() => conflictsAction(m)));
 
   context.subscriptions.push(
     log,
@@ -78,7 +80,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.undo", () => run(undoCommand)),
     vscode.commands.registerCommand("reddeck.remove", (node: ModNode) => run(() => removeCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.details", (node: ModNode) => run(() => showDetails(modOf(node)))),
-    vscode.commands.registerCommand("reddeck.checkConflicts", () => run(() => scanArchives(true))),
+    vscode.commands.registerCommand("reddeck.checkConflicts", () => run(showConflicts)),
     vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
     vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
     vscode.commands.registerCommand("reddeck.openInExplorer", (node: ModNode) => {
@@ -184,6 +186,7 @@ function refresh(): void {
   updateStatus();
   view.refresh();
   updateDetail();
+  updateConflicts();
   clearTimeout(scanTimer);
   scanTimer = setTimeout(() => void run(() => scanArchives(false)), 400);
 }
@@ -227,6 +230,8 @@ function updateStatus(): void {
 // ---- archive conflicts through REDbridge ------------------------------------------------------
 
 async function scanArchives(explicit: boolean): Promise<void> {
+  scanning = true;
+  updateConflicts();
   if (!library) return;
   if (!bridgeExe) {
     state.archive = undefined;
@@ -278,11 +283,15 @@ async function scanArchives(explicit: boolean): Promise<void> {
     }
   }
   state.archive = findArchiveConflicts(listings);
+  scanning = false;
   const n = state.archive.conflicts.length;
   log.appendLine(`Archive scan: ${listings.length} archives, ${n} overlapping resource${n === 1 ? "" : "s"}`);
   view.refresh();
   updateDetail();
-  if (explicit) void vscode.window.showInformationMessage(n ? `${n} resources overlap between enabled mods. Open a mod's details to see who wins.` : "No resources overlap between the enabled mods' archives.");
+  updateConflicts();
+  if (explicit && !conflictsPanel.open) void vscode.window.showInformationMessage(n ? `${n} resources overlap between enabled mods.` : "No resources overlap between the enabled mods' archives.", "Show conflicts").then((a) => {
+    if (a) void showConflicts();
+  });
 }
 
 // ---- details -----------------------------------------------------------------------------------
@@ -301,6 +310,56 @@ function detailData(mod: ModInfo) {
 function showDetails(mod: ModInfo | undefined): void {
   if (!mod) return;
   detail.show(detailData(mod));
+}
+
+// ---- conflicts panel ---------------------------------------------------------------------------
+
+let conflictsPanel: ConflictsPanel;
+let scanning = false;
+
+function conflictsData() {
+  return {
+    fileConflicts: state.plan?.conflicts ?? [],
+    archive: state.archive,
+    names: new Map((library?.mods ?? []).map((m) => [m.id, m.name])),
+    bridge: !!bridgeExe,
+    scanning,
+  };
+}
+
+/** Opens the conflicts panel and runs the archive scan so its second half fills in. */
+async function showConflicts(): Promise<void> {
+  conflictsPanel.show(conflictsData());
+  if (!state.archive && bridgeExe) await scanArchives(true);
+}
+
+function updateConflicts(): void {
+  if (conflictsPanel?.open) conflictsPanel.update(conflictsData());
+}
+
+async function conflictsAction(m: ConflictsMessage): Promise<void> {
+  if (!library) return;
+  const mod = library.mods.find((x) => x.id === m.id);
+  if (!mod) return;
+  switch (m.action) {
+    case "letWin": {
+      const over = library.mods.find((x) => x.id === m.over);
+      if (!over) return;
+      placeAbove(library, mod, over);
+      log.appendLine(`${mod.name} placed above ${over.name}`);
+      refresh();
+      break;
+    }
+    case "toggle":
+      mod.enabled = !mod.enabled;
+      saveMod(library, mod);
+      log.appendLine(`${mod.name}: ${mod.enabled ? "on" : "off"}`);
+      refresh();
+      break;
+    case "details":
+      showDetails(mod);
+      break;
+  }
 }
 
 function updateDetail(): void {
@@ -532,7 +591,11 @@ async function deployCommand(): Promise<void> {
   }
   refresh();
   const words = result.method === "link" ? "linked" : "copied";
-  void vscode.window.showInformationMessage(`Deployed: ${result.linked} files ${words}, ${result.removed} removed.${state.plan?.conflicts.length ? ` ${state.plan.conflicts.length} conflicts resolved by order.` : ""}${redmodNote}`);
+  const n = state.plan?.conflicts.length ?? 0;
+  const conflictNote = n ? ` ${n} conflict${n === 1 ? "" : "s"}, resolved by order.` : "";
+  void vscode.window.showInformationMessage(`Deployed: ${result.linked} files ${words}, ${result.removed} removed.${conflictNote}${redmodNote}`, ...(n ? ["Show conflicts"] : [])).then((a) => {
+    if (a) void showConflicts();
+  });
 }
 
 async function undoCommand(): Promise<void> {
