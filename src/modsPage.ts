@@ -41,10 +41,12 @@ export interface PageData {
   vortex: boolean;
   /** The Frameworks group's note: the game version, whether it changed since the last deploy, updates. */
   frameworks?: { summary: string; detail: string; warn: boolean };
+  /** Things not in place yet, each a button. */
+  setup: { id: string; label: string; detail: string }[];
 }
 
 export interface PageMessage {
-  action: "downloads" | "getBridge" | "changes" | "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
+  action: "setup" | "downloads" | "getBridge" | "changes" | "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
   id?: string;
 }
 
@@ -185,6 +187,7 @@ input[type=checkbox] { accent-color: var(--yellow); width: 15px; height: 15px; c
 .fwnote { letter-spacing: 0; text-transform: none; color: var(--dim); margin-left: 10px; cursor: default; } .fwnote.warn { color: var(--yellow); }
 .okdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: middle; }
 .empty { padding: 24px 8px; color: var(--dim); }
+.setup { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; color: var(--dim); }
 .note { border: 1px solid var(--yellow); color: var(--yellow); padding: 8px 12px; margin-bottom: 12px; }
 </style></head><body>
 <div class="top">
@@ -198,6 +201,7 @@ input[type=checkbox] { accent-color: var(--yellow); width: 15px; height: 15px; c
   <button class="deploy ${d.pending ? "" : "idle"}" data-msg='${msg({ action: "deploy" })}'>${d.pending ? "Deploy" : "Deployed"}</button>
 </div>
 ${d.vortex ? `<div class="note">Vortex manages this game folder. Purge in Vortex before deploying with REDdeck.</div>` : ""}
+${d.setup.length ? `<div class="setup"><span>Set up:</span>${d.setup.map((s) => `<button data-msg='${msg({ action: "setup", id: s.id })}' title="${esc(s.detail)}">${esc(s.label)}</button>`).join("")}</div>` : ""}
 <div class="filters">
   <input type="search" id="q" placeholder="Search name, version, kind or status" autocomplete="off">
   ${chips}

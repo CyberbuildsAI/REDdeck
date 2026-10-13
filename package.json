@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -53,8 +53,28 @@
     "viewsWelcome": [
       {
         "view": "reddeck.mods",
-        "contents": "No mods yet.\nAdd a zip from Nexus Mods or a mod folder, turn it on, and deploy. Nothing touches the game until you deploy.\n[Add mod](command:reddeck.addMod)\n[Import from Vortex](command:reddeck.importVortex)",
+        "contents": "No mods yet.\nAdd a zip from Nexus Mods or a mod folder, turn it on, and deploy. Nothing touches the game until you deploy.\n[Add mod](command:reddeck.addMod)",
         "when": "reddeck.empty"
+      },
+      {
+        "view": "reddeck.mods",
+        "contents": "The game was not found through Steam, GOG or Epic.\n[Find the game folder](command:reddeck.pickGame)",
+        "when": "reddeck.empty && reddeck.setup.game"
+      },
+      {
+        "view": "reddeck.mods",
+        "contents": "Vortex has mods for this game. REDdeck can take copies of them; Vortex is left alone.\n[Import from Vortex](command:reddeck.importVortex)",
+        "when": "reddeck.empty && reddeck.setup.vortex"
+      },
+      {
+        "view": "reddeck.mods",
+        "contents": "Sign in to Nexus Mods for updates and downloads from the site.\n[Sign in to Nexus](command:reddeck.nexusSignIn)",
+        "when": "reddeck.empty && reddeck.setup.nexus"
+      },
+      {
+        "view": "reddeck.mods",
+        "contents": "REDbridge sees conflicts inside archives. It is a 70 MB download that REDdeck installs for you.\n[Get REDbridge](command:reddeck.getBridge)",
+        "when": "reddeck.empty && reddeck.setup.bridge"
       }
     ],
     "commands": [
@@ -211,6 +231,16 @@
         "command": "reddeck.pickGame",
         "title": "Pick the game folder...",
         "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.setup",
+        "title": "REDdeck: Set up...",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.hideSetupStep",
+        "title": "Not now",
+        "icon": "$(close)"
       }
     ],
     "menus": {
@@ -308,6 +338,11 @@
       ],
       "view/item/context": [
         {
+          "command": "reddeck.hideSetupStep",
+          "when": "view == reddeck.mods && viewItem == setup",
+          "group": "inline"
+        },
+        {
           "command": "reddeck.moveUp",
           "when": "view == reddeck.mods && viewItem == mod",
           "group": "inline@1"
@@ -366,6 +401,10 @@
         },
         {
           "command": "reddeck.nexusOpen",
+          "when": "false"
+        },
+        {
+          "command": "reddeck.hideSetupStep",
           "when": "false"
         }
       ],

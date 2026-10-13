@@ -22,7 +22,7 @@ import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
 import { findGame, gameVersion, isGameFolder, steamLibraries } from "./game";
 import { addMod, defaultLibraryPath, downloadsFolder, keepDownload, loadLibrary, modFolder, moveMod, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
-import { ModsView, type ModNode } from "./modsView";
+import { ModsView, type ModNode, type SetupStep } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
 import { ApiKeysPage, hasWebSocket, signIn } from "./nexusSso";
 import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
@@ -47,7 +47,7 @@ let globalState: vscode.Memento;
 let bridge: BridgeClient | undefined;
 let bridgeExe = "";
 let scanTimer: NodeJS.Timeout | undefined;
-let state: { plan?: Plan; changes: Change[]; archive?: ArchiveConflictSummary; version?: string; bridgeInfo?: string } = { changes: [] };
+let state: { plan?: Plan; changes: Change[]; archive?: ArchiveConflictSummary; version?: string; bridgeInfo?: string; setup: SetupStep[]; nxmHandler?: string; vortexMods: number } = { changes: [], setup: [], vortexMods: 0 };
 const archiveCache = new Map<string, { mtimeMs: number; resources: Map<string, string> }>();
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext): void {
   status.show();
   sevenZa = findSevenZip(extensionRoot);
 
-  view = new ModsView(() => library, statusFor, frameworkCheck);
+  view = new ModsView(() => library, statusFor, frameworkCheck, () => state.setup);
   tree = vscode.window.createTreeView("reddeck.mods", { treeDataProvider: view, showCollapseAll: false });
   detail = new DetailPanel((action, id) => run(() => detailAction(action, id)));
   conflictsPanel = new ConflictsPanel((m) => run(() => conflictsAction(m)));
@@ -95,7 +95,12 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.checkConflicts", () => run(showConflicts)),
     vscode.commands.registerCommand("reddeck.openPage", () => run(showPage)),
     vscode.commands.registerCommand("reddeck.showChanges", () => run(() => showChanges())),
-    vscode.commands.registerCommand("reddeck.getBridge", () => run(getBridgeCommand)),
+    vscode.commands.registerCommand("reddeck.getBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
+    vscode.commands.registerCommand("reddeck.setup", () => run(setupCommand)),
+    vscode.commands.registerCommand("reddeck.hideSetupStep", (node: ModNode) => run(() => hideSetupStep(node))),
+    secrets.onDidChange((e) => {
+      if (e.key === NexusKeySecret) void refreshSetup();
+    }),
     vscode.commands.registerCommand("reddeck.pickGame", () => run(pickGameCommand)),
     vscode.commands.registerCommand("reddeck.switchVersion", (node: ModNode) => run(() => switchVersionCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
@@ -112,8 +117,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.nexusOpen", (node: ModNode) => run(() => nexusOpenCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.checkUpdates", () => run(() => checkUpdatesCommand(false))),
     vscode.commands.registerCommand("reddeck.nexusAddLink", () => run(nexusAddLinkCommand)),
-    vscode.commands.registerCommand("reddeck.nexusHandleLinks", () => run(nexusHandleLinksCommand)),
-    vscode.commands.registerCommand("reddeck.nexusReleaseLinks", () => run(nexusReleaseLinksCommand)),
+    vscode.commands.registerCommand("reddeck.nexusHandleLinks", () => run(nexusHandleLinksCommand).then(() => refreshSetup(true))),
+    vscode.commands.registerCommand("reddeck.nexusReleaseLinks", () => run(nexusReleaseLinksCommand).then(() => refreshSetup(true))),
     vscode.window.registerUriHandler({ handleUri: (uri) => void run(() => handleUri(uri)) }),
     vscode.commands.registerCommand("reddeck.refresh", () => reload()),
     vscode.commands.registerCommand("reddeck.showLog", () => log.show(true)),
@@ -134,7 +139,56 @@ export function deactivate(): void {
 }
 
 function modOf(node: ModNode | undefined): ModInfo | undefined {
-  return node && node.type !== "group" ? node.mod : undefined;
+  return node && node.type !== "group" && node.type !== "setup" ? node.mod : undefined;
+}
+
+// ---- setup: what is missing, as rows in the tree, buttons on the page and welcome content ---
+
+const SetupHiddenKey = "reddeck.setupHidden";
+
+/** Every step, done or not, in the order they matter. */
+async function allSetupSteps(): Promise<(SetupStep & { done: boolean })[]> {
+  const signedIn = !!(await secrets.get(NexusKeySecret));
+  const handler = describeHandler(state.nxmHandler);
+  return [
+    { id: "game", label: "Find the game folder", detail: "Not found through Steam, GOG or Epic", command: "reddeck.pickGame", done: isGameFolder(settings().gamePath) },
+    { id: "bridge", label: "Get REDbridge", detail: "Sees conflicts inside archives; a 70 MB download", command: "reddeck.getBridge", done: !!bridgeExe },
+    { id: "nexus", label: "Sign in to Nexus Mods", detail: "For updates and downloads from the site", command: "reddeck.nexusSignIn", done: signedIn },
+    { id: "links", label: "Handle Nexus download links", detail: `Mod manager download buttons go to ${handler} now`, command: "reddeck.nexusHandleLinks", done: !signedIn || handler === "REDdeck" },
+    { id: "vortex", label: "Import from Vortex", detail: `${state.vortexMods} mod${state.vortexMods === 1 ? "" : "s"} in Vortex, none in the library yet`, command: "reddeck.importVortex", done: !state.vortexMods || !!library?.mods.some((m) => m.source.type === "vortex") },
+  ];
+}
+
+/** Recomputes the steps to show; `full` re-reads the nxm handler from the registry. */
+async function refreshSetup(full = false): Promise<void> {
+  if (full) state.nxmHandler = await currentNxmHandler();
+  const hidden = new Set(globalState.get<string[]>(SetupHiddenKey, []));
+  const all = await allSetupSteps();
+  state.setup = all.filter((s) => !s.done && !hidden.has(s.id));
+  for (const s of all) void vscode.commands.executeCommand("setContext", `reddeck.setup.${s.id}`, !s.done && !hidden.has(s.id));
+  view.refresh();
+  void updatePage();
+}
+
+async function hideSetupStep(node: ModNode | undefined): Promise<void> {
+  if (node?.type !== "setup") return;
+  const hidden = new Set(globalState.get<string[]>(SetupHiddenKey, []));
+  hidden.add(node.step.id);
+  await globalState.update(SetupHiddenKey, [...hidden]);
+  log.appendLine(`Setup: "${node.step.label}" hidden. REDdeck: Set up... shows every step again.`);
+  await refreshSetup();
+}
+
+/** The palette's "REDdeck: Set up...": every step with its state, and hidden ones come back. */
+async function setupCommand(): Promise<void> {
+  await globalState.update(SetupHiddenKey, []);
+  await refreshSetup(true);
+  const all = await allSetupSteps();
+  const picked = await vscode.window.showQuickPick(
+    all.map((s) => ({ label: `${s.done ? "$(check)" : "$(circle-large-outline)"} ${s.label}`, description: s.done ? "done" : s.detail, step: s })),
+    { title: "REDdeck: Set up", placeHolder: "Pick a step to do it" },
+  );
+  if (picked && !picked.step.done) await vscode.commands.executeCommand(picked.step.command);
 }
 
 function settings(): { gamePath: string; libraryPath: string; bridgePath: string; dotnetRoot: string; checkUpdates: boolean } {
@@ -178,6 +232,13 @@ function reload(): void {
     void vscode.window.showErrorMessage(`REDdeck could not open the library at ${libraryPath}. See the log.`);
   }
   bridgeExe = findBridge(settings().bridgePath, extensionRoot) ?? installedBridge(storageDir) ?? "";
+  try {
+    state.vortexMods = listVortexMods(gamePath).length;
+  } catch (err) {
+    state.vortexMods = 0;
+    log.appendLine(`Vortex staging folder not readable: ${String(err)}`);
+  }
+  void run(() => refreshSetup(true));
   void gameVersion(gamePath).then((v) => {
     state.version = v;
     tree.description = v ? `Cyberpunk 2077 ${v}` : undefined;
@@ -428,6 +489,7 @@ async function pageData() {
     bridge: state.bridgeInfo ?? (bridgeExe ? "REDbridge found, starts on the next archive scan" : undefined),
     sizes: library ? librarySize(library) : { mods: 0, downloads: 0, backups: 0 },
     frameworks: frameworkNote(),
+    setup: state.setup.map((s) => ({ id: s.id, label: s.label, detail: s.detail })),
   };
 }
 
@@ -469,7 +531,12 @@ async function pageAction(m: PageMessage): Promise<void> {
     case "changes":
       return showChanges(m.id);
     case "getBridge":
-      return getBridgeCommand();
+      return getBridgeCommand().then(() => refreshSetup());
+    case "setup": {
+      const step = state.setup.find((s) => s.id === m.id);
+      if (step) await vscode.commands.executeCommand(step.command);
+      return;
+    }
     case "downloads":
       if (library) {
         fs.mkdirSync(downloadsFolder(library.root), { recursive: true });

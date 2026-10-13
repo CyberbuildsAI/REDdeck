@@ -8,8 +8,19 @@ import { frameworkDetail, frameworkSummary, type FrameworkCheck } from "./framew
 import { modFolder, type Library, type ModInfo } from "./library";
 import { formatBytes, modSize } from "./sizes";
 
+/** One thing REDdeck needs or can use that is not in place yet; the row is a button for it. */
+export interface SetupStep {
+  id: "game" | "bridge" | "nexus" | "links" | "vortex";
+  label: string;
+  detail: string;
+  command: string;
+}
+
+const SetupIcons: Record<SetupStep["id"], string> = { game: "folder-opened", bridge: "cloud-download", nexus: "account", links: "link", vortex: "archive" };
+
 export type ModNode =
-  | { type: "group"; label: string; mods: ModInfo[] }
+  | { type: "group"; label: string; mods: ModInfo[]; steps?: SetupStep[] }
+  | { type: "setup"; step: SetupStep }
   | { type: "mod"; mod: ModInfo }
   | { type: "folder"; mod: ModInfo; label: string; files: string[] }
   | { type: "file"; mod: ModInfo; file: string };
@@ -29,6 +40,7 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
     private readonly library: () => Library | undefined,
     private readonly status: (mod: ModInfo) => string,
     private readonly frameworks: () => FrameworkCheck | undefined = () => undefined,
+    private readonly setup: () => SetupStep[] = () => [],
   ) {}
 
   refresh(): void {
@@ -39,16 +51,20 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
     const lib = this.library();
     if (!lib) return [];
     if (!node) {
+      // No mods: the view's welcome content takes over, with the setup buttons in it.
+      if (!lib.mods.length) return [];
       // One node per mod; a mod with several versions in the library shows its active one.
       const active = families(lib).map((f) => f.active);
       const frameworks = active.filter((m) => m.kinds.includes("framework"));
       const mods = active.filter((m) => !m.kinds.includes("framework"));
       const groups: ModNode[] = [];
+      const steps = this.setup();
+      if (steps.length) groups.push({ type: "group", label: "Set up", mods: [], steps });
       if (frameworks.length) groups.push({ type: "group", label: "Frameworks", mods: frameworks });
       groups.push({ type: "group", label: "Mods", mods });
       return groups;
     }
-    if (node.type === "group") return node.mods.map((mod) => ({ type: "mod", mod }));
+    if (node.type === "group") return node.steps ? node.steps.map((step) => ({ type: "setup", step })) : node.mods.map((mod) => ({ type: "mod", mod }));
     if (node.type === "mod") {
       const groups = new Map<string, string[]>();
       for (const f of node.mod.files) groups.set(topFolder(f), [...(groups.get(topFolder(f)) ?? []), f]);
@@ -59,6 +75,23 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
   }
 
   getTreeItem(node: ModNode): vscode.TreeItem {
+    if (node.type === "group" && node.steps) {
+      const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.Expanded);
+      item.description = `${node.steps.length} to do`;
+      item.contextValue = "setupGroup";
+      item.tooltip = "Things REDdeck needs or can use. Click a row to do it; the x hides a row you do not want.";
+      return item;
+    }
+    if (node.type === "setup") {
+      const item = new vscode.TreeItem(node.step.label, vscode.TreeItemCollapsibleState.None);
+      item.id = `setup/${node.step.id}`;
+      item.description = node.step.detail;
+      item.tooltip = node.step.detail;
+      item.iconPath = new vscode.ThemeIcon(SetupIcons[node.step.id], new vscode.ThemeColor("reddeck.accent"));
+      item.contextValue = "setup";
+      item.command = { command: node.step.command, title: node.step.label };
+      return item;
+    }
     if (node.type === "group") {
       const on = node.mods.filter((m) => m.enabled).length;
       const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.Expanded);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.0 (2026-10-13)
+
+- A "Set up" group at the top of the Mods view, and a row of buttons on the REDdeck page, while something is missing: the game folder, REDbridge, a Nexus sign-in, the Nexus download links, or an import from Vortex when Vortex has mods and the library has none from it. Each row is a button; the x hides a row you do not want. The same steps appear as buttons in the empty view before the first mod.
+- REDdeck: Set up... in the command palette lists every step, done or not, and brings hidden ones back.
+
 ## 0.15.0 (2026-10-13)
 
 - The Frameworks group says what the game version is and whether it changed since the last deploy ("game updated to 2.31 · 2 updates"), in the Mods view and on the REDdeck page, with the explanation in a tooltip. A deploy records the game version in the manifest.
