@@ -53,6 +53,14 @@ write(path.join(src, "redmod", "MyRedmod", "info.json"), '{"name":"MyRedmod"}');
 write(path.join(src, "redmod", "MyRedmod", "archives", "x.archive"));
 write(path.join(src, "framework", "bin", "x64", "winmm.dll"));
 write(path.join(src, "framework", "red4ext", "RED4ext.dll"));
+write(path.join(src, "rednode", "edgebuilder", "rednode-app.json"), '{"id":"edgebuilder","name":"EDGEbuilder","entry":"index.html","main":"mod.mjs"}');
+write(path.join(src, "rednode", "edgebuilder", "index.html"));
+write(path.join(src, "rednode", "edgebuilder", "mod.mjs"));
+write(path.join(src, "rednode", "edgebuilder", "node_modules", "dep", "index.js"));
+write(path.join(src, "rednode-rooted", "red4ext", "plugins", "REDnode", "apps", "coords", "rednode-app.json"), '{"id":"coords"}');
+write(path.join(src, "rednode-rooted", "red4ext", "plugins", "REDnode", "apps", "coords", "index.html"));
+write(path.join(src, "rednode-itself", "red4ext", "plugins", "REDnode", "REDnode.dll"));
+write(path.join(src, "rednode-itself", "red4ext", "plugins", "REDnode", "host", "REDnode-overlay.exe"));
 
 const cls = (folder, name) => core.classify(path.join(src, folder), name);
 let c = cls("bare", "Bare");
@@ -67,6 +75,19 @@ c = cls("options", "Options");
 assert.deepEqual(c.options.map((o) => o.label), ["Option A", "Option B"]);
 c = core.classify(c.options[1].folder, "Options");
 assert.deepEqual(c.placements.map((p) => p.to), ["archive/pc/mod/Thing.archive"]);
+c = cls("rednode", "EDGEbuilder 0.1");
+assert.deepEqual(c.kinds, ["rednode"]);
+assert.deepEqual(c.placements.map((p) => p.to).sort(), [
+  "red4ext/plugins/REDnode/apps/edgebuilder/index.html",
+  "red4ext/plugins/REDnode/apps/edgebuilder/mod.mjs",
+  "red4ext/plugins/REDnode/apps/edgebuilder/node_modules/dep/index.js",
+  "red4ext/plugins/REDnode/apps/edgebuilder/rednode-app.json",
+], "a loose REDnode package goes into REDnode's apps folder under its manifest id");
+c = cls("rednode-rooted", "Coords");
+assert.deepEqual(c.kinds, ["rednode"]);
+assert.ok(c.placements.every((p) => p.to.startsWith("red4ext/plugins/REDnode/apps/coords/")));
+c = cls("rednode-itself", "REDnode");
+assert.deepEqual(c.kinds, ["framework"], "REDnode itself is a framework, not a package");
 c = cls("loose", "Loose");
 assert.deepEqual(c.placements.map((p) => p.to), ["r6/scripts/Loose/Loose.reds"]);
 c = cls("red4ext", "Plug");

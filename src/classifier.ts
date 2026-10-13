@@ -55,6 +55,8 @@ function knownPath(segments: string[]): { to: string; kind: ModKind } | undefine
         if (next === "config") return { to: rest, kind: "config" };
         break;
       case "red4ext":
+        // A REDnode package lives in REDnode's apps folder; REDnode itself is a framework.
+        if (next === "plugins" && lower(segments[i + 2] ?? "") === "rednode" && lower(segments[i + 3] ?? "") === "apps" && segments.length > i + 5) return { to: rest, kind: "rednode" };
         if (next === "plugins") return { to: rest, kind: FrameworkPlugins.has(lower(segments[i + 2] ?? "")) ? "framework" : "red4ext" };
         if (FrameworkFiles.has(file) || file === "config.ini") return { to: rest, kind: "framework" };
         break;
@@ -98,6 +100,16 @@ function folderName(name: string): string {
   return name.replace(/[<>:"/\\|?*]+/g, "").trim() || "Mod";
 }
 
+/** The package id from a REDnode manifest, or undefined when the file is not one. */
+function rednodeId(manifest: string): string | undefined {
+  try {
+    const m = JSON.parse(fs.readFileSync(manifest, "utf8")) as { id?: unknown };
+    return typeof m.id === "string" && /^[a-z0-9_-]+$/i.test(m.id) ? m.id : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function classify(root: string, modName: string): Classification {
   const safeName = folderName(modName);
   const files = walk(root);
@@ -106,9 +118,10 @@ export function classify(root: string, modName: string): Classification {
   const ignored: string[] = [];
   const placed = new Set<string>();
 
-  // Folder-level rules first: CET mods and REDmod packages carry whole folders.
+  // Folder-level rules first: CET mods, REDmod packages and REDnode packages carry whole folders.
   const cetDirs = new Map<string, string>();
   const redmodDirs = new Map<string, string>();
+  const rednodeDirs = new Map<string, string>();
   for (const f of files) {
     const dir = path.dirname(f);
     const base = lower(path.basename(f));
@@ -118,6 +131,10 @@ export function classify(root: string, modName: string): Classification {
     }
     if (base === "info.json" && isRedmodPackage(dir) && !knownPath(path.relative(root, f).split(/[\\/]/))) {
       redmodDirs.set(dir, relDir ? path.basename(dir) : safeName);
+    }
+    if (base === "rednode-app.json" && !knownPath(path.relative(root, f).split(/[\\/]/))) {
+      // The manifest names the package; the folder it sits in is the package, wherever it is in the zip.
+      rednodeDirs.set(dir, rednodeId(f) ?? folderName(relDir ? path.basename(dir) : safeName));
     }
   }
   const under = (f: string, dirs: Map<string, string>): [string, string] | undefined => {
@@ -149,6 +166,12 @@ export function classify(root: string, modName: string): Classification {
     const redmod = under(f, redmodDirs);
     if (redmod) {
       placements.push({ from: f, to: `mods/${redmod[0]}/${redmod[1]}`, kind: "redmod" });
+      placed.add(f);
+      continue;
+    }
+    const rednode = under(f, rednodeDirs);
+    if (rednode) {
+      placements.push({ from: f, to: `red4ext/plugins/REDnode/apps/${rednode[0]}/${rednode[1]}`, kind: "rednode" });
       placed.add(f);
       continue;
     }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.20.0 (2026-10-13)
+
+- REDnode packages are a kind of their own. A zip or folder with a `rednode-app.json` deploys into REDnode's apps folder, `red4ext/plugins/REDnode/apps/<id>/`, under the id the manifest gives, wherever the manifest sits in the zip; a zip laid out with that path already works too. REDnode itself stays in the Frameworks group. Overlay apps and Node mods such as EDGEbuilder and REDagent install like any other mod, and the REDnode host picks them up while it runs.
+
 ## 0.19.0 (2026-10-13)
 
 - Nexus sign-in through the browser, with OAuth and PKCE, the way Vortex signs in: Nexus: sign in opens the Nexus sign-in page, you approve REDdeck, the tab says "Signed in" and REDdeck has an access token and a refresh token in VS Code's secret storage. The sign-in renews itself; when it cannot, REDdeck asks you to sign in again. The REST API takes the token as a Bearer header, so update checks, file lists and downloads are as before. Needs the client id Nexus assigns to REDdeck in `reddeck.nexusClientId`; until then sign-in opens the API Access page and asks for the key as before.
