@@ -383,7 +383,7 @@
         "reddeck.gamePath": {
           "type": "string",
           "default": "",
-          "description": "The Cyberpunk 2077 install folder (the one containing bin, archive and r6). Empty means REDdeck finds it through the Steam library list, GOG or Epic. The command REDdeck: Pick the game folder sets it for you."
+          "description": "The Cyberpunk 2077 install folder (the one containing bin, archive and r6). Leave it empty to find the game through Steam, GOG or Epic on every start; the status bar and the REDdeck page footer show the folder in use. Set it only for a game those cannot see. The command REDdeck: Pick the game folder sets it for you."
         },
         "reddeck.libraryPath": {
           "type": "string",
