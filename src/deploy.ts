@@ -4,6 +4,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { isGameFolder } from "./game";
 import { backupFolder, sourcePath, type Library, type ModInfo } from "./library";
 
 export const ManifestName = "reddeck.deployment.json";
@@ -100,9 +101,6 @@ export function vortexManages(gamePath: string): boolean {
   return fs.existsSync(path.join(gamePath, VortexManifestName));
 }
 
-export function isGameFolder(gamePath: string): boolean {
-  return fs.existsSync(path.join(gamePath, "bin", "x64", "Cyberpunk2077.exe"));
-}
 
 /** Hardlinks need the same volume and a filesystem that allows them; test with a canary file. */
 export function canHardlink(libraryRoot: string, gamePath: string): boolean {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.0 (2026-10-12)
+
+- A mod in the Mods view expands into the folders it deploys to (archive/pc/mod, r6/scripts/Foo, a CET mod folder, a RED4ext plugin) and the files in each. A file opens in the editor from the library copy, which is the same file as the deployed one when deploy uses hardlinks. Clicking the mod's name still opens its details.
+
+## 0.12.1 (2026-10-12)
+
+- REDdeck finds the game on its own: every Steam library in Steam's own list, then GOG and Epic, instead of only the default Steam folder on C:. When it still cannot, the status bar says so and a click opens a folder picker ("REDdeck: Pick the game folder..."); picking bin or bin\x64 by mistake is forgiven. The `reddeck` command line uses the same lookup.
+
 ## 0.12.0 (2026-10-12)
 
 - "Get REDbridge" fetches the latest REDbridge release from GitHub into REDdeck's own storage folder, and the .NET 10 runtime into your user profile if the machine has none, after one question that says what it will download. Nothing to configure afterwards: REDdeck finds that copy on its own. The "needs REDbridge" notes now offer the button instead of a setting to edit.

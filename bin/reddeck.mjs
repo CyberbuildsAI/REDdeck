@@ -49,7 +49,7 @@ const fail = (msg) => {
 const libraryRoot = flags.library ?? path.join(os.homedir(), "REDdeck");
 const defaultGame = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cyberpunk 2077";
 const lib = core.loadLibrary(libraryRoot, flags.game ?? "");
-const game = flags.game ?? lib.info.gamePath ?? defaultGame;
+const game = flags.game ?? lib.info.gamePath ?? core.findGame() ?? defaultGame;
 if (flags.game && lib.info.gamePath !== flags.game) {
   lib.info.gamePath = flags.game;
   core.saveLibrary(lib);

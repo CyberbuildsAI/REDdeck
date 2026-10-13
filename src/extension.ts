@@ -17,7 +17,7 @@ import { DetailPanel } from "./detailPanel";
 import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family } from "./families";
 import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
-import { gameVersion } from "./game";
+import { findGame, gameVersion, isGameFolder } from "./game";
 import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
 import { ModsView, type ModNode } from "./modsView";
@@ -92,6 +92,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.openPage", () => run(showPage)),
     vscode.commands.registerCommand("reddeck.showChanges", () => run(() => showChanges())),
     vscode.commands.registerCommand("reddeck.getBridge", () => run(getBridgeCommand)),
+    vscode.commands.registerCommand("reddeck.pickGame", () => run(pickGameCommand)),
     vscode.commands.registerCommand("reddeck.switchVersion", (node: ModNode) => run(() => switchVersionCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
     vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
@@ -129,13 +130,13 @@ export function deactivate(): void {
 }
 
 function modOf(node: ModNode | undefined): ModInfo | undefined {
-  return node?.type === "mod" ? node.mod : undefined;
+  return node && node.type !== "group" ? node.mod : undefined;
 }
 
 function settings(): { gamePath: string; libraryPath: string; bridgePath: string; dotnetRoot: string; checkUpdates: boolean } {
   const cfg = vscode.workspace.getConfiguration("reddeck");
   return {
-    gamePath: cfg.get<string>("gamePath", ""),
+    gamePath: cfg.get<string>("gamePath", "") || findGame() || "",
     libraryPath: cfg.get<string>("libraryPath", "") || defaultLibraryPath(),
     bridgePath: cfg.get<string>("bridgePath", ""),
     dotnetRoot: cfg.get<string>("dotnetRoot", ""),
@@ -237,7 +238,12 @@ function updateStatus(): void {
   const pending = p ? p.add.length + p.stale.length : 0;
   const on = library.mods.filter((m) => m.enabled).length;
   const game = state.version ? `Cyberpunk 2077 ${state.version}` : "game not found";
-  if (p?.vortex) {
+  status.command = "reddeck.deploy";
+  if (!isGameFolder(settings().gamePath)) {
+    status.text = `$(package) REDdeck: game not found`;
+    status.tooltip = "REDdeck looked in Steam's libraries, GOG and Epic. Click to pick the Cyberpunk 2077 folder.";
+    status.command = "reddeck.pickGame";
+  } else if (p?.vortex) {
     status.text = `$(package) ${on} of ${library.mods.length} mods on · Vortex manages the game`;
     status.tooltip = `${game}. Purge in Vortex, then deploy with REDdeck. Click to see.`;
   } else if (pending) {
@@ -471,6 +477,26 @@ async function switchVersionCommand(mod: ModInfo | undefined): Promise<void> {
   if (!pick) return;
   if (pick.mod) switchVersion(pick.mod);
   else await updateModCommand(fam.active);
+}
+
+// ---- the game folder -----------------------------------------------------------------------------
+
+/** Asks for the game folder and keeps it in the user settings. */
+async function pickGameCommand(): Promise<void> {
+  const picked = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: "This is the Cyberpunk 2077 folder", title: "Pick the Cyberpunk 2077 install folder (it contains bin, archive and r6)" });
+  if (!picked?.length) return;
+  let folder = picked[0].fsPath;
+  // Forgive picking bin or bin\x64.
+  for (const up of [folder, path.dirname(folder), path.dirname(path.dirname(folder))]) {
+    if (isGameFolder(up)) {
+      folder = up;
+      break;
+    }
+  }
+  if (!isGameFolder(folder)) throw new Error(`${folder} does not contain bin\\x64\\Cyberpunk2077.exe.`);
+  await vscode.workspace.getConfiguration("reddeck").update("gamePath", folder, vscode.ConfigurationTarget.Global);
+  log.appendLine(`Game folder set to ${folder}`);
+  reload();
 }
 
 // ---- REDbridge -----------------------------------------------------------------------------------

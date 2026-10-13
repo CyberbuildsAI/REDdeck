@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -206,6 +206,11 @@
         "command": "reddeck.getBridge",
         "title": "Get REDbridge",
         "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.pickGame",
+        "title": "Pick the game folder...",
+        "category": "REDdeck"
       }
     ],
     "menus": {
@@ -294,6 +299,11 @@
           "command": "reddeck.getBridge",
           "when": "view == reddeck.mods",
           "group": "2_folders@0"
+        },
+        {
+          "command": "reddeck.pickGame",
+          "when": "view == reddeck.mods",
+          "group": "2_folders@3"
         }
       ],
       "view/item/context": [
@@ -372,8 +382,8 @@
       "properties": {
         "reddeck.gamePath": {
           "type": "string",
-          "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cyberpunk 2077",
-          "description": "The Cyberpunk 2077 install folder (the one containing bin, archive and r6)."
+          "default": "",
+          "description": "The Cyberpunk 2077 install folder (the one containing bin, archive and r6). Empty means REDdeck finds it through the Steam library list, GOG or Epic. The command REDdeck: Pick the game folder sets it for you."
         },
         "reddeck.libraryPath": {
           "type": "string",

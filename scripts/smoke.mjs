@@ -328,6 +328,15 @@ console.log("undo: ok");
   console.log("redmod: ok");
 }
 
+// Finding the game: through Steam's library list, GOG or Epic.
+{
+  const libs = core.steamLibraries();
+  const found = core.findGame();
+  assert.ok(Array.isArray(libs));
+  if (found) assert.ok(core.isGameFolder(found));
+  console.log(`find game: ok (${libs.length} Steam librar${libs.length === 1 ? "y" : "ies"}, game ${found ?? "not found"})`);
+}
+
 // Game version from the real install, if it is here.
 {
   const real = "C:/Program Files (x86)/Steam/steamapps/common/Cyberpunk 2077";
