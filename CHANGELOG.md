@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.17.1 (2026-10-13)
+
+- Update REDbridge: a command of its own, the same as running Get REDbridge again. It asks "Update REDbridge 0.4.0 to 0.5.1?", installs the new one and removes the old folder, which is about 70 MB. The page footer shows "0.5.1 available" next to the running bridge once the daily check has found it.
+
 ## 0.17.0 (2026-10-13)
 
 - An MCP server with REDdeck's verbs as tools: list, mod details, add, turn on or off, move, remove, pending, deploy, undo, changes, conflicts, loadouts, Vortex. It ships in the extension as `dist/mcp.js` with the SDK bundled, needs only Node, and reads the library afresh on every call. VS Code 1.101 and later registers it for the agents it hosts; "REDdeck: Connect an assistant (MCP)..." copies the one line Claude Code needs, or a JSON entry for other clients; `reddeck mcp` starts it from the command line.

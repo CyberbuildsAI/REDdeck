@@ -11,7 +11,7 @@ import { classify } from "./classifier";
 import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, type ArchiveListing } from "./conflicts";
 import { deploy, detectChanges, modStatus, pendingChanges, plan, readManifest, undo, vortexManages, type Change, type Decision, type PendingChange, type Plan } from "./deploy";
 import { ChangesPanel, type ChangesMessage } from "./changesPanel";
-import { dotnet10Root, installBridge, installDotnetRuntime, installedBridge, latestBridgeRelease } from "./bridgeInstall";
+import { dotnet10Root, installBridge, installDotnetRuntime, installedBridge, latestBridgeRelease, removeOlderBridges } from "./bridgeInstall";
 import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
 import { DetailPanel } from "./detailPanel";
 import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family } from "./families";
@@ -47,7 +47,7 @@ let globalState: vscode.Memento;
 let bridge: BridgeClient | undefined;
 let bridgeExe = "";
 let scanTimer: NodeJS.Timeout | undefined;
-let state: { plan?: Plan; changes: Change[]; archive?: ArchiveConflictSummary; version?: string; bridgeInfo?: string; setup: SetupStep[]; nxmHandler?: string; vortexMods: number } = { changes: [], setup: [], vortexMods: 0 };
+let state: { plan?: Plan; changes: Change[]; archive?: ArchiveConflictSummary; version?: string; bridgeInfo?: string; bridgeUpdate?: string; setup: SetupStep[]; nxmHandler?: string; vortexMods: number } = { changes: [], setup: [], vortexMods: 0 };
 const archiveCache = new Map<string, { mtimeMs: number; resources: Map<string, string> }>();
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -96,6 +96,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.openPage", () => run(showPage)),
     vscode.commands.registerCommand("reddeck.showChanges", () => run(() => showChanges())),
     vscode.commands.registerCommand("reddeck.getBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
+    vscode.commands.registerCommand("reddeck.updateBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
     vscode.commands.registerCommand("reddeck.setup", () => run(setupCommand)),
     vscode.commands.registerCommand("reddeck.mcpSetup", () => run(mcpSetupCommand)),
     ...registerMcp(),
@@ -375,6 +376,8 @@ async function maybeCheckBridge(): Promise<void> {
   const installedTag = path.basename(path.dirname(ours));
   if (compareVersions(release.version, installedTag.replace(/^v/, "")) <= 0) return;
   log.appendLine(`REDbridge ${release.version} is available (installed: ${installedTag})`);
+  state.bridgeUpdate = release.version;
+  void updatePage();
   void vscode.window.showInformationMessage(`REDbridge ${release.version} is available; you have ${installedTag.replace(/^v/, "")}.`, "Get it", "Not now").then((a) => {
     if (a === "Get it") void run(getBridgeCommand);
   });
@@ -594,6 +597,7 @@ async function pageData() {
     signedIn: !!(await secrets.get(NexusKeySecret)),
     vortex: !!state.plan?.vortex,
     bridge: state.bridgeInfo ?? (bridgeExe ? "REDbridge found, starts on the next archive scan" : undefined),
+    bridgeUpdate: state.bridgeUpdate,
     sizes: library ? librarySize(library) : { mods: 0, downloads: 0, backups: 0 },
     frameworks: frameworkNote(),
     setup: state.setup.map((s) => ({ id: s.id, label: s.label, detail: s.detail })),
@@ -743,15 +747,17 @@ async function pickGameCommand(): Promise<void> {
 async function getBridgeCommand(): Promise<void> {
   const release = await latestBridgeRelease();
   const already = installedBridge(storageDir);
+  const have = already ? path.basename(path.dirname(already)).replace(/^v/, "") : undefined;
   if (already && already.includes(`${path.sep}${release.tag}${path.sep}`) && dotnet10Root()) {
-    void vscode.window.showInformationMessage(`REDbridge ${release.version} is already installed and is the latest.`);
+    state.bridgeUpdate = undefined;
+    void vscode.window.showInformationMessage(`REDbridge ${release.version} is installed and is the latest.`);
     return;
   }
   const needRuntime = !dotnet10Root();
   const mb = Math.round(release.size / 1048576);
-  const detail = `REDbridge ${release.version} (${mb} MB) downloads from ${release.page} into REDdeck's own folder.${needRuntime ? " The .NET 10 runtime is not installed, so Microsoft's installer puts it in your user profile too (about 70 MB, no admin rights)." : ""} Nothing outside those folders changes.`;
-  const a = await vscode.window.showInformationMessage(`Get REDbridge ${release.version}?`, { modal: true, detail }, "Get it");
-  if (a !== "Get it") return;
+  const detail = `REDbridge ${release.version} (${mb} MB) downloads from ${release.page} into REDdeck's own folder.${have ? ` The ${have} you have is removed afterwards.` : ""}${needRuntime ? " The .NET 10 runtime is not installed, so Microsoft's installer puts it in your user profile too (about 70 MB, no admin rights)." : ""} Nothing outside those folders changes.`;
+  const a = await vscode.window.showInformationMessage(have ? `Update REDbridge ${have} to ${release.version}?` : `Get REDbridge ${release.version}?`, { modal: true, detail }, have ? "Update" : "Get it");
+  if (!a) return;
   await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Getting REDbridge", cancellable: false }, async (progress) => {
     if (needRuntime) {
       progress.report({ message: "installing the .NET 10 runtime" });
@@ -766,7 +772,11 @@ async function getBridgeCommand(): Promise<void> {
     bridgeExe = exe;
     bridge?.stop();
     bridge = undefined;
+    const gone = removeOlderBridges(storageDir, release.tag);
+    if (gone.length) log.appendLine(`Removed the older REDbridge ${gone.join(", ")}`);
   });
+  state.bridgeUpdate = undefined;
+  state.bridgeInfo = undefined;
   state.archive = undefined;
   refresh();
   void vscode.window.showInformationMessage(`REDbridge ${release.version} is ready. Conflicts inside archives show up on the next scan.`, "Show conflicts").then((x) => {

@@ -36,6 +36,8 @@ export interface PageData {
   signedIn: boolean;
   /** "REDbridge 0.4.0 (WolvenKit 9.1.0)" once it has answered, or undefined when there is none. */
   bridge?: string;
+  /** A newer REDbridge release the daily check found. */
+  bridgeUpdate?: string;
   /** Library totals in bytes. */
   sizes: { mods: number; downloads: number; backups: number };
   vortex: boolean;
@@ -213,7 +215,7 @@ ${d.rows.length ? `<table><thead><tr><th></th><th>Mod</th><th>Ver</th><th>Kind</
   <span>Library: <a data-msg='${msg({ action: "library" })}'>${esc(d.library)}</a> (${d.method === "link" ? "same drive as the game: hardlinks" : "other drive: copies"})</span>
   <span>Last deploy: ${d.lastDeploy ? esc(d.lastDeploy) : "never"}</span>
   <span title="Deployed files are hardlinks and take no extra space on the same drive">Disk: ${fmt(d.sizes.mods)} in mods, <a data-msg='${msg({ action: "downloads" })}' title="The original zips, kept so a mod can be added again. Safe to delete.">${fmt(d.sizes.downloads)} in kept downloads</a>${d.sizes.backups ? `, ${fmt(d.sizes.backups)} in deploy backups` : ""}</span>
-  <span>${d.bridge ? `<span class="okdot"></span>${esc(d.bridge)}` : `No REDbridge: <a data-msg='${msg({ action: "getBridge" })}'>Get REDbridge</a> for conflicts inside archives`}</span>
+  <span>${d.bridge ? `<span class="okdot"></span>${esc(d.bridge)}${d.bridgeUpdate ? ` · <a data-msg='${msg({ action: "getBridge" })}' title="Download it into REDdeck's folder; the old one is removed">${esc(d.bridgeUpdate)} available</a>` : ""}` : `No REDbridge: <a data-msg='${msg({ action: "getBridge" })}'>Get REDbridge</a> for conflicts inside archives`}</span>
 </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();

@@ -84,6 +84,22 @@ export function installedBridge(storageDir: string): string | undefined {
   }
 }
 
+/** Removes every fetched REDbridge except the one to keep; each is about 70 MB. Returns what went. */
+export function removeOlderBridges(storageDir: string, keepTag: string): string[] {
+  const dir = path.join(storageDir, "bridge");
+  const gone: string[] = [];
+  try {
+    for (const tag of fs.readdirSync(dir)) {
+      if (tag === keepTag) continue;
+      fs.rmSync(path.join(dir, tag), { recursive: true, force: true });
+      gone.push(tag);
+    }
+  } catch {
+    // Nothing fetched yet.
+  }
+  return gone;
+}
+
 function compareTags(a: string, b: string): number {
   const pa = a.replace(/^v/, "").split(".").map((n) => parseInt(n, 10) || 0);
   const pb = b.replace(/^v/, "").split(".").map((n) => parseInt(n, 10) || 0);
