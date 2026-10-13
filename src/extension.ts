@@ -25,6 +25,7 @@ import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
 import { ModsView, type ModNode, type SetupStep } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
 import { ApiKeysPage, hasWebSocket, signIn } from "./nexusSso";
+import { fetchUser, needsRefresh, OAuthTokens, refreshTokens, signInWithOAuth, tokenUser } from "./nexusOAuth";
 import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { addToProject, classifyProject, findProjectFile, projectName, syncProjects } from "./project";
@@ -103,7 +104,7 @@ export function activate(context: vscode.ExtensionContext): void {
     { dispose: () => stopWatching() },
     vscode.commands.registerCommand("reddeck.hideSetupStep", (node: ModNode) => run(() => hideSetupStep(node))),
     secrets.onDidChange((e) => {
-      if (e.key === NexusKeySecret) void refreshSetup();
+      if (e.key === NexusKeySecret || e.key === NexusTokensSecret) void refreshSetup();
     }),
     vscode.commands.registerCommand("reddeck.pickGame", () => run(pickGameCommand)),
     vscode.commands.registerCommand("reddeck.switchVersion", (node: ModNode) => run(() => switchVersionCommand(modOf(node)))),
@@ -154,7 +155,7 @@ const SetupHiddenKey = "reddeck.setupHidden";
 
 /** Every step, done or not, in the order they matter. */
 async function allSetupSteps(): Promise<(SetupStep & { done: boolean })[]> {
-  const signedIn = !!(await secrets.get(NexusKeySecret));
+  const signedIn = await nexusSignedIn();
   const handler = describeHandler(state.nxmHandler);
   return [
     { id: "game", label: "Find the game folder", detail: "Not found through Steam, GOG or Epic", command: "reddeck.pickGame", done: isGameFolder(settings().gamePath) },
@@ -653,7 +654,7 @@ async function pageData() {
     method: state.plan?.method ?? ("link" as const),
     lastDeploy: when ? when.toLocaleString() : undefined,
     pending: pendingCount(),
-    signedIn: !!(await secrets.get(NexusKeySecret)),
+    signedIn: await nexusSignedIn(),
     vortex: !!state.plan?.vortex,
     bridge: state.bridgeInfo ?? (bridgeExe ? "REDbridge found, starts on the next archive scan" : undefined),
     bridgeUpdate: state.bridgeUpdate,
@@ -1226,52 +1227,158 @@ function move(mod: ModInfo | undefined, delta: -1 | 1): void {
 
 // ---- Nexus Mods ----------------------------------------------------------------------------------
 
+/** A pasted personal API key. */
 const NexusKeySecret = "reddeck.nexusApiKey";
+/** The tokens of an OAuth sign-in, as JSON. One or the other is kept, never both. */
+const NexusTokensSecret = "reddeck.nexusTokens";
+
+function nexusClientId(): string {
+  return vscode.workspace.getConfiguration("reddeck").get<string>("nexusClientId", "").trim();
+}
+
+async function nexusTokens(): Promise<OAuthTokens | undefined> {
+  const raw = await secrets.get(NexusTokensSecret);
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw) as OAuthTokens;
+  } catch {
+    await secrets.delete(NexusTokensSecret);
+    return undefined;
+  }
+}
+
+async function nexusSignedIn(): Promise<boolean> {
+  return !!(await secrets.get(NexusTokensSecret)) || !!(await secrets.get(NexusKeySecret));
+}
+
+/** A new token pair from the refresh token, kept in place of the old; nothing when Nexus refuses. */
+async function renewNexusTokens(tokens: OAuthTokens): Promise<string | undefined> {
+  try {
+    const fresh = await refreshTokens({ clientId: nexusClientId(), refreshToken: tokens.refreshToken });
+    await secrets.store(NexusTokensSecret, JSON.stringify(fresh));
+    log.appendLine("Nexus: sign-in renewed");
+    return fresh.accessToken;
+  } catch (err) {
+    log.appendLine(`Nexus: the sign-in could not be renewed (${err instanceof Error ? err.message : String(err)}); sign in again`);
+    await secrets.delete(NexusTokensSecret);
+    void vscode.window.showWarningMessage("The Nexus sign-in ran out and could not be renewed. Sign in again.", "Sign in").then((a) => {
+      if (a === "Sign in") void run(() => nexusSignInCommand().then(() => undefined));
+    });
+    return undefined;
+  }
+}
+
+/** The access token, renewed when it is about to run out. */
+async function nexusAccessToken(): Promise<string | undefined> {
+  const tokens = await nexusTokens();
+  if (!tokens) return undefined;
+  return needsRefresh(tokens) ? renewNexusTokens(tokens) : tokens.accessToken;
+}
 
 async function nexusClient(ask: boolean): Promise<NexusClient | undefined> {
+  const token = await nexusAccessToken();
+  if (token) {
+    return new NexusClient({ bearer: token }, extensionVersion, {
+      refresh: async () => {
+        const tokens = await nexusTokens();
+        return tokens ? renewNexusTokens(tokens) : undefined;
+      },
+    });
+  }
   let key = await secrets.get(NexusKeySecret);
-  if (!key && ask) key = await nexusSignInCommand();
+  if (!key && ask && (await nexusSignInCommand())) {
+    // Signed in just now, by whichever path.
+    return nexusClient(false);
+  }
+  key = key ?? (await secrets.get(NexusKeySecret));
   return key ? new NexusClient(key, extensionVersion) : undefined;
 }
 
-/** Checks a key with Nexus and keeps it. */
+function signedInToast(name: string, premium: boolean): void {
+  log.appendLine(`Nexus: signed in as ${name}${premium ? " (Premium)" : ""}`);
+  void vscode.window.showInformationMessage(`Nexus: signed in as ${name}${premium ? " (Premium)" : ""}.`);
+}
+
+/** Checks a key with Nexus and keeps it, in place of any OAuth sign-in. */
 async function storeNexusKey(key: string): Promise<string> {
   const client = new NexusClient(key, extensionVersion);
   const user = await client.validate();
   await secrets.store(NexusKeySecret, key);
-  log.appendLine(`Nexus: signed in as ${user.name}${user.is_premium ? " (Premium)" : ""}`);
-  void vscode.window.showInformationMessage(`Nexus: signed in as ${user.name}${user.is_premium ? " (Premium)" : ""}.`);
+  await secrets.delete(NexusTokensSecret);
+  signedInToast(user.name, user.is_premium);
   return key;
 }
 
-/**
- * Sign in. With an application slug from Nexus this is one click on the Nexus authorise page and
- * the key arrives on its own. Without one, it opens the API Access page and asks for the key.
- */
-async function nexusSignInCommand(): Promise<string | undefined> {
-  const application = vscode.workspace.getConfiguration("reddeck").get<string>("nexusApplication", "").trim();
-  if (application && hasWebSocket()) {
-    let key: string | undefined;
-    try {
-      key = await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: "Signing in to Nexus Mods", cancellable: true },
-        async (progress, cancel) => {
-          const controller = new AbortController();
-          cancel.onCancellationRequested(() => controller.abort());
-          progress.report({ message: "approve REDdeck in the browser tab that opened" });
-          return signIn({ application, open: (url) => vscode.env.openExternal(vscode.Uri.parse(url)), signal: controller.signal, log: (line) => log.appendLine(line) });
-        },
-      );
-    } catch (err) {
-      if (err instanceof Error && /cancelled/.test(err.message)) return undefined;
-      throw err;
-    }
-    return key ? storeNexusKey(key) : undefined;
+/** Keeps the tokens of an OAuth sign-in, in place of any pasted key. */
+async function storeNexusTokens(tokens: OAuthTokens): Promise<void> {
+  const user = tokenUser(tokens.accessToken) ?? (await fetchUser(tokens.accessToken));
+  await secrets.store(NexusTokensSecret, JSON.stringify(tokens));
+  await secrets.delete(NexusKeySecret);
+  signedInToast(user.name, user.premium);
+}
+
+/** Runs a browser sign-in with a cancellable progress toast; undefined when the user cancels. */
+async function browserSignIn<T>(fn: (signal: AbortSignal) => Promise<T>): Promise<T | undefined> {
+  try {
+    return await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: "Signing in to Nexus Mods", cancellable: true },
+      async (progress, cancel) => {
+        const controller = new AbortController();
+        cancel.onCancellationRequested(() => controller.abort());
+        progress.report({ message: "approve REDdeck in the browser tab that opened" });
+        return fn(controller.signal);
+      },
+    );
+  } catch (err) {
+    if (err instanceof Error && /cancelled/.test(err.message)) return undefined;
+    throw err;
   }
-  void vscode.env.openExternal(vscode.Uri.parse(ApiKeysPage));
+}
+
+/**
+ * Sign in, by the best path there is: OAuth in the browser when Nexus has given REDdeck a client
+ * id, the older single sign-on when it has an application slug, else the API Access page and a
+ * pasted key. A pasted key is always a choice (Nexus: set API key), including when the browser
+ * path fails. True when signed in afterwards.
+ */
+async function nexusSignInCommand(): Promise<boolean> {
+  const cfg = vscode.workspace.getConfiguration("reddeck");
+  const clientId = nexusClientId();
+  const application = cfg.get<string>("nexusApplication", "").trim();
+  const openPage = (url: string) => vscode.env.openExternal(vscode.Uri.parse(url));
+  const logLine = (line: string) => log.appendLine(line);
+  if (clientId || (application && hasWebSocket())) {
+    try {
+      if (clientId) {
+        const tokens = await browserSignIn((signal) => signInWithOAuth({ clientId, open: openPage, signal, log: logLine }));
+        if (!tokens) return false;
+        await storeNexusTokens(tokens);
+      } else {
+        const key = await browserSignIn((signal) => signIn({ application, open: openPage, signal, log: logLine }));
+        if (!key) return false;
+        await storeNexusKey(key);
+      }
+      return true;
+    } catch (err) {
+      const why = err instanceof Error ? err.message : String(err);
+      log.appendLine(`Nexus sign-in failed: ${why}`);
+      const a = await vscode.window.showErrorMessage(`Nexus sign-in failed: ${why}`, "Paste a key instead", "Try again");
+      if (a === "Paste a key instead") return !!(await nexusPasteKey(true));
+      if (a === "Try again") return nexusSignInCommand();
+      return false;
+    }
+  }
+  return !!(await nexusPasteKey(true));
+}
+
+/** The API Access page and an input box for the key on it. */
+async function nexusPasteKey(openPage: boolean): Promise<string | undefined> {
+  if (openPage) void vscode.env.openExternal(vscode.Uri.parse(ApiKeysPage));
   const key = await vscode.window.showInputBox({
-    title: "Sign in to Nexus Mods",
-    prompt: "The API Access page just opened in your browser. Copy the Personal API Key at the bottom of it and paste it here. It stays in VS Code's secret storage.",
+    title: openPage ? "Sign in to Nexus Mods" : "Nexus Mods API key",
+    prompt: openPage
+      ? "The API Access page just opened in your browser. Copy the Personal API Key at the bottom of it and paste it here. It stays in VS Code's secret storage."
+      : "Your personal API key from nexusmods.com > Settings > API Access. It stays in VS Code's secret storage.",
     password: true,
     ignoreFocusOut: true,
   });
@@ -1279,25 +1386,21 @@ async function nexusSignInCommand(): Promise<string | undefined> {
   return storeNexusKey(key.trim());
 }
 
-async function nexusSetKeyCommand(): Promise<string | undefined> {
-  const key = await vscode.window.showInputBox({
-    title: "Nexus Mods API key",
-    prompt: "Your personal API key from nexusmods.com > Settings > API Access. It stays in VS Code's secret storage.",
-    password: true,
-    ignoreFocusOut: true,
-  });
-  if (!key?.trim()) return undefined;
-  return storeNexusKey(key.trim());
+function nexusSetKeyCommand(): Promise<string | undefined> {
+  return nexusPasteKey(false);
 }
 
 async function nexusSignOutCommand(): Promise<void> {
-  if (!(await secrets.get(NexusKeySecret))) {
+  const hadTokens = !!(await secrets.get(NexusTokensSecret));
+  const hadKey = !!(await secrets.get(NexusKeySecret));
+  if (!hadTokens && !hadKey) {
     void vscode.window.showInformationMessage("Not signed in to Nexus Mods.");
     return;
   }
+  await secrets.delete(NexusTokensSecret);
   await secrets.delete(NexusKeySecret);
   log.appendLine("Nexus: signed out");
-  void vscode.window.showInformationMessage("Signed out of Nexus Mods. The key is gone from secret storage; revoke it on the API Access page if you want it dead.");
+  void vscode.window.showInformationMessage(hadKey ? "Signed out of Nexus Mods. The key is gone from secret storage; revoke it on the API Access page if you want it dead." : "Signed out of Nexus Mods. The sign-in is gone from secret storage.");
 }
 
 async function nexusOpenCommand(mod: ModInfo | undefined): Promise<void> {
@@ -1324,7 +1427,7 @@ async function gameChanged(version: string | undefined): Promise<void> {
   if (globalState.get<string>("reddeck.checkedForGame") === version) return;
   await globalState.update("reddeck.checkedForGame", version);
   log.appendLine(`Game updated: ${check.deployed} at the last deploy, ${version} now. Checking ${check.frameworks.length} frameworks on Nexus.`);
-  if (!(await secrets.get(NexusKeySecret))) {
+  if (!(await nexusSignedIn())) {
     void vscode.window.showWarningMessage(`The game updated to ${version} since the last deploy. Sign in to Nexus to check the frameworks for newer files.`, "Sign in", "Not now").then((a) => {
       if (a === "Sign in") void run(() => nexusSignInCommand().then(() => undefined));
     });
@@ -1347,7 +1450,7 @@ async function maybeCheckUpdates(): Promise<void> {
   if (!settings().checkUpdates || !library?.mods.some((m) => m.source.modId)) return;
   const last = globalState.get<number>("reddeck.lastUpdateCheck", 0);
   if (Date.now() - last < 24 * 3600 * 1000) return;
-  if (!(await secrets.get(NexusKeySecret))) return;
+  if (!(await nexusSignedIn())) return;
   await checkUpdatesCommand(true);
 }
 

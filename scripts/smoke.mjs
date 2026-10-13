@@ -483,6 +483,110 @@ console.log("undo: ok");
   console.log("nexus sign-in: ok");
 }
 
+// Nexus OAuth sign-in against a fake Nexus: PKCE, the loopback redirect, the code exchange, a
+// refresh, the user out of the token, and a Bearer call to the REST API renewed once on 401.
+{
+  const http = await import("node:http");
+  const crypto = await import("node:crypto");
+  const jwt = (name, roles) => ["eyJhbGciOiJub25lIn0", Buffer.from(JSON.stringify({ user: { id: 42, username: name, membership_roles: roles } })).toString("base64url"), "sig"].join(".");
+  const tokenCalls = [];
+  const apiCalls = [];
+  let spentR1 = false;
+  const fake = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      const u = new URL(req.url, "http://x");
+      const json = (status, obj) => res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(obj));
+      if (req.method === "POST" && u.pathname === "/oauth/token") {
+        const form = Object.fromEntries(new URLSearchParams(body));
+        tokenCalls.push(form);
+        if (form.grant_type === "authorization_code") {
+          if (form.code !== "CODE1" || !form.code_verifier || form.client_id !== "reddeck_test") return json(400, { error: "invalid_grant", error_description: "bad code" });
+          return json(200, { access_token: jwt("alice", ["premium"]), token_type: "Bearer", expires_in: 3600, refresh_token: "R1", scope: "openid" });
+        }
+        if (form.grant_type === "refresh_token") {
+          if (form.refresh_token !== "R1" || spentR1) return json(400, { error: "invalid_grant" });
+          spentR1 = true;
+          return json(200, { access_token: jwt("alice", ["premium"]), token_type: "Bearer", expires_in: 3600, refresh_token: "R2", scope: "openid" });
+        }
+        return json(400, { error: "unsupported_grant_type" });
+      }
+      if (u.pathname === "/v1/users/validate.json") {
+        apiCalls.push(req.headers.authorization);
+        if (req.headers.authorization !== "Bearer T-new") return json(401, { message: "Please provide a valid token" });
+        return json(200, { user_id: 42, name: "alice", is_premium: true, is_supporter: false });
+      }
+      res.writeHead(404).end();
+    });
+  });
+  await new Promise((r) => fake.listen(0, "127.0.0.1", r));
+  const base = `http://127.0.0.1:${fake.address().port}`;
+  const opened = [];
+  const pending = core.signInWithOAuth({ clientId: "reddeck_test", base: `${base}/oauth`, open: (u) => opened.push(u), timeoutMs: 5000 });
+  while (!opened.length) await new Promise((r) => setTimeout(r, 5));
+  const auth = new URL(opened[0]);
+  const q = auth.searchParams;
+  assert.equal(auth.origin + auth.pathname, `${base}/oauth/authorize`);
+  assert.equal(q.get("response_type"), "code");
+  assert.equal(q.get("client_id"), "reddeck_test");
+  assert.equal(q.get("code_challenge_method"), "S256");
+  assert.equal(q.get("scope"), "openid profile email");
+  assert.match(q.get("redirect_uri"), /^http:\/\/127\.0\.0\.1:\d+$/);
+  assert.match(q.get("state"), /^[0-9a-f-]{36}$/);
+  // A redirect with the wrong state is ignored; the sign-in keeps waiting.
+  const bad = await fetch(`${q.get("redirect_uri")}/?code=CODE1&state=nope`);
+  assert.equal(bad.status, 400);
+  // The browser comes back with the code.
+  const ok = await fetch(`${q.get("redirect_uri")}/?code=CODE1&state=${q.get("state")}`);
+  assert.equal(ok.status, 200);
+  assert.match(await ok.text(), /Signed in/);
+  const tokens = await pending;
+  assert.equal(tokens.refreshToken, "R1");
+  assert.ok(tokens.expiresAt > Date.now() + 3500_000);
+  const ex = tokenCalls[0];
+  assert.equal(ex.redirect_uri, q.get("redirect_uri"));
+  assert.equal(crypto.createHash("sha256").update(ex.code_verifier).digest("base64url"), q.get("code_challenge"), "the verifier matches the challenge");
+  assert.deepEqual(core.tokenUser(tokens.accessToken), { id: 42, name: "alice", premium: true, supporter: false });
+  assert.equal(core.tokenUser("not-a-jwt"), undefined);
+  // Nexus refuses.
+  const opened2 = [];
+  const refused = core.signInWithOAuth({ clientId: "reddeck_test", base: `${base}/oauth`, open: (u) => opened2.push(u), timeoutMs: 5000 });
+  while (!opened2.length) await new Promise((r) => setTimeout(r, 5));
+  const q2 = new URL(opened2[0]).searchParams;
+  const refusedCheck = assert.rejects(refused, /The user said no/);
+  await fetch(`${q2.get("redirect_uri")}/?error=access_denied&error_description=The+user+said+no&state=${q2.get("state")}`);
+  await refusedCheck;
+  // Cancelled: the port is released.
+  const ac = new AbortController();
+  const opened3 = [];
+  const cancelled = core.signInWithOAuth({ clientId: "reddeck_test", base: `${base}/oauth`, open: (u) => opened3.push(u), signal: ac.signal, timeoutMs: 5000 });
+  while (!opened3.length) await new Promise((r) => setTimeout(r, 5));
+  const cancelledCheck = assert.rejects(cancelled, /cancelled/);
+  ac.abort();
+  await cancelledCheck;
+  await assert.rejects(fetch(new URL(opened3[0]).searchParams.get("redirect_uri")), "the listener is gone");
+  // Refresh, and when a refresh is due.
+  const t2 = await core.refreshTokens({ clientId: "reddeck_test", refreshToken: "R1", base: `${base}/oauth` });
+  assert.equal(t2.refreshToken, "R2");
+  await assert.rejects(core.refreshTokens({ clientId: "reddeck_test", refreshToken: "R1", base: `${base}/oauth` }), /invalid_grant/);
+  assert.equal(core.needsRefresh({ ...t2, expiresAt: Date.now() + 30_000 }), true);
+  assert.equal(core.needsRefresh(t2), false);
+  // The REST client with a token: Bearer header, one renewal on 401.
+  let renewed = 0;
+  const client = new core.NexusClient({ bearer: "T-old" }, "0.0.0", { api: `${base}/v1`, refresh: async () => (renewed++, "T-new") });
+  assert.equal(client.usesToken, true);
+  const user = await client.validate();
+  assert.equal(user.name, "alice");
+  assert.equal(renewed, 1);
+  assert.deepEqual(apiCalls, ["Bearer T-old", "Bearer T-new"]);
+  const dead = new core.NexusClient({ bearer: "T-dead" }, "0.0.0", { api: `${base}/v1`, refresh: async () => undefined });
+  await assert.rejects(dead.validate(), /sign in again/);
+  assert.equal(new core.NexusClient("KEY", "0.0.0").usesToken, false);
+  fake.close();
+  console.log("nexus oauth: ok");
+}
+
 // Nexus: pure parts only; no network.
 {
   const nxm = core.parseNxm("nxm://cyberpunk2077/mods/7780/files/144164?key=abc123&expires=1760000000&user_id=42");

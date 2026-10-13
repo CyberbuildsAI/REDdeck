@@ -1,5 +1,6 @@
-// Nexus Mods, through its public REST API (v1) with the user's personal API key. REDdeck caches
-// what it learns in mod.json and asks sparingly: the API allows 2,500 requests a day.
+// Nexus Mods, through its public REST API (v1), with the user's personal API key or the access
+// token from an OAuth sign-in (nexusOAuth.ts). REDdeck caches what it learns in mod.json and asks
+// sparingly: the API allows 2,500 requests a day.
 // https://help.nexusmods.com/article/114-api-acceptable-use-policy
 
 import * as crypto from "node:crypto";
@@ -68,18 +69,36 @@ export class NexusError extends Error {
   }
 }
 
+/** A personal API key, or the access token of an OAuth sign-in. */
+export type NexusAuth = { apiKey: string } | { bearer: string };
+
+export interface NexusClientOptions {
+  /** The API base; the test points it at a fake. */
+  api?: string;
+  /** Called once when a Bearer token is refused, to renew it; returns the new token or nothing. */
+  refresh?: () => Promise<string | undefined>;
+}
+
 export class NexusClient {
   rate: RateLimit | undefined;
+  private auth: NexusAuth;
 
   constructor(
-    private readonly apiKey: string,
+    auth: string | NexusAuth,
     private readonly version: string,
-  ) {}
+    private readonly options: NexusClientOptions = {},
+  ) {
+    this.auth = typeof auth === "string" ? { apiKey: auth } : auth;
+  }
 
-  private async get<T>(path: string): Promise<T> {
-    const res = await fetch(`${NexusApi}${path}`, {
+  get usesToken(): boolean {
+    return "bearer" in this.auth;
+  }
+
+  private async get<T>(path: string, retried = false): Promise<T> {
+    const res = await fetch(`${this.options.api ?? NexusApi}${path}`, {
       headers: {
-        apikey: this.apiKey,
+        ...("bearer" in this.auth ? { authorization: `Bearer ${this.auth.bearer}` } : { apikey: this.auth.apiKey }),
         accept: "application/json",
         "user-agent": `REDdeck/${this.version} (Windows; +https://github.com/Edgemodders/REDdeck)`,
         "application-name": "REDdeck",
@@ -89,10 +108,19 @@ export class NexusClient {
     const daily = Number(res.headers.get("x-rl-daily-remaining"));
     const hourly = Number(res.headers.get("x-rl-hourly-remaining"));
     if (!Number.isNaN(daily)) this.rate = { dailyRemaining: daily, hourlyRemaining: hourly };
+    if (res.status === 401 && "bearer" in this.auth && this.options.refresh && !retried) {
+      // The access token ran out between the check and the call: renew once and try again.
+      await res.text().catch(() => "");
+      const bearer = await this.options.refresh();
+      if (bearer) {
+        this.auth = { bearer };
+        return this.get<T>(path, true);
+      }
+    }
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       const why =
-        res.status === 401 ? "the API key was not accepted"
+        res.status === 401 ? ("bearer" in this.auth ? "the sign-in was not accepted; sign in again" : "the API key was not accepted")
         : res.status === 404 ? "not found on Nexus"
         : res.status === 429 ? "Nexus rate limit reached; try again later"
         : `${res.status} ${res.statusText}`;

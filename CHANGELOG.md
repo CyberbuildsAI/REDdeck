@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.0 (2026-10-13)
+
+- Nexus sign-in through the browser, with OAuth and PKCE, the way Vortex signs in: Nexus: sign in opens the Nexus sign-in page, you approve REDdeck, the tab says "Signed in" and REDdeck has an access token and a refresh token in VS Code's secret storage. The sign-in renews itself; when it cannot, REDdeck asks you to sign in again. The REST API takes the token as a Bearer header, so update checks, file lists and downloads are as before. Needs the client id Nexus assigns to REDdeck in `reddeck.nexusClientId`; until then sign-in opens the API Access page and asks for the key as before.
+- A pasted personal key is always a choice: Nexus: set API key (paste, instead of signing in) in the command palette, and a "Paste a key instead" button when the browser sign-in fails. Sign out removes whichever you used.
+
 ## 0.18.0 (2026-10-13)
 
 - Add to Project, on a mod, a folder or a file in the Mods view when a REDcode project (a `.cpmodproj`) is open in the workspace. Loose files (scripts, CET Lua, TweakXL YAML, ArchiveXL files, configs) are copied into the project's `source/resources` under their deploy paths, so the packed mod carries them at the same place. A file the project already has with other content is left alone unless you say Replace. `.archive` files are skipped with a note: their resources need extracting into `source/archive`, which REDcode's Game Assets view does. Without a project, a toast says so and offers REDcode's New Project.

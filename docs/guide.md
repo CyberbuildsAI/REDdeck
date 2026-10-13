@@ -30,7 +30,7 @@ The first time, the Mods view shows a **Set up** group with a row for each thing
 |---|---|---|
 | **Find the game folder** | REDdeck looks for Cyberpunk 2077 in every Steam library, then GOG and Epic, on every start. This row appears only when that fails: pick the folder that contains `bin`, `archive` and `r6`. | Yes |
 | **Get REDbridge** | Downloads [REDbridge](https://github.com/Edgemodders/REDbridge), about 70 MB, into REDdeck's own folder, plus the .NET 10 runtime for your user account if there is none. With it, REDdeck sees conflicts between files *inside* mod archives. REDdeck checks once a day for a newer REDbridge and offers it; **Update REDbridge** in the command palette checks now. The old version is removed after an update. | No, but recommended |
-| **Sign in to Nexus Mods** | For update checks and downloads from the site. Until Nexus registers REDdeck as an application, sign in opens your [API Access page](https://www.nexusmods.com/users/myaccount?tab=api+access), where you create a personal key and paste it in. The key lives in VS Code's secret storage. **Nexus: sign out** removes it. | No |
+| **Sign in to Nexus Mods** | For update checks and downloads from the site. Sign in opens the Nexus sign-in page in your browser; approve REDdeck there and the tab says "Signed in". REDdeck keeps the sign-in in VS Code's secret storage and renews it by itself. Until Nexus has registered REDdeck, sign in opens your [API Access page](https://www.nexusmods.com/users/myaccount?tab=api+access) instead, where you create a personal key and paste it in. The key works the same way, and **Nexus: set API key (paste, instead of signing in)** is always there if you prefer it. **Nexus: sign out** removes either. | No |
 | **Handle Nexus download links** | Makes the **Mod manager download** button on Nexus pages send the file to REDdeck. Vortex takes the links back whenever it starts, so this row returns if you use both. | No |
 | **Import from Vortex** | Copies the mods Vortex has for Cyberpunk into the library. Vortex is left alone. Shown when Vortex has mods and the library has none from it. | No |
 
@@ -132,7 +132,8 @@ Open Settings (`Ctrl+,`) and search for `reddeck`.
 | `reddeck.bridgePath` | empty | A REDbridge you built yourself. Empty means the copy Get REDbridge fetched, which the page footer names. |
 | `reddeck.dotnetRoot` | empty | A .NET root for the REDbridge process only. Empty means the per-user .NET 10 runtime. Never set `DOTNET_ROOT` for your whole account; it breaks Vortex. |
 | `reddeck.nexusCheckUpdatesOnStart` | on | The daily Nexus update check. |
-| `reddeck.nexusApplication` | empty | The application slug Nexus registers for REDdeck. With it, sign in is one click on the Nexus authorise page. |
+| `reddeck.nexusClientId` | empty | The OAuth client id Nexus assigns to REDdeck. With it, sign in happens in the browser and renews itself. |
+| `reddeck.nexusApplication` | empty | The application slug for Nexus's older single sign-on, used when there is no client id. |
 
 ## 12. The library folder
 

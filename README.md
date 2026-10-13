@@ -17,7 +17,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 **[Read the guide](https://edgemodders.github.io/REDdeck/guide.html)** &middot; [Design](https://edgemodders.github.io/REDdeck/design.html) &middot; [Releases](https://github.com/Edgemodders/REDdeck/releases) &middot; [REDcode](https://github.com/Edgemodders/REDcode) &middot; [REDbridge](https://github.com/Edgemodders/REDbridge) &middot; [REDnode](https://github.com/Edgemodders/REDnode)
 
 > [!NOTE]
-> **Status: 0.16.0, in daily use on two PCs.** Add from zip, 7z, rar, folder, Nexus link or Vortex; one row per mod with a version dropdown; hardlink deploy with a manifest, undo and backups; a pending-changes list that explains every file; conflicts by order with Let X win, and inside archives through REDbridge, which Get REDbridge fetches and keeps current; the Frameworks group with the game version and a warning after a game patch; Nexus sign-in, daily update checks, update from the row, nxm download links; a wide table page with search, facets and sizes; loadouts; a Set up group for new installs; a `reddeck` command line with `--json`. Not on the Marketplace: install the VSIX from the [releases page](https://github.com/Edgemodders/REDdeck/releases). `npm run smoke` and `npm run test:ui` cover it. The [guide](https://edgemodders.github.io/REDdeck/guide.html) says how to use it.
+> **Status: 0.19.0, in daily use on two PCs.** Add from zip, 7z, rar, folder, Nexus link or Vortex; one row per mod with a version dropdown; hardlink deploy with a manifest, undo and backups; a pending-changes list that explains every file; conflicts by order with Let X win, and inside archives through REDbridge, which Get REDbridge fetches and keeps current; the Frameworks group with the game version and a warning after a game patch; Nexus sign-in in the browser (OAuth with PKCE, or a pasted key), daily update checks, update from the row, nxm download links; a wide table page with search, facets and sizes; loadouts; a Set up group for new installs; a `reddeck` command line with `--json`. Not on the Marketplace: install the VSIX from the [releases page](https://github.com/Edgemodders/REDdeck/releases). `npm run smoke` and `npm run test:ui` cover it. The [guide](https://edgemodders.github.io/REDdeck/guide.html) says how to use it.
 
 ## How it works
 
@@ -89,7 +89,7 @@ The same verbs are MCP tools: `node dist/mcp.js --library <folder> --game <folde
 - **M0 Decide.** Name, repository, the word list, the extension scaffold.
 - **M1 Library.** Add from archives and folders, the library layout, hardlink deploy with manifest and undo, changes made outside REDdeck, Vortex detection and import. Done.
 - **M2 Kinds.** Frameworks group with game version check, REDmod packages, file and archive conflicts with reorder. Done.
-- **M3 Nexus.** Sign in (single sign-on once Nexus registers the app, paste a key until then), mod metadata, updates, nxm links. Done.
+- **M3 Nexus.** Sign in (OAuth with PKCE in the browser once Nexus assigns the client id, a pasted key until then and as a choice always), mod metadata, updates, nxm links. Done.
 - **M4 Loop.** Install and test a REDcode project with one click (REDdeck side done; the REDcode side is in that repo). REDnode packages as a mod kind.
 - **M5 Share.** Loadouts, the `reddeck` CLI and the MCP server are done. No Marketplace publishing for now; releases carry the VSIX.
 

@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -173,7 +173,7 @@
       },
       {
         "command": "reddeck.nexusSetKey",
-        "title": "Nexus: set API key (paste)",
+        "title": "Nexus: set API key (paste, instead of signing in)",
         "category": "REDdeck"
       },
       {
@@ -478,10 +478,15 @@
           "default": true,
           "description": "Ask Nexus Mods once a day whether the mods with a Nexus id have a newer file. Needs you signed in (REDdeck: Nexus: sign in)."
         },
+        "reddeck.nexusClientId": {
+          "type": "string",
+          "default": "",
+          "description": "The OAuth client id Nexus Mods assigned to REDdeck. With it, Nexus: sign in opens the Nexus sign-in page in your browser and comes back on its own; the sign-in renews itself. Empty means the application slug below, or the API Access page and a pasted key."
+        },
         "reddeck.nexusApplication": {
           "type": "string",
           "default": "",
-          "description": "The application slug Nexus Mods registered for REDdeck. With it, Nexus: sign in is one click on the Nexus authorise page. Empty means sign-in opens the API Access page and asks you to paste the key."
+          "description": "The application slug Nexus Mods registered for REDdeck's older single sign-on. Used when there is no client id. Empty means sign-in opens the API Access page and asks you to paste the key."
         }
       }
     },
