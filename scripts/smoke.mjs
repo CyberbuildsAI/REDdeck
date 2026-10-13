@@ -181,6 +181,21 @@ console.log("changes: ok");
   console.log("project: ok");
 }
 
+// Sizes: per file, per mod, and the library's totals.
+{
+  const m = lib.mods.find((x) => x.files.length);
+  const sz = core.modSize(lib, m);
+  assert.equal(sz.files.size, m.files.length);
+  assert.equal(sz.total, [...sz.files.values()].reduce((a, b) => a + b, 0));
+  assert.ok(sz.total > 0);
+  const tot = core.librarySize(lib);
+  assert.ok(tot.mods >= sz.total);
+  assert.equal(core.formatBytes(1536), "2 KB");
+  assert.equal(core.formatBytes(1.5 * (1 << 20)), "1.5 MB");
+  assert.equal(core.formatBytes(12 * (1 << 30)), "12 GB");
+  console.log(`sizes: ok (${core.formatBytes(tot.mods)} in mods, ${core.formatBytes(tot.downloads)} in downloads)`);
+}
+
 // Pending changes with reasons: a replaced path is one row, an off mod's files are removes.
 {
   const p0 = core.plan(lib, game);

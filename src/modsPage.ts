@@ -16,6 +16,8 @@ export interface PageRow {
   status: string;
   framework: boolean;
   deployed: boolean;
+  /** Bytes in the library for the active version. */
+  size: number;
   needsDeploy: boolean;
   changed: boolean;
   conflicts: number;
@@ -34,11 +36,13 @@ export interface PageData {
   signedIn: boolean;
   /** "REDbridge 0.4.0 (WolvenKit 9.1.0)" once it has answered, or undefined when there is none. */
   bridge?: string;
+  /** Library totals in bytes. */
+  sizes: { mods: number; downloads: number; backups: number };
   vortex: boolean;
 }
 
 export interface PageMessage {
-  action: "getBridge" | "changes" | "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
+  action: "downloads" | "getBridge" | "changes" | "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
   id?: string;
 }
 
@@ -92,6 +96,8 @@ const FacetLabels: [string, string][] = [
   ["update", "Update available"],
 ];
 
+const fmt = (n: number): string => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(n >= 10 * (1 << 30) ? 0 : 1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(n >= 10 * (1 << 20) ? 0 : 1)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`);
+
 function render(d: PageData, csp: string): string {
   const nonce = Math.random().toString(36).slice(2);
   const msg = (m: PageMessage) => esc(JSON.stringify(m));
@@ -120,11 +126,12 @@ function render(d: PageData, csp: string): string {
             .map((v) => `<option value='${msg({ action: "activate", id: v.id })}' ${v.active ? "selected" : ""}>${esc(v.version || "(no version)")}</option>`)
             .join("")}${r.update ? `<option value='${msg({ action: "update", id: r.id })}' class="get">Get ${esc(r.update)} from Nexus</option>` : ""}</select>`
         : `<span class="mono">${esc(r.version)}</span>`;
-    return `<tr data-group="${r.framework ? "frameworks" : "mods"}" data-facets="${facetsOf(r).join(" ")}" data-text="${esc(text)}" class="${r.enabled ? "" : "offrow"}">
+    return `<tr data-group="${r.framework ? "frameworks" : "mods"}" data-facets="${facetsOf(r).join(" ")}" data-text="${esc(text)}" data-size="${r.size}" class="${r.enabled ? "" : "offrow"}">
 <td class="chk"><input type="checkbox" ${r.enabled ? "checked" : ""} data-msg='${msg({ action: "toggle", id: r.id })}' title="${r.enabled ? "Turn off" : "Turn on"}"></td>
 <td class="name"><a data-msg='${msg({ action: "details", id: r.id })}'>${esc(r.name)}</a></td>
 <td class="vercell">${versionCell}</td>
 <td>${[...r.kinds].sort((a, b) => (a === "framework" ? -1 : b === "framework" ? 1 : 0)).map((k) => `<span class="kind ${k === "framework" ? "fw" : ""}">${esc(k)}</span>`).join("")}</td>
+<td class="mono size" data-size="${r.size}" title="${r.size.toLocaleString()} bytes in the library">${fmt(r.size)}</td>
 <td class="${statusClass}">${r.needsDeploy || r.changed ? `<a class="st" data-msg='${msg({ action: "changes", id: r.id })}' title="What the next deploy does for this mod">${esc(r.status)}</a>` : esc(r.status)}${r.update ? `<a class="upd" data-msg='${msg({ action: "update", id: r.id })}' title="Download ${esc(r.update)} from Nexus and put it in this mod's place">update ${esc(r.update)} available</a>` : ""}</td>
 <td class="acts"><select class="menu"><option value="">...</option>${menu.map((e) => `<option value='${msg(e.m)}'>${e.label}</option>`).join("")}</select></td>
 </tr>`;
@@ -132,7 +139,7 @@ function render(d: PageData, csp: string): string {
   const frameworks = d.rows.filter((r) => r.framework);
   const mods = d.rows.filter((r) => !r.framework);
   const on = (rs: PageRow[]) => rs.filter((r) => r.enabled).length;
-  const groupRow = (key: string, label: string, rs: PageRow[]) => `<tr class="group" data-groupfor="${key}"><td colspan="6">${label} <span class="dim">${rs.length}, ${on(rs)} on</span></td></tr>`;
+  const groupRow = (key: string, label: string, rs: PageRow[]) => `<tr class="group" data-groupfor="${key}"><td colspan="7">${label} <span class="dim">${rs.length}, ${on(rs)} on, ${fmt(rs.reduce((n, r) => n + r.size, 0))}</span></td></tr>`;
   const body = (frameworks.length ? groupRow("frameworks", "Frameworks", frameworks) + frameworks.map(row).join("") : "") + groupRow("mods", "Mods", mods) + mods.map(row).join("");
 
   return `<!doctype html><html><head><meta charset="utf-8">
@@ -162,6 +169,8 @@ tr.offrow td.name a, tr.offrow td.mono { color: var(--dim); }
 .mono { font-family: var(--vscode-editor-font-family); font-size: 12px; } .dim { color: var(--dim); } .ok { color: var(--green); } .warn { color: var(--yellow); } .pend { color: var(--cyan); }
 a.st { color: inherit; cursor: pointer; } a.st:hover { text-decoration: underline; }
 a.changes { color: var(--yellow); cursor: pointer; font-size: 12px; } a.changes:hover { text-decoration: underline; }
+td.size { text-align: right; white-space: nowrap; } th.size { text-align: right; }
+.sep { color: var(--line); margin: 0 4px; }
 .upd { display: block; color: var(--yellow); font-size: 12px; cursor: pointer; } .upd:hover { text-decoration: underline; }
 select.ver { font-family: var(--vscode-editor-font-family); font-size: 12px; color: var(--fg); background: var(--vscode-dropdown-background, var(--bg)); border: 1px solid var(--vscode-dropdown-border, var(--line)); padding: 2px 6px; cursor: pointer; }
 select.ver:hover, select.ver:focus { border-color: var(--yellow); outline: none; } select.ver option.get { color: var(--yellow); }
@@ -188,16 +197,32 @@ ${d.vortex ? `<div class="note">Vortex manages this game folder. Purge in Vortex
 <div class="filters">
   <input type="search" id="q" placeholder="Search name, version, kind or status" autocomplete="off">
   ${chips}
+  <span class="sep">|</span>
+  <button class="chip" id="bysize" title="Biggest mods first, across both groups">Largest first</button>
 </div>
-${d.rows.length ? `<table><thead><tr><th></th><th>Mod</th><th>Ver</th><th>Kind</th><th>Status</th><th></th></tr></thead><tbody id="rows">${body}</tbody></table><div class="empty" id="none" hidden>No mod matches.</div>` : `<div class="empty">No mods yet. Press + Add mod, or import from Vortex from the Mods view menu.</div>`}
+${d.rows.length ? `<table><thead><tr><th></th><th>Mod</th><th>Ver</th><th>Kind</th><th class="size">Size</th><th>Status</th><th></th></tr></thead><tbody id="rows">${body}</tbody></table><div class="empty" id="none" hidden>No mod matches.</div>` : `<div class="empty">No mods yet. Press + Add mod, or import from Vortex from the Mods view menu.</div>`}
 <div class="foot">
   <span>Library: <a data-msg='${msg({ action: "library" })}'>${esc(d.library)}</a> (${d.method === "link" ? "same drive as the game: hardlinks" : "other drive: copies"})</span>
   <span>Last deploy: ${d.lastDeploy ? esc(d.lastDeploy) : "never"}</span>
+  <span title="Deployed files are hardlinks and take no extra space on the same drive">Disk: ${fmt(d.sizes.mods)} in mods, <a data-msg='${msg({ action: "downloads" })}' title="The original zips, kept so a mod can be added again. Safe to delete.">${fmt(d.sizes.downloads)} in kept downloads</a>${d.sizes.backups ? `, ${fmt(d.sizes.backups)} in deploy backups` : ""}</span>
   <span>${d.bridge ? `<span class="okdot"></span>${esc(d.bridge)}` : `No REDbridge: <a data-msg='${msg({ action: "getBridge" })}'>Get REDbridge</a> for conflicts inside archives`}</span>
 </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
-  const state = Object.assign({ q: "", facet: "all" }, vscode.getState() || {});
+  const state = Object.assign({ q: "", facet: "all", bySize: false }, vscode.getState() || {});
+  const tbody = document.getElementById("rows");
+  const original = tbody ? [...tbody.children] : [];
+  function order() {
+    if (!tbody) return;
+    if (state.bySize) {
+      const rs = [...tbody.querySelectorAll("tr[data-size]")].sort((a, b) => Number(b.dataset.size) - Number(a.dataset.size));
+      for (const g of tbody.querySelectorAll("tr.group")) g.remove();
+      for (const r of rs) tbody.appendChild(r);
+    } else {
+      tbody.replaceChildren(...original);
+    }
+    document.getElementById("bysize").classList.toggle("active", state.bySize);
+  }
   const q = document.getElementById("q");
   const rows = [...document.querySelectorAll("tr[data-facets]")];
   const groups = [...document.querySelectorAll("tr.group")];
@@ -208,13 +233,15 @@ ${d.rows.length ? `<table><thead><tr><th></th><th>Mod</th><th>Ver</th><th>Kind</
       const ok = (state.facet === "all" || r.dataset.facets.split(" ").includes(state.facet)) && (!needle || r.dataset.text.includes(needle));
       r.hidden = !ok; if (ok) shown++;
     }
-    for (const g of groups) g.hidden = !rows.some((r) => !r.hidden && r.dataset.group === g.dataset.groupfor);
+    for (const g of groups) g.hidden = state.bySize || !rows.some((r) => !r.hidden && r.dataset.group === g.dataset.groupfor);
     for (const c of document.querySelectorAll(".chip")) c.classList.toggle("active", c.dataset.facet === state.facet);
     const none = document.getElementById("none"); if (none) none.hidden = shown > 0;
     vscode.setState(state);
   }
   if (q) { q.value = state.q; q.addEventListener("input", () => { state.q = q.value; apply(); }); }
-  for (const c of document.querySelectorAll(".chip")) c.addEventListener("click", () => { state.facet = c.dataset.facet; apply(); });
+  for (const c of document.querySelectorAll(".chip[data-facet]")) c.addEventListener("click", () => { state.facet = c.dataset.facet; apply(); });
+  document.getElementById("bysize").addEventListener("click", () => { state.bySize = !state.bySize; order(); apply(); });
+  order();
   for (const b of document.querySelectorAll("button[data-msg], a[data-msg]")) b.addEventListener("click", () => vscode.postMessage(JSON.parse(b.dataset.msg)));
   for (const c of document.querySelectorAll("input[type=checkbox][data-msg]")) c.addEventListener("change", () => vscode.postMessage(JSON.parse(c.dataset.msg)));
   for (const s of document.querySelectorAll("select.menu")) s.addEventListener("change", () => { if (s.value) { vscode.postMessage(JSON.parse(s.value)); s.value = ""; } });

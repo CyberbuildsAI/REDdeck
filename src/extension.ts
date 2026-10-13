@@ -16,9 +16,10 @@ import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
 import { DetailPanel } from "./detailPanel";
 import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family } from "./families";
 import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
+import { forgetSizes, librarySize, modSize } from "./sizes";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
 import { findGame, gameVersion, isGameFolder, steamLibraries } from "./game";
-import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
+import { addMod, defaultLibraryPath, downloadsFolder, keepDownload, loadLibrary, modFolder, moveMod, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
 import { ModsView, type ModNode } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
@@ -157,6 +158,7 @@ async function run(fn: () => Promise<void> | void): Promise<void> {
 }
 
 function reload(): void {
+  forgetSizes();
   const configured = vscode.workspace.getConfiguration("reddeck").get<string>("gamePath", "");
   detectedGame = configured ? undefined : findGame();
   const { libraryPath, gamePath } = settings();
@@ -370,6 +372,7 @@ function detailData(mod: ModInfo) {
     bridge: bridgeExe,
     update: library ? familyUpdate(library, mod) : undefined,
     versions: library ? familyOf(library, mod).mods.map((m) => ({ id: m.id, version: m.version, enabled: m.enabled })) : [],
+    size: library ? modSize(library, mod) : { total: 0, files: new Map<string, number>(), mtimes: new Map<string, number>() },
   };
 }
 
@@ -395,6 +398,7 @@ function pageRow(fam: Family, manifestMods: Set<string>): PageRow {
     status: statusFor(mod, false),
     framework: mod.kinds.includes("framework"),
     deployed: manifestMods.has(mod.id),
+    size: library ? modSize(library, mod).total : 0,
     needsDeploy: !!p && (p.add.some((d) => d.mod?.id === mod.id) || p.stale.some((e) => e.mod === mod.id)),
     changed: state.changes.some((c) => c.entry.mod === mod.id && c.kind === "changed"),
     conflicts: p ? p.conflicts.filter((c) => c.winner === mod.id || c.losers.includes(mod.id)).length : 0,
@@ -418,6 +422,7 @@ async function pageData() {
     signedIn: !!(await secrets.get(NexusKeySecret)),
     vortex: !!state.plan?.vortex,
     bridge: state.bridgeInfo ?? (bridgeExe ? "REDbridge found, starts on the next archive scan" : undefined),
+    sizes: library ? librarySize(library) : { mods: 0, downloads: 0, backups: 0 },
   };
 }
 
@@ -452,6 +457,12 @@ async function pageAction(m: PageMessage): Promise<void> {
       return showChanges(m.id);
     case "getBridge":
       return getBridgeCommand();
+    case "downloads":
+      if (library) {
+        fs.mkdirSync(downloadsFolder(library.root), { recursive: true });
+        void vscode.env.openExternal(vscode.Uri.file(downloadsFolder(library.root)));
+      }
+      return;
   }
   if (!mod || !library) return;
   switch (m.action) {

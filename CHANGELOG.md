@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.0 (2026-10-12)
+
+- Sizes everywhere, for finding what eats the disk. The Mods view shows each mod's size next to its version, each folder's size, and each file's size. The REDdeck page has a Size column, a "Largest first" chip that sorts every mod by size, and group totals. The footer says how much the library holds in mods, how much in kept downloads (the original zips, safe to delete; the link opens the folder) and how much in deploy backups. The detail panel shows the size per folder and file. `reddeck list` prints sizes and `--size` sorts by them.
+
 ## 0.13.3 (2026-10-12)
 
 - Once a day, when the bridge in use is the copy REDdeck fetched, REDdeck asks GitHub whether there is a newer REDbridge release and offers it with a "Get it" button. A bridge you built or configured yourself is left alone.

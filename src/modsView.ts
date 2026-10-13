@@ -5,6 +5,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { families } from "./families";
 import { modFolder, type Library, type ModInfo } from "./library";
+import { formatBytes, modSize } from "./sizes";
 
 export type ModNode =
   | { type: "group"; label: string; mods: ModInfo[] }
@@ -66,10 +67,13 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
     if (node.type === "folder") {
       const item = new vscode.TreeItem(node.label || "(game folder)", vscode.TreeItemCollapsibleState.Collapsed);
       item.id = `${node.mod.id}/${node.label}`;
-      item.description = `${node.files.length} file${node.files.length === 1 ? "" : "s"}`;
+      const lib = this.library();
+      const sizes = lib ? modSize(lib, node.mod).files : undefined;
+      const bytes = sizes ? node.files.reduce((n, f) => n + (sizes.get(f) ?? 0), 0) : 0;
+      item.description = `${node.files.length} file${node.files.length === 1 ? "" : "s"} · ${formatBytes(bytes)}`;
       item.iconPath = vscode.ThemeIcon.Folder;
       item.contextValue = "folder";
-      item.tooltip = `${node.label} in the game folder, from ${node.mod.name}`;
+      item.tooltip = new vscode.MarkdownString([`**${node.label || "(game folder)"}**`, `${node.files.length} file${node.files.length === 1 ? "" : "s"} · ${formatBytes(bytes)}`, `From ${node.mod.name} ${node.mod.version}`.trim()].join("  \n"));
       return item;
     }
     if (node.type === "file") {
@@ -77,8 +81,15 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
       const name = node.file.split("/").pop() ?? node.file;
       const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.None);
       item.id = `${node.mod.id}/${node.file}`;
-      item.description = node.file.slice(0, -name.length - 1).replace(/^.*\//, "");
-      item.tooltip = `${node.file}\nLibrary copy: opens in the editor. Deployed files are hardlinks to it.`;
+      const sz = lib ? modSize(lib, node.mod) : undefined;
+      const bytes = sz?.files.get(node.file) ?? 0;
+      const when = sz?.mtimes.get(node.file);
+      item.description = `${formatBytes(bytes)} · ${node.file.slice(0, -name.length - 1).replace(/^.*\//, "")}`;
+      const ext = path.extname(name).toLowerCase();
+      const kind = ({ ".archive": "REDengine archive", ".xl": "ArchiveXL config", ".reds": "redscript source", ".lua": "CET script", ".yaml": "TweakXL tweak", ".yml": "TweakXL tweak", ".tweak": "TweakXL tweak", ".dll": "RED4ext plugin or library", ".asi": "ASI plugin", ".json": "JSON", ".ini": "settings", ".txt": "text" } as Record<string, string>)[ext] ?? (ext ? `${ext.slice(1)} file` : "file");
+      item.tooltip = new vscode.MarkdownString(
+        [`**${name}**`, `${kind} · ${formatBytes(bytes)} (${bytes.toLocaleString()} bytes)`, when ? `Modified ${new Date(when).toLocaleString()}` : "", `Deploys to \`${node.file}\``, `From ${node.mod.name} ${node.mod.version}`.trim(), "Click to open the library copy. With hardlink deploy it is the same file as the one in the game folder."].filter(Boolean).join("  \n"),
+      );
       item.contextValue = "file";
       if (lib) {
         const uri = vscode.Uri.file(path.join(modFolder(lib, node.mod), ...node.file.split("/")));
@@ -92,9 +103,18 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
     const item = new vscode.TreeItem(mod.name, mod.files.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
     item.id = mod.id;
     const others = families(this.library()!).find((f) => f.active.id === mod.id)?.mods.length ?? 1;
-    item.description = [mod.version + (others > 1 ? ` (+${others - 1})` : ""), status].filter(Boolean).join("  ·  ");
+    const lib = this.library();
+    const size = lib ? formatBytes(modSize(lib, mod).total) : "";
+    item.description = [mod.version + (others > 1 ? ` (+${others - 1})` : ""), size, status].filter(Boolean).join("  ·  ");
     item.tooltip = new vscode.MarkdownString(
-      [`**${mod.name}** ${mod.version}`, `${mod.kinds.join(", ")} · ${mod.files.length} files`, status, mod.source.path ? `from ${mod.source.path}` : ""].filter(Boolean).join("  \n"),
+      [
+        `**${mod.name}** ${mod.version}${others > 1 ? ` (${others} versions in the library)` : ""}`,
+        `${mod.kinds.join(", ")} · ${mod.files.length} files · ${size} in the library`,
+        `Added ${new Date(mod.added).toLocaleString()}`,
+        mod.source.type === "nexus" || mod.source.modId ? `Nexus mod ${mod.source.modId}${mod.nexus?.author ? ` by ${mod.nexus.author}` : ""}${mod.nexus?.checked ? ` · checked ${mod.nexus.checked.slice(0, 10)}` : ""}` : mod.source.type === "vortex" ? "Imported from Vortex" : mod.source.type === "project" ? `REDcode project ${mod.source.path ?? ""}` : mod.source.path ? `From ${mod.source.path}` : "",
+        status ? `Status: ${status}` : "",
+        "Click for details. Expand for folders and files.",
+      ].filter(Boolean).join("  \n"),
     );
     item.contextValue = "mod";
     item.command = { command: "reddeck.details", title: "Details", arguments: [node] };

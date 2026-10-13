@@ -2,7 +2,7 @@
 // The REDdeck command line: the same library and deployer as the extension, for scripts, CI and
 // assistants. State is the library's JSON files, so every command prints JSON with --json.
 //
-//   reddeck list                       what is in the library and its status
+//   reddeck list [--size]              what is in the library, its size and status (--size: largest first)
 //   reddeck add <file|folder> [--name N] [--option FOLDER]
 //   reddeck on <id> | off <id>         turn a mod on or off
 //   reddeck up <id> | down <id>        change the order (first wins conflicts)
@@ -63,8 +63,10 @@ switch (cmd) {
     const plan = fs.existsSync(game) ? core.plan(lib, game) : undefined;
     const manifest = plan ? core.readManifest(game) : undefined;
     const changes = plan ? core.detectChanges(game) : [];
-    const rows = lib.mods.map((m) => ({ id: m.id, name: m.name, version: m.version, enabled: m.enabled, kinds: m.kinds, files: m.files.length, status: plan ? core.modStatus(lib, game, m, plan, manifest, changes) : "" }));
-    out({ library: libraryRoot, game, mods: rows }, rows.map((r) => `${r.enabled ? "[x]" : "[ ]"} ${r.id.padEnd(28)} ${(r.version || "").padEnd(8)} ${r.kinds.join(",").padEnd(22)} ${r.status}`).join("\n") || "no mods");
+    const rows = lib.mods.map((m) => ({ id: m.id, name: m.name, version: m.version, enabled: m.enabled, kinds: m.kinds, files: m.files.length, bytes: core.modSize(lib, m).total, status: plan ? core.modStatus(lib, game, m, plan, manifest, changes) : "" }));
+    const sizes = core.librarySize(lib);
+    const sorted = flags.size ? [...rows].sort((a, b) => b.bytes - a.bytes) : rows;
+    out({ library: libraryRoot, game, sizes, mods: rows }, (sorted.map((r) => `${r.enabled ? "[x]" : "[ ]"} ${r.id.padEnd(28)} ${(r.version || "").padEnd(8)} ${core.formatBytes(r.bytes).padStart(8)}  ${r.kinds.join(",").padEnd(22)} ${r.status}`).join("\n") || "no mods") + `\n${core.formatBytes(sizes.mods)} in mods, ${core.formatBytes(sizes.downloads)} in kept downloads${sizes.backups ? `, ${core.formatBytes(sizes.backups)} in deploy backups` : ""}`);
     break;
   }
   case "add": {

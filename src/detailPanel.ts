@@ -17,6 +17,12 @@ export interface DetailData {
   update?: string;
   /** This mod's versions in the library, newest first. */
   versions: { id: string; version: string; enabled: boolean }[];
+  /** Bytes per file and in all. */
+  size: { total: number; files: Map<string, number> };
+}
+
+function fmt(n: number): string {
+  return n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`;
 }
 
 export class DetailPanel {
@@ -77,7 +83,7 @@ function render(d: DetailData, csp: string): string {
     groups.set(top, [...(groups.get(top) ?? []), f]);
   }
   const fileRows = [...groups.entries()]
-    .map(([top, files]) => `<details ${files.length <= 12 ? "open" : ""}><summary><span class="mono">${esc(top)}/</span> <span class="dim">${files.length} file${files.length === 1 ? "" : "s"}</span></summary><ul>${files.map((f) => `<li class="mono">${esc(f.slice(top.length + 1))}</li>`).join("")}</ul></details>`)
+    .map(([top, files]) => `<details ${files.length <= 12 ? "open" : ""}><summary><span class="mono">${esc(top)}/</span> <span class="dim">${files.length} file${files.length === 1 ? "" : "s"}, ${fmt(files.reduce((n, f) => n + (d.size.files.get(f) ?? 0), 0))}</span></summary><ul>${files.map((f) => `<li class="mono">${esc(f.slice(top.length + 1))} <span class="dim">${fmt(d.size.files.get(f) ?? 0)}</span></li>`).join("")}</ul></details>`)
     .join("");
   const fileConflictRows = fileConflicts
     .map((c) => {
@@ -119,7 +125,7 @@ details { margin: 4px 0; } summary { cursor: pointer; } ul { margin: 4px 0 8px 1
 </style></head><body>
 <h1>${esc(mod.name)} <span>${esc(mod.version)}</span></h1>
 <div class="status">${esc(d.status)}${d.names.size ? "" : ""}</div>
-<div class="meta">${[...mod.kinds].sort((a, b) => (a === "framework" ? -1 : b === "framework" ? 1 : 0)).map((k) => `<span class="chip ${k === "framework" ? "on" : ""}">${k}</span>`).join("")}<span class="chip">${mod.files.length} files</span><span class="chip ${mod.enabled ? "on" : ""}">${mod.enabled ? "on" : "off"}</span></div>
+<div class="meta">${[...mod.kinds].sort((a, b) => (a === "framework" ? -1 : b === "framework" ? 1 : 0)).map((k) => `<span class="chip ${k === "framework" ? "on" : ""}">${k}</span>`).join("")}<span class="chip">${mod.files.length} files</span><span class="chip">${fmt(d.size.total)}</span><span class="chip ${mod.enabled ? "on" : ""}">${mod.enabled ? "on" : "off"}</span></div>
 <div class="dim">${source}. Added ${esc(mod.added.slice(0, 10))}.</div>
 ${versionsLine}
 ${nexusLine}
