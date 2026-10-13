@@ -4,6 +4,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { families } from "./families";
+import { frameworkDetail, frameworkSummary, type FrameworkCheck } from "./frameworks";
 import { modFolder, type Library, type ModInfo } from "./library";
 import { formatBytes, modSize } from "./sizes";
 
@@ -27,6 +28,7 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
   constructor(
     private readonly library: () => Library | undefined,
     private readonly status: (mod: ModInfo) => string,
+    private readonly frameworks: () => FrameworkCheck | undefined = () => undefined,
   ) {}
 
   refresh(): void {
@@ -62,6 +64,13 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
       const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.Expanded);
       item.description = `${node.mods.length}, ${on} on`;
       item.contextValue = "group";
+      const check = node.label === "Frameworks" ? this.frameworks() : undefined;
+      if (check) {
+        const summary = frameworkSummary(check);
+        if (summary) item.description += ` · ${summary}`;
+        item.tooltip = new vscode.MarkdownString(frameworkDetail(check).join("  \n"));
+        if (check.changed || check.updates.length) item.iconPath = new vscode.ThemeIcon("warning", new vscode.ThemeColor("editorWarning.foreground"));
+      }
       return item;
     }
     if (node.type === "folder") {

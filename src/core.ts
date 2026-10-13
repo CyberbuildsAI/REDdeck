@@ -6,6 +6,7 @@ export * from "./conflicts";
 export * from "./deploy";
 export * from "./extract";
 export * from "./families";
+export * from "./frameworks";
 export * from "./game";
 export * from "./library";
 export * from "./loadouts";

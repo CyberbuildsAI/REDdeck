@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0 (2026-10-13)
+
+- The Frameworks group says what the game version is and whether it changed since the last deploy ("game updated to 2.31 · 2 updates"), in the Mods view and on the REDdeck page, with the explanation in a tooltip. A deploy records the game version in the manifest.
+- When the game changed, REDdeck checks the frameworks on Nexus once for that version and says which have newer files, or asks to sign in when there is no key. A warning icon marks the group while a framework is behind.
+- `reddeck list` prints the frameworks line, and `reddeck deploy` records the game version too.
+
 ## 0.14.0 (2026-10-12)
 
 - Sizes everywhere, for finding what eats the disk. The Mods view shows each mod's size next to its version, each folder's size, and each file's size. The REDdeck page has a Size column, a "Largest first" chip that sorts every mod by size, and group totals. The footer says how much the library holds in mods, how much in kept downloads (the original zips, safe to delete; the link opens the folder) and how much in deploy backups. The detail panel shows the size per folder and file. `reddeck list` prints sizes and `--size` sorts by them.

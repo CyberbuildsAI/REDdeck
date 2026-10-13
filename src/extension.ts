@@ -15,6 +15,7 @@ import { dotnet10Root, installBridge, installDotnetRuntime, installedBridge, lat
 import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
 import { DetailPanel } from "./detailPanel";
 import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family } from "./families";
+import { checkFrameworks, frameworkDetail, frameworkSummary, type FrameworkCheck } from "./frameworks";
 import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
 import { forgetSizes, librarySize, modSize } from "./sizes";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
@@ -61,7 +62,7 @@ export function activate(context: vscode.ExtensionContext): void {
   status.show();
   sevenZa = findSevenZip(extensionRoot);
 
-  view = new ModsView(() => library, statusFor);
+  view = new ModsView(() => library, statusFor, frameworkCheck);
   tree = vscode.window.createTreeView("reddeck.mods", { treeDataProvider: view, showCollapseAll: false });
   detail = new DetailPanel((action, id) => run(() => detailAction(action, id)));
   conflictsPanel = new ConflictsPanel((m) => run(() => conflictsAction(m)));
@@ -181,6 +182,9 @@ function reload(): void {
     state.version = v;
     tree.description = v ? `Cyberpunk 2077 ${v}` : undefined;
     updateStatus();
+    view.refresh();
+    void updatePage();
+    void run(() => gameChanged(v));
   });
   refresh();
   void run(maybeCheckUpdates);
@@ -423,7 +427,16 @@ async function pageData() {
     vortex: !!state.plan?.vortex,
     bridge: state.bridgeInfo ?? (bridgeExe ? "REDbridge found, starts on the next archive scan" : undefined),
     sizes: library ? librarySize(library) : { mods: 0, downloads: 0, backups: 0 },
+    frameworks: frameworkNote(),
   };
+}
+
+/** The Frameworks group's note on the page. */
+function frameworkNote(): { summary: string; detail: string; warn: boolean } | undefined {
+  const c = frameworkCheck();
+  if (!c || !c.frameworks.length) return undefined;
+  const summary = frameworkSummary(c);
+  return summary ? { summary, detail: frameworkDetail(c).join("\n"), warn: c.changed || c.updates.length > 0 } : undefined;
 }
 
 async function showPage(): Promise<void> {
@@ -910,11 +923,17 @@ async function deployCommand(): Promise<void> {
   }
   const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Deploying", cancellable: false }, async (progress) => {
     let last = 0;
-    return deploy(library!, gamePath, decisions, (done, total) => {
-      const pct = Math.floor((done / total) * 100);
-      progress.report({ increment: pct - last, message: `${done} of ${total}` });
-      last = pct;
-    });
+    return deploy(
+      library!,
+      gamePath,
+      decisions,
+      (done, total) => {
+        const pct = Math.floor((done / total) * 100);
+        progress.report({ increment: pct - last, message: `${done} of ${total}` });
+        last = pct;
+      },
+      state.version,
+    );
   });
   log.appendLine(`Deployed (${result.method}): ${result.linked} added, ${result.removed} removed, ${result.kept} unchanged, ${result.backedUp} backed up${result.skipped.length ? `, skipped ${result.skipped.join(", ")}` : ""}`);
   let redmodNote = "";
@@ -1047,6 +1066,39 @@ async function nexusOpenCommand(mod: ModInfo | undefined): Promise<void> {
   await vscode.env.openExternal(vscode.Uri.parse(modPageUrl(mod.source.modId)));
 }
 
+/** The Frameworks check for the current game version and manifest. */
+function frameworkCheck(): FrameworkCheck | undefined {
+  return library ? checkFrameworks(library, state.version, readManifest(settings().gamePath)) : undefined;
+}
+
+/**
+ * When the game's version differs from the one at the last deploy: check the frameworks on Nexus
+ * once for this version and say what was found, or ask to sign in when there is no key yet.
+ */
+async function gameChanged(version: string | undefined): Promise<void> {
+  const check = frameworkCheck();
+  if (!version || !check?.changed || !check.frameworks.length) return;
+  if (globalState.get<string>("reddeck.checkedForGame") === version) return;
+  await globalState.update("reddeck.checkedForGame", version);
+  log.appendLine(`Game updated: ${check.deployed} at the last deploy, ${version} now. Checking ${check.frameworks.length} frameworks on Nexus.`);
+  if (!(await secrets.get(NexusKeySecret))) {
+    void vscode.window.showWarningMessage(`The game updated to ${version} since the last deploy. Sign in to Nexus to check the frameworks for newer files.`, "Sign in", "Not now").then((a) => {
+      if (a === "Sign in") void run(() => nexusSignInCommand().then(() => undefined));
+    });
+    return;
+  }
+  await checkUpdatesCommand(true, check.frameworks);
+  const after = frameworkCheck();
+  if (!after?.updates.length) {
+    void vscode.window.showInformationMessage(`The game updated to ${version} since the last deploy. No framework has a newer file on Nexus yet.`);
+    return;
+  }
+  const names = after.updates.map((u) => `${u.mod.name} ${u.version}`).join(", ");
+  void vscode.window.showWarningMessage(`The game updated to ${version}. Newer on Nexus: ${names}.`, "Show").then((a) => {
+    if (a === "Show") void run(showPage);
+  });
+}
+
 /** Once a day, when a key is stored and the setting allows. Never prompts. */
 async function maybeCheckUpdates(): Promise<void> {
   if (!settings().checkUpdates || !library?.mods.some((m) => m.source.modId)) return;
@@ -1056,11 +1108,11 @@ async function maybeCheckUpdates(): Promise<void> {
   await checkUpdatesCommand(true);
 }
 
-async function checkUpdatesCommand(quiet: boolean): Promise<void> {
+async function checkUpdatesCommand(quiet: boolean, only?: ModInfo[]): Promise<void> {
   if (!library) return;
   const client = await nexusClient(!quiet);
   if (!client) return;
-  const mods = library.mods.filter((m) => m.source.modId);
+  const mods = (only ?? library.mods).filter((m) => m.source.modId);
   if (!mods.length) {
     if (!quiet) void vscode.window.showInformationMessage("No mod in the library has a Nexus id yet. Mods added from a Nexus link, or imported from Vortex, have one.");
     return;

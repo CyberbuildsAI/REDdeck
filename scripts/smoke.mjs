@@ -480,6 +480,33 @@ console.log("undo: ok");
   console.log(`nexus: ok (nxm links on this machine: ${core.describeHandler(handler)})`);
 }
 
+// Frameworks: the game version against the one at the last deploy, and updates from Nexus.
+{
+  const fwLib = { root: path.join(tmp, "fw"), info: { version: 1, gamePath: game }, mods: [
+    { id: "red4ext", name: "RED4ext", version: "1.26.0", enabled: true, kinds: ["framework"], files: ["bin/x64/winmm.dll"], added: "2026-10-01T00:00:00Z", source: { type: "nexus", modId: 2380 }, nexus: { name: "RED4ext", version: "1.27.0", latestVersion: "1.27.0", latestFileId: 1, latestFileName: "x", checked: "2026-10-12T00:00:00Z" } },
+    { id: "cet", name: "Cyber Engine Tweaks", version: "1.35.0", enabled: true, kinds: ["framework"], files: ["bin/x64/plugins/cyber_engine_tweaks.asi"], added: "2026-10-01T00:00:00Z", source: { type: "file" } },
+    { id: "coolmod", name: "CoolMod", version: "1.0", enabled: true, kinds: ["archive"], files: ["archive/pc/mod/CoolMod.archive"], added: "2026-10-01T00:00:00Z", source: { type: "file" } },
+  ] };
+  const same = core.checkFrameworks(fwLib, "2.3", { gameVersion: "2.3" });
+  assert.equal(same.changed, false);
+  assert.equal(same.frameworks.length, 2);
+  assert.equal(same.updates.length, 1);
+  assert.deepEqual(same.unchecked.map((m) => m.id), ["cet"]);
+  assert.equal(core.frameworkSummary(same), "game 2.3 · 1 update");
+  const changed = core.checkFrameworks(fwLib, "2.31", { gameVersion: "2.3" });
+  assert.equal(changed.changed, true);
+  assert.equal(core.frameworkSummary(changed), "game updated to 2.31 · 1 update");
+  assert.match(core.frameworkDetail(changed)[0], /was 2.3 at the last deploy/);
+  assert.match(core.frameworkDetail(changed).at(-1), /Cyber Engine Tweaks/);
+  const first = core.checkFrameworks(fwLib, "2.31", undefined);
+  assert.equal(first.changed, false);
+  assert.equal(core.frameworkSummary(core.checkFrameworks(fwLib, undefined, undefined)), "");
+  core.deploy(lib, game, new Map(), undefined, "2.3");
+  assert.equal(core.readManifest(game).gameVersion, "2.3");
+  core.undo(lib, game);
+  console.log("frameworks: ok");
+}
+
 // Vortex, if present on this machine: list and classify, import into the temp library, never write.
 const vortex = core.listVortexMods(game);
 if (vortex.length) {

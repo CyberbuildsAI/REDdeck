@@ -39,6 +39,8 @@ export interface PageData {
   /** Library totals in bytes. */
   sizes: { mods: number; downloads: number; backups: number };
   vortex: boolean;
+  /** The Frameworks group's note: the game version, whether it changed since the last deploy, updates. */
+  frameworks?: { summary: string; detail: string; warn: boolean };
 }
 
 export interface PageMessage {
@@ -139,7 +141,8 @@ function render(d: PageData, csp: string): string {
   const frameworks = d.rows.filter((r) => r.framework);
   const mods = d.rows.filter((r) => !r.framework);
   const on = (rs: PageRow[]) => rs.filter((r) => r.enabled).length;
-  const groupRow = (key: string, label: string, rs: PageRow[]) => `<tr class="group" data-groupfor="${key}"><td colspan="7">${label} <span class="dim">${rs.length}, ${on(rs)} on, ${fmt(rs.reduce((n, r) => n + r.size, 0))}</span></td></tr>`;
+  const note = (key: string) => (key === "frameworks" && d.frameworks ? ` <span class="fwnote ${d.frameworks.warn ? "warn" : ""}" title="${esc(d.frameworks.detail)}">${esc(d.frameworks.summary)}</span>` : "");
+  const groupRow = (key: string, label: string, rs: PageRow[]) => `<tr class="group" data-groupfor="${key}"><td colspan="7">${label} <span class="dim">${rs.length}, ${on(rs)} on, ${fmt(rs.reduce((n, r) => n + r.size, 0))}</span>${note(key)}</td></tr>`;
   const body = (frameworks.length ? groupRow("frameworks", "Frameworks", frameworks) + frameworks.map(row).join("") : "") + groupRow("mods", "Mods", mods) + mods.map(row).join("");
 
   return `<!doctype html><html><head><meta charset="utf-8">
@@ -179,6 +182,7 @@ select.menu { font: inherit; font-size: 12px; color: var(--fg); background: var(
 select.menu:hover, select.menu:focus { border-color: var(--yellow); outline: none; }
 input[type=checkbox] { accent-color: var(--yellow); width: 15px; height: 15px; cursor: pointer; }
 .foot { margin-top: 14px; color: var(--dim); font-size: 12px; display: flex; gap: 18px; flex-wrap: wrap; } .foot a { cursor: pointer; color: var(--dim); text-decoration: underline; } .foot a:hover { color: var(--yellow); }
+.fwnote { letter-spacing: 0; text-transform: none; color: var(--dim); margin-left: 10px; cursor: default; } .fwnote.warn { color: var(--yellow); }
 .okdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: middle; }
 .empty { padding: 24px 8px; color: var(--dim); }
 .note { border: 1px solid var(--yellow); color: var(--yellow); padding: 8px 12px; margin-bottom: 12px; }

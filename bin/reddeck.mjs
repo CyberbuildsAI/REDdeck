@@ -66,7 +66,9 @@ switch (cmd) {
     const rows = lib.mods.map((m) => ({ id: m.id, name: m.name, version: m.version, enabled: m.enabled, kinds: m.kinds, files: m.files.length, bytes: core.modSize(lib, m).total, status: plan ? core.modStatus(lib, game, m, plan, manifest, changes) : "" }));
     const sizes = core.librarySize(lib);
     const sorted = flags.size ? [...rows].sort((a, b) => b.bytes - a.bytes) : rows;
-    out({ library: libraryRoot, game, sizes, mods: rows }, (sorted.map((r) => `${r.enabled ? "[x]" : "[ ]"} ${r.id.padEnd(28)} ${(r.version || "").padEnd(8)} ${core.formatBytes(r.bytes).padStart(8)}  ${r.kinds.join(",").padEnd(22)} ${r.status}`).join("\n") || "no mods") + `\n${core.formatBytes(sizes.mods)} in mods, ${core.formatBytes(sizes.downloads)} in kept downloads${sizes.backups ? `, ${core.formatBytes(sizes.backups)} in deploy backups` : ""}`);
+    const frameworks = plan ? core.checkFrameworks(lib, await core.gameVersion(game), manifest) : undefined;
+    const fwLine = frameworks && frameworks.frameworks.length && core.frameworkSummary(frameworks) ? `\nframeworks: ${core.frameworkSummary(frameworks)}` : "";
+    out({ library: libraryRoot, game, gameVersion: frameworks?.game, deployedGameVersion: frameworks?.deployed, sizes, mods: rows }, (sorted.map((r) => `${r.enabled ? "[x]" : "[ ]"} ${r.id.padEnd(28)} ${(r.version || "").padEnd(8)} ${core.formatBytes(r.bytes).padStart(8)}  ${r.kinds.join(",").padEnd(22)} ${r.status}`).join("\n") || "no mods") + `\n${core.formatBytes(sizes.mods)} in mods, ${core.formatBytes(sizes.downloads)} in kept downloads${sizes.backups ? `, ${core.formatBytes(sizes.backups)} in deploy backups` : ""}${fwLine}`);
     break;
   }
   case "add": {
@@ -117,7 +119,7 @@ switch (cmd) {
     const decisions = new Map();
     for (const p of flags.keep ?? []) decisions.set(p, "keep");
     for (const p of flags.restore ?? []) decisions.set(p, "restore");
-    const result = core.deploy(lib, game, decisions);
+    const result = core.deploy(lib, game, decisions, undefined, await core.gameVersion(game));
     let redmod;
     if (core.enabledRedmodPackages(lib).length) redmod = await core.deployRedmod(lib, game);
     out({ ...result, redmod }, `deployed (${result.method}): ${result.linked} added, ${result.removed} removed, ${result.kept} unchanged${result.skipped.length ? `; skipped (changed in game folder, answer with --keep or --restore): ${result.skipped.join(", ")}` : ""}${redmod ? `; REDmod: ${redmod.ran ? `${redmod.packages.length} prepared` : redmod.output}` : ""}`);

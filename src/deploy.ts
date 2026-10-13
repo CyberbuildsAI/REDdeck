@@ -31,6 +31,8 @@ export interface Manifest {
   gamePath: string;
   method: "link" | "copy";
   time: string;
+  /** The game's version at this deploy, when it was known. */
+  gameVersion?: string;
   files: ManifestEntry[];
   /** Folders REDdeck created, deepest first, removed on undo when empty. */
   dirs: string[];
@@ -255,7 +257,7 @@ function cleanDirs(gamePath: string, manifest: Manifest): void {
  * Deploys the enabled mods. `decisions` answers the "changed in the game folder" question per path:
  * keep (the changed file is copied into the library and becomes the mod's file) or restore.
  */
-export function deploy(lib: Library, gamePath: string, decisions: Map<string, Decision> = new Map(), progress?: (done: number, total: number) => void): DeployResult {
+export function deploy(lib: Library, gamePath: string, decisions: Map<string, Decision> = new Map(), progress?: (done: number, total: number) => void, gameVersion?: string): DeployResult {
   if (vortexManages(gamePath)) throw new Error("Vortex manages this game folder. Purge in Vortex first (Mods > Purge), then deploy with REDdeck.");
   if (!isGameFolder(gamePath)) throw new Error(`${gamePath} does not look like the Cyberpunk 2077 folder (no bin\\x64\\Cyberpunk2077.exe).`);
   const p = plan(lib, gamePath);
@@ -276,6 +278,7 @@ export function deploy(lib: Library, gamePath: string, decisions: Map<string, De
   let done = 0;
   const save = () => {
     manifest.time = new Date().toISOString();
+    if (gameVersion) manifest.gameVersion = gameVersion;
     writeManifest(gamePath, manifest);
   };
 
