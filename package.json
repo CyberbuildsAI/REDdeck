@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -241,6 +241,11 @@
         "command": "reddeck.hideSetupStep",
         "title": "Not now",
         "icon": "$(close)"
+      },
+      {
+        "command": "reddeck.mcpSetup",
+        "title": "REDdeck: Connect an assistant (MCP)...",
+        "category": "REDdeck"
       }
     ],
     "menus": {
@@ -462,6 +467,12 @@
           "highContrastLight": "#8a7a00"
         }
       }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "reddeck.mcp",
+        "label": "REDdeck"
+      }
     ]
   },
   "scripts": {
@@ -473,8 +484,10 @@
     "test:ui": "node scripts/ui-test.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "7zip-bin": "^5.2.0",
-    "vscode-jsonrpc": "^9.0.3"
+    "vscode-jsonrpc": "^9.0.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

@@ -51,7 +51,8 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 | Path | Contents |
 |---|---|
 | `src/` | The extension. `core.ts` gathers the VS Code-free parts: classifier, library, deploy, extract, vortex |
-| `bin/reddeck.mjs` | The command line over the same core |
+| `bin/reddeck.mjs` | The command line over the same core; `reddeck mcp` starts the MCP server |
+| `src/mcp.ts`, `src/verbs.ts` | The MCP server and the verbs it shares with the command line |
 | `scripts/smoke.mjs` | End-to-end test of the core against a fake game folder |
 | `images/` | Activity bar icon and extension icon |
 | `docs/` | Documentation site: the guide, the design and the dev setup |
@@ -69,7 +70,7 @@ npm run smoke       # classify, add, deploy, undo against a temp folder
 
 Open the folder in VS Code and press F5 to run the extension in a second window. Details in the [setup guide](https://edgemodders.github.io/REDdeck/dev-setup.html).
 
-## Command line
+## Command line and MCP
 
 ```
 node bin/reddeck.mjs list                      # what is in the library and its status
@@ -80,6 +81,8 @@ node bin/reddeck.mjs conflicts --json          # every command prints JSON with 
 
 `--library` and `--game` override the folders. The library's JSON files are the only state, so an assistant can read them directly and use the command line to act.
 
+The same verbs are MCP tools: `node dist/mcp.js --library <folder> --game <folder>` serves `reddeck_list`, `reddeck_mod`, `reddeck_add`, `reddeck_turn`, `reddeck_move`, `reddeck_remove`, `reddeck_pending`, `reddeck_deploy`, `reddeck_undo`, `reddeck_changes`, `reddeck_conflicts`, `reddeck_loadout` and `reddeck_vortex` over stdio. VS Code 1.101 and later picks the server up from the extension for the agents it hosts; **REDdeck: Connect an assistant (MCP)...** copies the `claude mcp add` line for Claude Code. The Mods view follows what an assistant changes.
+
 ## Roadmap
 
 - **M0 Decide.** Name, repository, the word list, the extension scaffold.
@@ -87,7 +90,7 @@ node bin/reddeck.mjs conflicts --json          # every command prints JSON with 
 - **M2 Kinds.** Frameworks group with game version check, REDmod packages, file and archive conflicts with reorder. Done.
 - **M3 Nexus.** Sign in (single sign-on once Nexus registers the app, paste a key until then), mod metadata, updates, nxm links. Done.
 - **M4 Loop.** Install and test a REDcode project with one click (REDdeck side done; the REDcode side is in that repo). REDnode packages as a mod kind.
-- **M5 Share.** Loadouts and the `reddeck` CLI are done. Left: MCP tools. No Marketplace publishing for now; releases carry the VSIX.
+- **M5 Share.** Loadouts, the `reddeck` CLI and the MCP server are done. No Marketplace publishing for now; releases carry the VSIX.
 
 ## Relation to Vortex
 

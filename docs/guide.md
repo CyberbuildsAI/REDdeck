@@ -144,12 +144,13 @@ Everything REDdeck knows is in plain files under the library folder, `%USERPROFI
 
 The game folder gets a manifest of what REDdeck deployed, which Undo deploy reads.
 
-## 13. Command line
+## 13. Command line and assistants
 
 The same core runs from a terminal, for scripts and assistants. Every command prints JSON with `--json`.
 
 ```
 node bin/reddeck.mjs list [--size]           what is in the library, its size and status
+node bin/reddeck.mjs mod <id>                one mod in full: files, sizes, source, Nexus data, conflicts
 node bin/reddeck.mjs add <file|folder> [--name N] [--option FOLDER]
 node bin/reddeck.mjs on <id> | off <id>      turn a mod on or off
 node bin/reddeck.mjs up <id> | down <id>     change the order (first wins conflicts)
@@ -164,6 +165,14 @@ node bin/reddeck.mjs vortex list | import
 ```
 
 `--library <folder>` and `--game <folder>` override the folders. The command line finds the game the same way the extension does.
+
+**An assistant can do all of this for you.** REDdeck is an MCP server too, with the same verbs as tools: list and inspect mods, add, turn on or off, reorder, remove, show what a deploy would do, deploy, undo, conflicts, loadouts and Vortex import. Ask "which of my mods are off?" or "deploy my mods and tell me what changed".
+
+- **Agents inside VS Code** (1.101 and later) see REDdeck's tools as soon as the extension is installed. Nothing to set up.
+- **Claude Code**: run **REDdeck: Connect an assistant (MCP)...** from the command palette, pick "Copy the Claude Code command" and paste it in a terminal once. It is a `claude mcp add` line pointing at REDdeck's server with your library and game folders.
+- **Other MCP clients**: the same command copies a JSON entry, or point the client at `node <extension folder>/dist/mcp.js --library <folder> --game <folder>`.
+
+The tools that write to the game folder, deploy and undo, are marked so an assistant asks before using them. Changes an assistant makes show up in the Mods view by themselves.
 
 ## 14. When something is wrong
 

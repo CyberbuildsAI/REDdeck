@@ -11,6 +11,8 @@ const common = { bundle: true, platform: "node", format: "cjs", target: "node18"
 const extension = { ...common, entryPoints: ["src/extension.ts"], outfile: "dist/extension.js", external: ["vscode"] };
 const core = { ...common, entryPoints: ["src/core.ts"], outfile: "dist/core.js" };
 const uiTest = { ...common, entryPoints: ["src/uiTest.ts"], outfile: "dist/uiTest.js", external: ["vscode"] };
+// The MCP server ships in the .vsix with the SDK bundled in, so it runs from any Node without node_modules.
+const mcp = { ...common, entryPoints: ["src/mcp.ts"], outfile: "dist/mcp.js" };
 
 const sevenZa = path.join("node_modules", "7zip-bin", "win", "x64", "7za.exe");
 if (fs.existsSync(sevenZa)) {
@@ -19,8 +21,8 @@ if (fs.existsSync(sevenZa)) {
 }
 
 if (watch) {
-  const contexts = await Promise.all([esbuild.context(extension), esbuild.context(core), esbuild.context(uiTest)]);
+  const contexts = await Promise.all([esbuild.context(extension), esbuild.context(core), esbuild.context(uiTest), esbuild.context(mcp)]);
   await Promise.all(contexts.map((c) => c.watch()));
 } else {
-  await Promise.all([esbuild.build(extension), esbuild.build(core), esbuild.build(uiTest)]);
+  await Promise.all([esbuild.build(extension), esbuild.build(core), esbuild.build(uiTest), esbuild.build(mcp)]);
 }

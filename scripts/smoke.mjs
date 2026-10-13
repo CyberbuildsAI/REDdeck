@@ -291,7 +291,34 @@ console.log("changes: ok");
   const dep = JSON.parse(cli("deploy", "--json"));
   assert.equal(typeof dep.linked, "number");
   assert.match(cli("changes"), /no changes|missing|changed/);
+  assert.ok(cli("mod", "bare").includes("CoolMod.archive"));
+  const modJson = JSON.parse(cli("mod", "bare", "--json"));
+  assert.equal(modJson.id, "bare");
+  assert.ok(modJson.files.every((f) => typeof f.bytes === "number"));
   console.log("cli: ok");
+}
+
+// The MCP server over stdio: the same verbs as tools, through the SDK's client.
+{
+  const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
+  const { StdioClientTransport } = require("@modelcontextprotocol/sdk/client/stdio.js");
+  const client = new Client({ name: "smoke", version: "0" });
+  await client.connect(new StdioClientTransport({ command: process.execPath, args: [path.join(root, "dist", "mcp.js"), "--library", libRoot, "--game", game], stderr: "pipe" }));
+  const names = (await client.listTools()).tools.map((t) => t.name).sort();
+  for (const n of ["reddeck_add", "reddeck_changes", "reddeck_conflicts", "reddeck_deploy", "reddeck_list", "reddeck_loadout", "reddeck_mod", "reddeck_move", "reddeck_pending", "reddeck_remove", "reddeck_turn", "reddeck_undo", "reddeck_vortex"]) assert.ok(names.includes(n), `tool ${n} missing from ${names.join(", ")}`);
+  const text = (r) => r.content.map((c) => c.text).join("");
+  const listed = await client.callTool({ name: "reddeck_list", arguments: {} });
+  assert.ok(!listed.isError && text(listed).includes("bare"), text(listed));
+  const off = await client.callTool({ name: "reddeck_turn", arguments: { id: "bare", on: false } });
+  assert.ok(text(off).includes("bare: off"));
+  assert.equal(core.loadLibrary(libRoot, game).mods.find((m) => m.id === "bare").enabled, false, "the change reached the library files");
+  await client.callTool({ name: "reddeck_turn", arguments: { id: "bare", on: true } });
+  const pending = await client.callTool({ name: "reddeck_pending", arguments: {} });
+  assert.ok(!pending.isError);
+  const bad = await client.callTool({ name: "reddeck_mod", arguments: { id: "no-such-mod" } });
+  assert.ok(bad.isError && text(bad).includes("no mod with id"));
+  await client.close();
+  console.log(`mcp: ok (${names.length} tools)`);
 }
 
 // Turn a mod off: its files leave on the next deploy.

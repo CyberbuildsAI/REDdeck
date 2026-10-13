@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.0 (2026-10-13)
+
+- An MCP server with REDdeck's verbs as tools: list, mod details, add, turn on or off, move, remove, pending, deploy, undo, changes, conflicts, loadouts, Vortex. It ships in the extension as `dist/mcp.js` with the SDK bundled, needs only Node, and reads the library afresh on every call. VS Code 1.101 and later registers it for the agents it hosts; "REDdeck: Connect an assistant (MCP)..." copies the one line Claude Code needs, or a JSON entry for other clients; `reddeck mcp` starts it from the command line.
+- The Mods view reloads when an assistant or the command line changes the library or deploys, so what you see is what is on disk.
+- `reddeck mod <id>` prints one mod in full: files with sizes, source, Nexus data, status, conflicts. The command line and the MCP server share one verbs module, so their answers are the same.
+
 ## 0.16.0 (2026-10-13)
 
 - A "Set up" group at the top of the Mods view, and a row of buttons on the REDdeck page, while something is missing: the game folder, REDbridge, a Nexus sign-in, the Nexus download links, or an import from Vortex when Vortex has mods and the library has none from it. Each row is a button; the x hides a row you do not want. The same steps appear as buttons in the empty view before the first mod.

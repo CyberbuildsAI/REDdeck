@@ -97,6 +97,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.showChanges", () => run(() => showChanges())),
     vscode.commands.registerCommand("reddeck.getBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
     vscode.commands.registerCommand("reddeck.setup", () => run(setupCommand)),
+    vscode.commands.registerCommand("reddeck.mcpSetup", () => run(mcpSetupCommand)),
+    ...registerMcp(),
+    { dispose: () => stopWatching() },
     vscode.commands.registerCommand("reddeck.hideSetupStep", (node: ModNode) => run(() => hideSetupStep(node))),
     secrets.onDidChange((e) => {
       if (e.key === NexusKeySecret) void refreshSetup();
@@ -248,8 +251,111 @@ function reload(): void {
     void run(() => gameChanged(v));
   });
   refresh();
+  watchLibrary(libraryPath, gamePath);
   void run(maybeCheckUpdates);
   void run(maybeCheckBridge);
+}
+
+// ---- MCP: the verbs as tools for assistants ----------------------------------------------------
+
+function mcpArgs(): string[] {
+  const s = settings();
+  const args = [path.join(extensionRoot, "dist", "mcp.js"), "--library", s.libraryPath];
+  if (s.gamePath) args.push("--game", s.gamePath);
+  return args;
+}
+
+/**
+ * Registers the server with VS Code's own MCP support (1.101 and later), so agents VS Code hosts
+ * see REDdeck's tools without any setup. VS Code's binary runs it as Node. Older VS Code: nothing.
+ */
+function registerMcp(): vscode.Disposable[] {
+  const lm = (vscode as unknown as { lm?: { registerMcpServerDefinitionProvider?: (id: string, p: unknown) => vscode.Disposable } }).lm;
+  const Def = (vscode as unknown as { McpStdioServerDefinition?: new (label: string, command: string, args: string[], env: Record<string, string>, version?: string) => unknown }).McpStdioServerDefinition;
+  if (!lm?.registerMcpServerDefinitionProvider || !Def) return [];
+  const changed = new vscode.EventEmitter<void>();
+  return [
+    changed,
+    lm.registerMcpServerDefinitionProvider("reddeck.mcp", {
+      onDidChangeMcpServerDefinitions: changed.event,
+      provideMcpServerDefinitions: () => [new Def("REDdeck", process.execPath, mcpArgs(), { ELECTRON_RUN_AS_NODE: "1" }, extensionVersion)],
+    }),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("reddeck")) changed.fire();
+    }),
+  ];
+}
+
+/** "REDdeck: Connect an assistant (MCP)...": the one line Claude Code needs, or a JSON entry for other clients. */
+async function mcpSetupCommand(): Promise<void> {
+  const args = mcpArgs();
+  const q = (s: string) => `"${s}"`;
+  const claude = `claude mcp add reddeck -- node ${args.map(q).join(" ")}`;
+  const jsonEntry = JSON.stringify({ reddeck: { command: "node", args } }, null, 2);
+  const inVsCode = (vscode as unknown as { lm?: { registerMcpServerDefinitionProvider?: unknown } }).lm?.registerMcpServerDefinitionProvider ? "Agents inside this VS Code already see REDdeck's tools." : "This VS Code is older than 1.101, so agents inside it do not see MCP servers.";
+  const picked = await vscode.window.showQuickPick(
+    [
+      { label: "$(terminal) Copy the Claude Code command", description: "claude mcp add reddeck ...", detail: "Paste it in a terminal once. Claude Code then has reddeck_list, reddeck_deploy and the rest.", action: "claude" },
+      { label: "$(json) Copy a JSON entry", description: "for other MCP clients", detail: "The server entry for a client's MCP settings file.", action: "json" },
+      { label: "$(file) Reveal the server file", description: "dist/mcp.js", detail: "Any MCP client can run it with Node: node mcp.js --library <folder> --game <folder>.", action: "reveal" },
+    ],
+    { title: "REDdeck: Connect an assistant (MCP)", placeHolder: inVsCode },
+  );
+  if (!picked) return;
+  if (picked.action === "claude") {
+    await vscode.env.clipboard.writeText(claude);
+    void vscode.window.showInformationMessage("Copied. Paste it in a terminal, then ask Claude Code to list your mods.");
+  } else if (picked.action === "json") {
+    await vscode.env.clipboard.writeText(jsonEntry);
+    void vscode.window.showInformationMessage("Copied the JSON entry for the server.");
+  } else {
+    await vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(args[0]));
+  }
+  log.appendLine(`MCP: ${claude}`);
+}
+
+// ---- watching: pick up what an assistant or the command line changed ---------------------------
+
+let watchers: fs.FSWatcher[] = [];
+let watchTimer: NodeJS.Timeout | undefined;
+let seenManifestTime: string | undefined;
+
+function fingerprint(lib: Library | undefined): string {
+  return lib ? `${lib.info.order.join(",")}|${lib.mods.map((m) => `${m.id}:${m.enabled ? 1 : 0}:${m.version}:${m.files.length}`).join(",")}` : "";
+}
+
+function stopWatching(): void {
+  for (const w of watchers) w.close();
+  watchers = [];
+  if (watchTimer) clearTimeout(watchTimer);
+}
+
+/** Reloads when the library or the game's manifest changed and the change was not ours. */
+function watchLibrary(libraryRoot: string, gamePath: string): void {
+  stopWatching();
+  seenManifestTime = readManifest(gamePath)?.time;
+  const onChange = (): void => {
+    if (watchTimer) clearTimeout(watchTimer);
+    watchTimer = setTimeout(() => {
+      try {
+        const fresh = loadLibrary(libraryRoot, gamePath);
+        const manifestTime = readManifest(gamePath)?.time;
+        if (fingerprint(fresh) === fingerprint(library) && manifestTime === seenManifestTime) return;
+        log.appendLine("The library changed outside this window (an assistant or the command line); reloading.");
+        reload();
+      } catch (err) {
+        log.appendLine(`Watch: ${String(err)}`);
+      }
+    }, 800);
+  };
+  for (const [dir, recursive] of [[libraryRoot, true], [gamePath, false]] as [string, boolean][]) {
+    if (!dir || !fs.existsSync(dir)) continue;
+    try {
+      watchers.push(fs.watch(dir, { recursive }, onChange));
+    } catch (err) {
+      log.appendLine(`Cannot watch ${dir}: ${String(err)}`);
+    }
+  }
 }
 
 /** Once a day, when the bridge in use is the copy REDdeck fetched: is there a newer release? */
@@ -294,6 +400,7 @@ function refresh(): void {
   } else {
     state = { ...state, plan: undefined, changes: [] };
   }
+  seenManifestTime = readManifest(gamePath)?.time;
   void vscode.commands.executeCommand("setContext", "reddeck.empty", !library || library.mods.length === 0);
   void vscode.commands.executeCommand("setContext", "reddeck.deployed", !!readManifest(gamePath));
   updateStatus();
