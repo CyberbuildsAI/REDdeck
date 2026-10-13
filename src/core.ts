@@ -1,5 +1,6 @@
 // Everything that does not need VS Code, bundled on its own for the smoke test and later the CLI.
 export * from "./bridgeClient";
+export * from "./bridgeInstall";
 export * from "./classifier";
 export * from "./conflicts";
 export * from "./deploy";

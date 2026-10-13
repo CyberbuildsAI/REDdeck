@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.0 (2026-10-12)
+
+- "Get REDbridge" fetches the latest REDbridge release from GitHub into REDdeck's own storage folder, and the .NET 10 runtime into your user profile if the machine has none, after one question that says what it will download. Nothing to configure afterwards: REDdeck finds that copy on its own. The "needs REDbridge" notes now offer the button instead of a setting to edit.
+
 ## 0.11.0 (2026-10-12)
 
 - Pending changes, file by file. On the REDdeck page a mod's "not deployed yet" or "changed, deploy again" status is a link: it opens a quick pick of what the next deploy does for that mod (add, replace, put back, relink, remove) with the reason, plus Deploy now and a way into the full panel. The change count next to Deploy, and "Show pending changes" in the Mods view menu, open the Pending changes panel: every file the next deploy touches, with a search box and chips per mod and per kind. `reddeck pending` prints the same from the command line. For inspecting a deployment before pressing the button, or chasing a file problem.

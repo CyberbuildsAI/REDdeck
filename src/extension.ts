@@ -11,6 +11,7 @@ import { classify } from "./classifier";
 import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, type ArchiveListing } from "./conflicts";
 import { deploy, detectChanges, modStatus, pendingChanges, plan, readManifest, undo, vortexManages, type Change, type Decision, type PendingChange, type Plan } from "./deploy";
 import { ChangesPanel, type ChangesMessage } from "./changesPanel";
+import { dotnet10Root, installBridge, installDotnetRuntime, installedBridge, latestBridgeRelease } from "./bridgeInstall";
 import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
 import { DetailPanel } from "./detailPanel";
 import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family } from "./families";
@@ -35,6 +36,7 @@ let status: vscode.StatusBarItem;
 let log: vscode.OutputChannel;
 let sevenZa: string | undefined;
 let extensionRoot = "";
+let storageDir = "";
 let extensionVersion = "0.0.0";
 let secrets: vscode.SecretStorage;
 let globalState: vscode.Memento;
@@ -46,6 +48,7 @@ const archiveCache = new Map<string, { mtimeMs: number; resources: Map<string, s
 
 export function activate(context: vscode.ExtensionContext): void {
   extensionRoot = context.extensionPath;
+  storageDir = context.globalStorageUri.fsPath;
   extensionVersion = String((context.extension.packageJSON as { version?: string }).version ?? "0.0.0");
   secrets = context.secrets;
   globalState = context.globalState;
@@ -88,6 +91,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.checkConflicts", () => run(showConflicts)),
     vscode.commands.registerCommand("reddeck.openPage", () => run(showPage)),
     vscode.commands.registerCommand("reddeck.showChanges", () => run(() => showChanges())),
+    vscode.commands.registerCommand("reddeck.getBridge", () => run(getBridgeCommand)),
     vscode.commands.registerCommand("reddeck.switchVersion", (node: ModNode) => run(() => switchVersionCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
     vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
@@ -159,7 +163,7 @@ function reload(): void {
     log.appendLine(`Could not open the library at ${libraryPath}: ${String(err)}`);
     void vscode.window.showErrorMessage(`REDdeck could not open the library at ${libraryPath}. See the log.`);
   }
-  bridgeExe = findBridge(settings().bridgePath, extensionRoot) ?? "";
+  bridgeExe = findBridge(settings().bridgePath, extensionRoot) ?? installedBridge(storageDir) ?? "";
   void gameVersion(gamePath).then((v) => {
     state.version = v;
     tree.description = v ? `Cyberpunk 2077 ${v}` : undefined;
@@ -254,7 +258,9 @@ async function scanArchives(explicit: boolean): Promise<void> {
   if (!bridgeExe) {
     state.archive = undefined;
     if (explicit) {
-      void vscode.window.showInformationMessage("Archive conflicts need REDbridge. Set reddeck.bridgePath to REDbridge.exe (or its folder) and try again.");
+      void vscode.window.showInformationMessage("Conflicts inside archives need REDbridge, which REDdeck can fetch for you.", "Get REDbridge").then((a) => {
+        if (a) void run(getBridgeCommand);
+      });
     }
     return;
   }
@@ -467,6 +473,47 @@ async function switchVersionCommand(mod: ModInfo | undefined): Promise<void> {
   else await updateModCommand(fam.active);
 }
 
+// ---- REDbridge -----------------------------------------------------------------------------------
+
+/**
+ * Fetches the latest REDbridge release into REDdeck's storage folder, and the .NET 10 runtime
+ * per user if the machine has none. One question, then it is done.
+ */
+async function getBridgeCommand(): Promise<void> {
+  const release = await latestBridgeRelease();
+  const already = installedBridge(storageDir);
+  if (already && already.includes(`${path.sep}${release.tag}${path.sep}`) && dotnet10Root()) {
+    void vscode.window.showInformationMessage(`REDbridge ${release.version} is already installed and is the latest.`);
+    return;
+  }
+  const needRuntime = !dotnet10Root();
+  const mb = Math.round(release.size / 1048576);
+  const detail = `REDbridge ${release.version} (${mb} MB) downloads from ${release.page} into REDdeck's own folder.${needRuntime ? " The .NET 10 runtime is not installed, so Microsoft's installer puts it in your user profile too (about 70 MB, no admin rights)." : ""} Nothing outside those folders changes.`;
+  const a = await vscode.window.showInformationMessage(`Get REDbridge ${release.version}?`, { modal: true, detail }, "Get it");
+  if (a !== "Get it") return;
+  await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Getting REDbridge", cancellable: false }, async (progress) => {
+    if (needRuntime) {
+      progress.report({ message: "installing the .NET 10 runtime" });
+      await installDotnetRuntime((l) => log.appendLine(l));
+    }
+    let last = 0;
+    const exe = await installBridge(release, storageDir, sevenZa, (r, t) => {
+      const pct = t ? Math.floor((r / t) * 100) : 0;
+      progress.report({ increment: pct - last, message: `downloading ${Math.round(r / 1048576)} of ${mb} MB` });
+      last = pct;
+    }, (l) => log.appendLine(l));
+    bridgeExe = exe;
+    bridge?.stop();
+    bridge = undefined;
+  });
+  state.archive = undefined;
+  refresh();
+  void vscode.window.showInformationMessage(`REDbridge ${release.version} is ready. Conflicts inside archives show up on the next scan.`, "Show conflicts").then((x) => {
+    if (x) void run(showConflicts);
+  });
+  await scanArchives(false);
+}
+
 // ---- pending changes -----------------------------------------------------------------------------
 
 let changesPanel: ChangesPanel;
@@ -547,6 +594,7 @@ function offerDeploy(text: string): void {
 async function conflictsAction(m: ConflictsMessage): Promise<void> {
   if (!library) return;
   if (m.action === "deploy") return deployCommand();
+  if (m.action === "getBridge") return getBridgeCommand();
   const mod = library.mods.find((x) => x.id === m.id);
   if (!mod) return;
   switch (m.action) {

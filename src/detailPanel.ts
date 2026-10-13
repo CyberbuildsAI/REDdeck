@@ -92,7 +92,7 @@ function render(d: DetailData, csp: string): string {
     ? `<div class="dim">Nexus mod ${mod.source.modId}${mod.nexus?.author ? ` by ${esc(mod.nexus.author)}` : ""}${mod.nexus?.checked ? `, checked ${esc(mod.nexus.checked.slice(0, 10))}` : ""}. ${update ? `<span class="warn">Version ${esc(update)} is on Nexus.</span>` : mod.nexus ? "Up to date." : "Not checked yet."}</div>${mod.nexus?.summary ? `<p class="dim">${esc(mod.nexus.summary)}</p>` : ""}`
     : "";
   const archiveNote = !archive
-    ? `<p class="dim">${d.bridge ? "Checking archives..." : "Archive conflicts need REDbridge. Set <span class='mono'>reddeck.bridgePath</span> to see which resources inside .archive files overlap with other mods."}</p>`
+    ? `<p class="dim">${d.bridge ? "Checking archives..." : "Conflicts inside .archive files need REDbridge. Run <span class='mono'>REDdeck: Get REDbridge</span> once and REDdeck fetches it."}</p>`
     : archiveRows.length
       ? `<table><thead><tr><th>Resource inside the archives</th><th>Who wins</th></tr></thead><tbody>${archiveRows.join("")}</tbody></table>`
       : `<p class="dim">No resource inside this mod's archives overlaps with another enabled mod.</p>`;

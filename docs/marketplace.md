@@ -2,6 +2,7 @@
 
 A simple mod manager for Cyberpunk 2077 that lives inside VS Code and REDcode. One list of mods, four verbs, no jargon.
 
+- **Get REDbridge** once, and conflicts inside archives show up too. REDdeck fetches it; nothing to configure.
 - **Open REDdeck** for the wide table with search and status filters; the sidebar is the compact view.
 - **Sign in** to Nexus Mods once; updates and download links follow.
 - **Add** a zip, 7z or rar from Nexus Mods, or a folder. REDdeck works out what kind of mod it is and where its files go.

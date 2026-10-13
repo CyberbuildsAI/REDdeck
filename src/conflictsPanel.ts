@@ -20,7 +20,7 @@ export interface ConflictsData {
 }
 
 export interface ConflictsMessage {
-  action: "letWin" | "toggle" | "details" | "deploy";
+  action: "letWin" | "toggle" | "details" | "deploy" | "getBridge";
   id: string;
   /** For letWin: the mod the id should be placed above. */
   over?: string;
@@ -101,7 +101,7 @@ function render(d: ConflictsData, csp: string): string {
   const archiveNote = d.scanning
     ? `<p class="dim">Checking the archives...</p>`
     : !d.bridge
-      ? `<p class="dim">Conflicts inside .archive files need REDbridge. Set <span class="mono">reddeck.bridgePath</span> to REDbridge.exe to see which resources overlap between mods.</p>`
+      ? `<p class="dim">Conflicts inside .archive files need REDbridge. <button class="get" data-msg='${esc(JSON.stringify({ action: "getBridge", id: "" }))}'>Get REDbridge</button> fetches it into REDdeck's own folder; nothing to configure.</p>`
       : !d.archive
         ? `<p class="dim">Not checked yet.</p>`
         : archiveRows
@@ -117,6 +117,7 @@ body { font-family: var(--vscode-font-family); font-size: 13px; color: var(--fg)
 h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; text-transform: uppercase; } h1 span { color: var(--yellow); }
 h2 { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); margin: 22px 0 8px; }
 p.lead { margin: 6px 0 14px; color: var(--dim); max-width: 760px; }
+button.get { font: inherit; font-size: 12px; background: transparent; color: var(--yellow); border: 1px solid var(--yellow); padding: 3px 10px; cursor: pointer; margin-left: 6px; } button.get:hover { background: var(--yellow); color: #0b0d12; }
 .bar { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; }
 button.deploy { font: inherit; font-size: 13px; background: var(--yellow); color: #0b0d12; border: 1px solid var(--yellow); padding: 5px 16px; cursor: pointer; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 button.deploy:hover { background: transparent; color: var(--yellow); }

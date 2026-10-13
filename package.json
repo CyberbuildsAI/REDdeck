@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -201,6 +201,11 @@
         "command": "reddeck.showChanges",
         "title": "Show pending changes",
         "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.getBridge",
+        "title": "Get REDbridge",
+        "category": "REDdeck"
       }
     ],
     "menus": {
@@ -284,6 +289,11 @@
           "command": "reddeck.loadLoadout",
           "when": "view == reddeck.mods",
           "group": "3_loadouts@2"
+        },
+        {
+          "command": "reddeck.getBridge",
+          "when": "view == reddeck.mods",
+          "group": "2_folders@0"
         }
       ],
       "view/item/context": [
@@ -373,7 +383,7 @@
         "reddeck.bridgePath": {
           "type": "string",
           "default": "",
-          "description": "Path to REDbridge.exe or its folder. With it, REDdeck shows conflicts between resources inside mod archives. Empty means a REDbridge checkout next to this one, or REDbridge on PATH."
+          "description": "Path to REDbridge.exe or its folder. Empty means the copy REDdeck fetched with Get REDbridge, else a REDbridge checkout next to this one, else REDbridge on PATH. With it, REDdeck shows conflicts between resources inside mod archives."
         },
         "reddeck.dotnetRoot": {
           "type": "string",

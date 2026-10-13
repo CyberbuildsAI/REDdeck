@@ -368,6 +368,20 @@ console.log("undo: ok");
   }
 }
 
+// REDbridge releases: the latest on GitHub has a Windows zip; a .NET 10 runtime is found or not.
+{
+  assert.equal(typeof core.dotnet10Root(), core.dotnet10Root() ? "string" : "undefined");
+  assert.equal(core.installedBridge(path.join(libRoot, "nowhere")), undefined);
+  try {
+    const rel = await core.latestBridgeRelease();
+    assert.match(rel.assetName, /win-x64\.zip$/);
+    assert.ok(rel.size > 1000000);
+    console.log(`bridge release: ok (${rel.tag}, ${Math.round(rel.size / 1048576)} MB, .NET 10 at ${core.dotnet10Root() ?? "none"})`);
+  } catch (err) {
+    console.log(`bridge release: skipped (${err.message})`);
+  }
+}
+
 // Nexus sign-in against a fake Nexus socket: token, authorise page, a dropped connection, the key.
 {
   const sockets = [];

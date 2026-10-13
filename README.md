@@ -35,6 +35,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 | You do | REDdeck does |
 |---|---|
 | **Open REDdeck** | The wide table: every mod with version, kinds and status in columns, a search box and status facets, the verbs across the top. For the bigger admin jobs; the sidebar is the compact companion. |
+| **Get REDbridge** | Fetches the bridge that reads inside archives, and its .NET runtime if needed, into REDdeck's own folder. One click, nothing to configure. |
 | **Show conflicts** | One page with every conflict, who wins, and a "Let ... win" button that changes the order. The deploy toast opens it. |
 | **Add** a zip, 7z, rar, folder or Nexus link | Works out what kind of mod it is and where its files go. Asks only when it cannot tell. With REDdeck handling nxm links, the Mod manager download button on Nexus lands the file in the library. |
 | Turn a mod **on** or **off** | Nothing on disk yet. The Deploy button counts the changes waiting. |
