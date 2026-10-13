@@ -17,7 +17,7 @@ import { DetailPanel } from "./detailPanel";
 import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family } from "./families";
 import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
-import { findGame, gameVersion, isGameFolder } from "./game";
+import { findGame, gameVersion, isGameFolder, steamLibraries } from "./game";
 import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
 import { ModsView, type ModNode } from "./modsView";
@@ -37,6 +37,8 @@ let log: vscode.OutputChannel;
 let sevenZa: string | undefined;
 let extensionRoot = "";
 let storageDir = "";
+/** The game folder found through Steam, GOG or Epic, looked up once per reload. */
+let detectedGame: string | undefined;
 let extensionVersion = "0.0.0";
 let secrets: vscode.SecretStorage;
 let globalState: vscode.Memento;
@@ -136,7 +138,7 @@ function modOf(node: ModNode | undefined): ModInfo | undefined {
 function settings(): { gamePath: string; libraryPath: string; bridgePath: string; dotnetRoot: string; checkUpdates: boolean } {
   const cfg = vscode.workspace.getConfiguration("reddeck");
   return {
-    gamePath: cfg.get<string>("gamePath", "") || findGame() || "",
+    gamePath: cfg.get<string>("gamePath", "") || detectedGame || "",
     libraryPath: cfg.get<string>("libraryPath", "") || defaultLibraryPath(),
     bridgePath: cfg.get<string>("bridgePath", ""),
     dotnetRoot: cfg.get<string>("dotnetRoot", ""),
@@ -155,10 +157,18 @@ async function run(fn: () => Promise<void> | void): Promise<void> {
 }
 
 function reload(): void {
+  const configured = vscode.workspace.getConfiguration("reddeck").get<string>("gamePath", "");
+  detectedGame = configured ? undefined : findGame();
   const { libraryPath, gamePath } = settings();
   try {
     library = loadLibrary(libraryPath, gamePath);
-    log.appendLine(`Library: ${libraryPath} (${library.mods.length} mods), game: ${gamePath}`);
+    const how = configured ? "from the reddeck.gamePath setting" : detectedGame ? "found through Steam, GOG or Epic" : "not found";
+    log.appendLine(`Library: ${libraryPath} (${library.mods.length} mods), game: ${gamePath || "(none)"} (${how})`);
+    if (!configured && !detectedGame) {
+      const libs = steamLibraries();
+      log.appendLine(`  Steam libraries checked: ${libs.length ? libs.join("; ") : "none (Steam is not in the registry)"}`);
+      log.appendLine("  Use REDdeck: Pick the game folder... to set it, and please report the lines above if the game is in one of those libraries.");
+    }
   } catch (err) {
     library = undefined;
     log.appendLine(`Could not open the library at ${libraryPath}: ${String(err)}`);

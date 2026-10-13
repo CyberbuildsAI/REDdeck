@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.2 (2026-10-12)
+
+- The log says where the game path came from (the setting, detection, or not found) and, when detection fails, which Steam libraries it checked. Detection runs once per reload rather than on every status refresh.
+- The command line ignores a remembered game path that no longer exists.
+
 ## 0.13.1 (2026-10-12)
 
 - The REDdeck page's footer says which REDbridge is running, with a green dot, once it has answered ("REDbridge 0.4.0 (WolvenKit 9.1.0)"), or offers Get REDbridge when there is none. The Conflicts panel's "Inside archives" heading names it too.
