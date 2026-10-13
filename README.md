@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://edgemodders.github.io/REDdeck/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
-  <img src="docs/assets/brand/badges/status.svg" alt="status: design phase">
+  <img src="docs/assets/brand/badges/status.svg" alt="status: in use, 0.16">
   <img src="docs/assets/brand/badges/game.svg" alt="game: Cyberpunk 2077">
   <img src="docs/assets/brand/badges/vscode.svg" alt="VS Code: 1.80+">
   <a href="LICENSE"><img src="docs/assets/brand/badges/license.svg" alt="license: MIT"></a>
@@ -14,10 +14,10 @@ A mod manager for Cyberpunk 2077 that lives inside VS Code and [REDcode](https:/
 
 REDdeck keeps your mods in a library outside the game folder, deploys the ones you turn on with hardlinks, and undoes it just as cleanly. It recognises the frameworks (RED4ext, CET, redscript, ArchiveXL, TweakXL and friends), prepares REDmod packages, writes the archive load order, and, with [REDbridge](https://github.com/Edgemodders/REDbridge) present, shows conflicts between files *inside* mod archives, which file-level managers cannot see. The name: a deck of mods, a nod to the cyberdeck, and the mods waiting "on deck" before you deploy them.
 
-**[Read the docs](https://edgemodders.github.io/REDdeck/)** &middot; [Design](https://edgemodders.github.io/REDdeck/design.html) &middot; [REDcode](https://github.com/Edgemodders/REDcode) &middot; [REDbridge](https://github.com/Edgemodders/REDbridge) &middot; [REDnode](https://github.com/Edgemodders/REDnode)
+**[Read the guide](https://edgemodders.github.io/REDdeck/guide.html)** &middot; [Design](https://edgemodders.github.io/REDdeck/design.html) &middot; [Releases](https://github.com/Edgemodders/REDdeck/releases) &middot; [REDcode](https://github.com/Edgemodders/REDcode) &middot; [REDbridge](https://github.com/Edgemodders/REDbridge) &middot; [REDnode](https://github.com/Edgemodders/REDnode)
 
 > [!NOTE]
-> **Status: M1 to M5 built in one day, awaiting a real-game test.** Add from zip, 7z, rar, folder or Nexus link; hardlink deploy with a manifest, undo and backups; changes made outside REDdeck; conflicts by order with `modlist.txt`; import from Vortex; a detail panel; conflicts inside archives through REDbridge; REDmod deploy; Nexus update checks and nxm download links; a project's packed output as a mod that follows the project; loadouts; a `reddeck` command line with `--json`. `npm run test:ui` runs it all inside a real VS Code. The core passes `npm run smoke` against a fake game folder, a real Vortex library and a real REDbridge; the Nexus calls themselves have not been run against a live account yet. The [design](https://edgemodders.github.io/REDdeck/design.html) has the full picture.
+> **Status: 0.16.0, in daily use on two PCs.** Add from zip, 7z, rar, folder, Nexus link or Vortex; one row per mod with a version dropdown; hardlink deploy with a manifest, undo and backups; a pending-changes list that explains every file; conflicts by order with Let X win, and inside archives through REDbridge, which Get REDbridge fetches and keeps current; the Frameworks group with the game version and a warning after a game patch; Nexus sign-in, daily update checks, update from the row, nxm download links; a wide table page with search, facets and sizes; loadouts; a Set up group for new installs; a `reddeck` command line with `--json`. Not on the Marketplace: install the VSIX from the [releases page](https://github.com/Edgemodders/REDdeck/releases). `npm run smoke` and `npm run test:ui` cover it. The [guide](https://edgemodders.github.io/REDdeck/guide.html) says how to use it.
 
 ## How it works
 
@@ -34,11 +34,14 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 
 | You do | REDdeck does |
 |---|---|
-| **Open REDdeck** | The wide table: every mod with version, kinds and status in columns, a search box and status facets, the verbs across the top. For the bigger admin jobs; the sidebar is the compact companion. |
+| **Install it** | The Set up group in the Mods view walks through the rest: find the game (Steam's library list, GOG, Epic), Get REDbridge, sign in to Nexus, take the download links, import from Vortex. Each row is a button. |
+| **Open REDdeck** | The wide table: every mod with version, kinds, size and status in columns, a search box, status facets and Largest first, the verbs across the top. For the bigger admin jobs; the sidebar is the compact companion. |
 | **Get REDbridge** | Fetches the bridge that reads inside archives, and its .NET runtime if needed, into REDdeck's own folder. One click, nothing to configure. |
 | **Show conflicts** | One page with every conflict, who wins, and a "Let ... win" button that changes the order. The deploy toast opens it. |
 | **Add** a zip, 7z, rar, folder or Nexus link | Works out what kind of mod it is and where its files go. Asks only when it cannot tell. With REDdeck handling nxm links, the Mod manager download button on Nexus lands the file in the library. |
-| Turn a mod **on** or **off** | Nothing on disk yet. The Deploy button counts the changes waiting. |
+| Turn a mod **on** or **off** | Nothing on disk yet. The Deploy button counts the changes waiting, and Show pending changes lists each file with its reason. |
+| Pick a **version** | One row per mod; the version cell is a dropdown of what is in the library, plus Get x.y from Nexus when there is a newer file. |
+| **Patch day** | The Frameworks header says "game updated to 2.31" when the game changed since the last deploy, and REDdeck checks the frameworks on Nexus once for that version. |
 | **Deploy** | Hardlinks the enabled mods into the game, writes the load order, prepares REDmod packages, records a manifest. |
 | **Remove** | Deletes the mod from the library. Deployed files come out on the next deploy. |
 | Undo deploy | Removes every file in the manifest and nothing else. |
@@ -51,7 +54,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 | `bin/reddeck.mjs` | The command line over the same core |
 | `scripts/smoke.mjs` | End-to-end test of the core against a fake game folder |
 | `images/` | Activity bar icon and extension icon |
-| `docs/` | Documentation site |
+| `docs/` | Documentation site: the guide, the design and the dev setup |
 | `tools/brand/` | Generates the banner, badges and icon |
 
 ## Build
@@ -80,11 +83,11 @@ node bin/reddeck.mjs conflicts --json          # every command prints JSON with 
 ## Roadmap
 
 - **M0 Decide.** Name, repository, the word list, the extension scaffold.
-- **M1 Library.** Add from archives and folders, the library layout, hardlink deploy with manifest and undo, changes made outside REDdeck, Vortex detection and import.
-- **M2 Kinds.** Frameworks group with game version check, REDmod packages, file and archive conflicts with reorder.
-- **M3 Nexus.** Sign in (single sign-on once Nexus registers the app, paste a key until then), mod metadata, updates, nxm links.
-- **M4 Loop.** Install and test a REDcode project with one click. REDnode packages as a mod kind.
-- **M5 Share.** Loadouts, a `reddeck` CLI, MCP tools, publish to Open VSX and the Marketplace.
+- **M1 Library.** Add from archives and folders, the library layout, hardlink deploy with manifest and undo, changes made outside REDdeck, Vortex detection and import. Done.
+- **M2 Kinds.** Frameworks group with game version check, REDmod packages, file and archive conflicts with reorder. Done.
+- **M3 Nexus.** Sign in (single sign-on once Nexus registers the app, paste a key until then), mod metadata, updates, nxm links. Done.
+- **M4 Loop.** Install and test a REDcode project with one click (REDdeck side done; the REDcode side is in that repo). REDnode packages as a mod kind.
+- **M5 Share.** Loadouts and the `reddeck` CLI are done. Left: MCP tools. No Marketplace publishing for now; releases carry the VSIX.
 
 ## Relation to Vortex
 

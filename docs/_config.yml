@@ -23,6 +23,8 @@ defaults:
 nav:
   - title: Docs
     url: /
+  - title: Guide
+    url: /guide.html
   - title: Design
     url: /design.html
   - title: Dev setup

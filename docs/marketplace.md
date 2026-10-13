@@ -2,6 +2,7 @@
 
 A simple mod manager for Cyberpunk 2077 that lives inside VS Code and REDcode. One list of mods, four verbs, no jargon.
 
+- A **Set up** group walks a new install through the game folder, REDbridge, Nexus and Vortex, one button each.
 - **Get REDbridge** once, and conflicts inside archives show up too. REDdeck fetches it; nothing to configure.
 - **Open REDdeck** for the wide table with search and status filters; the sidebar is the compact view.
 - **Sign in** to Nexus Mods once; updates and download links follow.
@@ -12,7 +13,7 @@ A simple mod manager for Cyberpunk 2077 that lives inside VS Code and REDcode. O
 
 It keeps your mods in a library outside the game folder, resolves conflicts by list order, notices when a deployed file was changed by something else and asks one question, and imports the mods Vortex has for the game. With REDbridge present it shows conflicts between files inside mod archives.
 
-Docs and design: https://edgemodders.github.io/REDdeck/
+Guide, docs and design: https://edgemodders.github.io/REDdeck/
 
 Settings: `reddeck.gamePath` (the Cyberpunk 2077 folder) and `reddeck.libraryPath` (where mods are kept; put it on the game's drive so deploy can use hardlinks).
 
