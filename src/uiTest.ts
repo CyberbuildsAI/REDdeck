@@ -22,7 +22,7 @@ export async function run(): Promise<void> {
   assert.ok(ext.isActive, "extension did not activate");
 
   const commands = await vscode.commands.getCommands(true);
-  for (const c of ["reddeck.addMod", "reddeck.importVortex", "reddeck.addProject", "reddeck.saveLoadout", "reddeck.loadLoadout", "reddeck.nexusSignIn", "reddeck.nexusSignOut", "reddeck.nexusSetKey", "reddeck.deploy", "reddeck.undo", "reddeck.remove", "reddeck.details", "reddeck.checkConflicts", "reddeck.openPage", "reddeck.showChanges", "reddeck.getBridge", "reddeck.pickGame", "reddeck.setup", "reddeck.hideSetupStep", "reddeck.mcpSetup", "reddeck.updateBridge", "reddeck.switchVersion", "reddeck.moveUp", "reddeck.moveDown", "reddeck.openInExplorer", "reddeck.openLibrary", "reddeck.refresh", "reddeck.showLog"]) {
+  for (const c of ["reddeck.addMod", "reddeck.importVortex", "reddeck.addProject", "reddeck.saveLoadout", "reddeck.loadLoadout", "reddeck.nexusSignIn", "reddeck.nexusSignOut", "reddeck.nexusSetKey", "reddeck.deploy", "reddeck.undo", "reddeck.remove", "reddeck.details", "reddeck.checkConflicts", "reddeck.openPage", "reddeck.showChanges", "reddeck.getBridge", "reddeck.pickGame", "reddeck.setup", "reddeck.hideSetupStep", "reddeck.mcpSetup", "reddeck.updateBridge", "reddeck.addToProject", "reddeck.switchVersion", "reddeck.moveUp", "reddeck.moveDown", "reddeck.openInExplorer", "reddeck.openLibrary", "reddeck.refresh", "reddeck.showLog"]) {
     assert.ok(commands.includes(c), `command ${c} not registered`);
   }
 

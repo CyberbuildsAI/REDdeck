@@ -27,7 +27,7 @@ import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } fr
 import { ApiKeysPage, hasWebSocket, signIn } from "./nexusSso";
 import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
-import { classifyProject, findProjectFile, projectName, syncProjects } from "./project";
+import { addToProject, classifyProject, findProjectFile, projectName, syncProjects } from "./project";
 import { importFromVortex, listVortexMods } from "./vortex";
 
 let library: Library | undefined;
@@ -109,6 +109,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("reddeck.switchVersion", (node: ModNode) => run(() => switchVersionCommand(modOf(node)))),
     vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
     vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
+    vscode.commands.registerCommand("reddeck.addToProject", (node: ModNode) => run(() => addToProjectCommand(node))),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => updateProjectContext()),
     vscode.commands.registerCommand("reddeck.openInExplorer", (node: ModNode) => {
       if (node?.type === "mod" && library) vscode.env.openExternal(vscode.Uri.file(modFolder(library, node.mod)));
     }),
@@ -255,6 +257,62 @@ function reload(): void {
   watchLibrary(libraryPath, gamePath);
   void run(maybeCheckUpdates);
   void run(maybeCheckBridge);
+}
+
+// ---- Add to Project: a mod's loose files into the open REDcode project -------------------------
+
+/** The open project: the first .cpmodproj directly inside a workspace folder, as REDcode sees it. */
+function currentProject(): string | undefined {
+  for (const folder of vscode.workspace.workspaceFolders ?? []) {
+    const file = findProjectFile(folder.uri.fsPath);
+    if (file) return file;
+  }
+  return undefined;
+}
+
+function updateProjectContext(): void {
+  void vscode.commands.executeCommand("setContext", "reddeck.projectOpen", !!currentProject());
+}
+
+async function addToProjectCommand(node: ModNode | undefined): Promise<void> {
+  const mod = modOf(node);
+  if (!library || !mod || !node) return;
+  const project = currentProject();
+  if (!project) {
+    const commands = await vscode.commands.getCommands(true);
+    const canCreate = commands.includes("redcode.newProject");
+    const a = await vscode.window.showWarningMessage("No REDcode project is open. Open the folder that holds a .cpmodproj file, or create a project with REDcode.", ...(canCreate ? ["New Project"] : []));
+    if (a === "New Project") await vscode.commands.executeCommand("redcode.newProject");
+    return;
+  }
+  const files = node.type === "file" ? [node.file] : node.type === "folder" ? node.files : mod.files;
+  const name = projectName(project);
+  let result = addToProject(library, mod, files, project);
+  if (result.kept.length) {
+    // A file the project already has, with other content: ask, since replacing it loses edits.
+    const replace = new Set<string>();
+    for (const rel of result.kept) {
+      const f = rel.split(path.sep).slice(2).join("/");
+      const a = await vscode.window.showWarningMessage(`${rel} is already in ${name} with different content. Replace it with ${mod.name}'s file?`, { modal: true }, "Replace", "Keep mine");
+      if (a === "Replace") replace.add(f);
+    }
+    if (replace.size) {
+      const again = addToProject(library, mod, [...replace], project, replace);
+      result = { ...result, copied: [...result.copied, ...again.copied], kept: result.kept.filter((r) => !again.copied.includes(r)) };
+    }
+  }
+  const n = result.copied.length;
+  const parts = [n ? `${n} file${n === 1 ? "" : "s"} added to ${name} under source\\resources` : `Nothing added to ${name}`];
+  if (result.same.length) parts.push(`${result.same.length} already there`);
+  if (result.kept.length) parts.push(`${result.kept.length} kept as yours`);
+  if (result.archives.length) parts.push(`${result.archives.length} .archive file${result.archives.length === 1 ? "" : "s"} skipped: their resources need extracting into source\\archive, which REDcode's Game Assets view does`);
+  log.appendLine(`Add to project (${name}): ${parts.join("; ")}${result.copied.length ? `\n  ${result.copied.join("\n  ")}` : ""}`);
+  const commands = await vscode.commands.getCommands(true);
+  if (commands.includes("redcode.refreshProject")) void vscode.commands.executeCommand("redcode.refreshProject");
+  const single = result.copied.length === 1 ? path.join(path.dirname(project), result.copied[0]) : undefined;
+  void vscode.window.showInformationMessage(`${parts.join(". ")}.`, ...(single ? ["Open"] : [])).then((a) => {
+    if (a === "Open" && single) void vscode.window.showTextDocument(vscode.Uri.file(single));
+  });
 }
 
 // ---- MCP: the verbs as tools for assistants ----------------------------------------------------
@@ -406,6 +464,7 @@ function refresh(): void {
   seenManifestTime = readManifest(gamePath)?.time;
   void vscode.commands.executeCommand("setContext", "reddeck.empty", !library || library.mods.length === 0);
   void vscode.commands.executeCommand("setContext", "reddeck.deployed", !!readManifest(gamePath));
+  updateProjectContext();
   updateStatus();
   view.refresh();
   updateDetail();

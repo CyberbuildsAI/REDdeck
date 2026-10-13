@@ -7,7 +7,51 @@ import * as path from "node:path";
 import { classify, type Classification } from "./classifier";
 import { saveMod, sourcePath, type Library, type ModInfo } from "./library";
 
-/** The project file for a folder or file, or undefined. */
+export interface AddToProjectResult {
+  /** Project-relative paths written. */
+  copied: string[];
+  /** Already in the project with the same content. */
+  same: string[];
+  /** In the project with different content; left alone unless `replace` named them. */
+  kept: string[];
+  /** Deploy paths that cannot go in as files: .archive files need extracting. */
+  archives: string[];
+}
+
+/**
+ * Copies a mod's loose files into a project's source/resources, under their deploy paths, so the
+ * packed mod carries them at the same place. Archives are reported, not copied: their resources
+ * need extracting into source/archive, which REDcode does.
+ */
+export function addToProject(lib: Library, mod: ModInfo, files: string[], projectFile: string, replace: Set<string> = new Set()): AddToProjectResult {
+  const resources = path.join(path.dirname(projectFile), "source", "resources");
+  const out: AddToProjectResult = { copied: [], same: [], kept: [], archives: [] };
+  for (const f of files) {
+    if (f.toLowerCase().endsWith(".archive")) {
+      out.archives.push(f);
+      continue;
+    }
+    const src = sourcePath(lib, mod, f);
+    const rel = path.join("source", "resources", ...f.split("/"));
+    const dest = path.join(resources, ...f.split("/"));
+    if (fs.existsSync(dest)) {
+      if (fs.readFileSync(dest).equals(fs.readFileSync(src))) {
+        out.same.push(rel);
+        continue;
+      }
+      if (!replace.has(f)) {
+        out.kept.push(rel);
+        continue;
+      }
+    }
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(src, dest);
+    out.copied.push(rel);
+  }
+  return out;
+}
+
+/** The project a target file or folder would belong to: the first .cpmodproj in the folder, or undefined. */
 export function findProjectFile(target: string): string | undefined {
   if (fs.existsSync(target) && fs.statSync(target).isFile()) return target.toLowerCase().endsWith(".cpmodproj") ? target : undefined;
   const files = fs.existsSync(target) ? fs.readdirSync(target).filter((f) => f.toLowerCase().endsWith(".cpmodproj")) : [];

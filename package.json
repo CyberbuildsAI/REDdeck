@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -251,6 +251,11 @@
         "command": "reddeck.updateBridge",
         "title": "Update REDbridge",
         "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.addToProject",
+        "title": "Add to Project",
+        "category": "REDdeck"
       }
     ],
     "menus": {
@@ -386,6 +391,21 @@
           "command": "reddeck.switchVersion",
           "when": "view == reddeck.mods && viewItem == mod",
           "group": "inline@9"
+        },
+        {
+          "command": "reddeck.addToProject",
+          "when": "view == reddeck.mods && viewItem == mod && reddeck.projectOpen",
+          "group": "1_open@2"
+        },
+        {
+          "command": "reddeck.addToProject",
+          "when": "view == reddeck.mods && viewItem == folder && reddeck.projectOpen",
+          "group": "1_open@2"
+        },
+        {
+          "command": "reddeck.addToProject",
+          "when": "view == reddeck.mods && viewItem == file && reddeck.projectOpen",
+          "group": "1_open@2"
         }
       ],
       "commandPalette": [
@@ -415,6 +435,10 @@
         },
         {
           "command": "reddeck.hideSetupStep",
+          "when": "false"
+        },
+        {
+          "command": "reddeck.addToProject",
           "when": "false"
         }
       ],

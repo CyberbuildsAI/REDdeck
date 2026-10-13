@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.0 (2026-10-13)
+
+- Add to Project, on a mod, a folder or a file in the Mods view when a REDcode project (a `.cpmodproj`) is open in the workspace. Loose files (scripts, CET Lua, TweakXL YAML, ArchiveXL files, configs) are copied into the project's `source/resources` under their deploy paths, so the packed mod carries them at the same place. A file the project already has with other content is left alone unless you say Replace. `.archive` files are skipped with a note: their resources need extracting into `source/archive`, which REDcode's Game Assets view does. Without a project, a toast says so and offers REDcode's New Project.
+
 ## 0.17.1 (2026-10-13)
 
 - Update REDbridge: a command of its own, the same as running Get REDbridge again. It asks "Update REDbridge 0.4.0 to 0.5.1?", installs the new one and removes the old folder, which is about 70 MB. The page footer shows "0.5.1 available" next to the running bridge once the daily check has found it.

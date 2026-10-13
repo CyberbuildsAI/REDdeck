@@ -507,6 +507,31 @@ console.log("undo: ok");
   console.log(`nexus: ok (nxm links on this machine: ${core.describeHandler(handler)})`);
 }
 
+// Add to project: loose files land under source/resources at their deploy paths; archives are reported.
+{
+  const proj = path.join(tmp, "proj");
+  fs.mkdirSync(proj, { recursive: true });
+  const projectFile = path.join(proj, "MyMod.cpmodproj");
+  fs.writeFileSync(projectFile, "<CP77Mod><ModName>MyMod</ModName></CP77Mod>");
+  const r = core.addToProject(lib, rooted, rooted.files, projectFile);
+  assert.ok(r.archives.some((f) => f.endsWith("Rooted.archive")), "the archive is reported, not copied");
+  assert.ok(r.copied.length >= 1, "loose files copied");
+  for (const rel of r.copied) assert.ok(fs.existsSync(path.join(proj, rel)), rel);
+  assert.ok(r.copied.every((rel) => rel.startsWith(path.join("source", "resources"))));
+  const again = core.addToProject(lib, rooted, rooted.files, projectFile);
+  assert.equal(again.copied.length, 0);
+  assert.equal(again.same.length, r.copied.length);
+  const changed = path.join(proj, r.copied[0]);
+  fs.writeFileSync(changed, "edited in the project");
+  const kept = core.addToProject(lib, rooted, rooted.files, projectFile);
+  assert.deepEqual(kept.kept, [r.copied[0]]);
+  assert.equal(fs.readFileSync(changed, "utf8"), "edited in the project");
+  const deployPath = r.copied[0].split(path.sep).slice(2).join("/");
+  const replaced = core.addToProject(lib, rooted, [deployPath], projectFile, new Set([deployPath]));
+  assert.deepEqual(replaced.copied, [r.copied[0]]);
+  console.log(`add to project: ok (${r.copied.length} files, ${r.archives.length} archives skipped)`);
+}
+
 // Frameworks: the game version against the one at the last deploy, and updates from Nexus.
 {
   const fwLib = { root: path.join(tmp, "fw"), info: { version: 1, gamePath: game }, mods: [

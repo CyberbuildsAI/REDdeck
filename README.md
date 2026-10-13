@@ -44,6 +44,7 @@ REDdeck keeps your mods in a library outside the game folder, deploys the ones y
 | **Patch day** | The Frameworks header says "game updated to 2.31" when the game changed since the last deploy, and REDdeck checks the frameworks on Nexus once for that version. |
 | **Deploy** | Hardlinks the enabled mods into the game, writes the load order, prepares REDmod packages, records a manifest. |
 | **Remove** | Deletes the mod from the library. Deployed files come out on the next deploy. |
+| **Add to Project** | With a REDcode project open, copies a mod's loose files into its `source/resources` under their deploy paths. Archives are for REDcode's Game Assets view. |
 | Undo deploy | Removes every file in the manifest and nothing else. |
 
 ## Repository layout
