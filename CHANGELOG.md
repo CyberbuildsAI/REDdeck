@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.1 (2026-10-12)
+
+- The REDdeck page's footer says which REDbridge is running, with a green dot, once it has answered ("REDbridge 0.4.0 (WolvenKit 9.1.0)"), or offers Get REDbridge when there is none. The Conflicts panel's "Inside archives" heading names it too.
+
 ## 0.13.0 (2026-10-12)
 
 - A mod in the Mods view expands into the folders it deploys to (archive/pc/mod, r6/scripts/Foo, a CET mod folder, a RED4ext plugin) and the files in each. A file opens in the editor from the library copy, which is the same file as the deployed one when deploy uses hardlinks. Clicking the mod's name still opens its details.

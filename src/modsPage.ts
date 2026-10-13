@@ -32,11 +32,13 @@ export interface PageData {
   /** Files a deploy would add or remove. */
   pending: number;
   signedIn: boolean;
+  /** "REDbridge 0.4.0 (WolvenKit 9.1.0)" once it has answered, or undefined when there is none. */
+  bridge?: string;
   vortex: boolean;
 }
 
 export interface PageMessage {
-  action: "changes" | "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
+  action: "getBridge" | "changes" | "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library";
   id?: string;
 }
 
@@ -168,6 +170,7 @@ select.menu { font: inherit; font-size: 12px; color: var(--fg); background: var(
 select.menu:hover, select.menu:focus { border-color: var(--yellow); outline: none; }
 input[type=checkbox] { accent-color: var(--yellow); width: 15px; height: 15px; cursor: pointer; }
 .foot { margin-top: 14px; color: var(--dim); font-size: 12px; display: flex; gap: 18px; flex-wrap: wrap; } .foot a { cursor: pointer; color: var(--dim); text-decoration: underline; } .foot a:hover { color: var(--yellow); }
+.okdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: middle; }
 .empty { padding: 24px 8px; color: var(--dim); }
 .note { border: 1px solid var(--yellow); color: var(--yellow); padding: 8px 12px; margin-bottom: 12px; }
 </style></head><body>
@@ -190,6 +193,7 @@ ${d.rows.length ? `<table><thead><tr><th></th><th>Mod</th><th>Ver</th><th>Kind</
 <div class="foot">
   <span>Library: <a data-msg='${msg({ action: "library" })}'>${esc(d.library)}</a> (${d.method === "link" ? "same drive as the game: hardlinks" : "other drive: copies"})</span>
   <span>Last deploy: ${d.lastDeploy ? esc(d.lastDeploy) : "never"}</span>
+  <span>${d.bridge ? `<span class="okdot"></span>${esc(d.bridge)}` : `No REDbridge: <a data-msg='${msg({ action: "getBridge" })}'>Get REDbridge</a> for conflicts inside archives`}</span>
 </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();

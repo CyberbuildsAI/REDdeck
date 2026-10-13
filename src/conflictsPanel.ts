@@ -13,6 +13,8 @@ export interface ConflictsData {
   names: Map<string, string>;
   /** Whether REDbridge is available, for the archive section's note. */
   bridge: boolean;
+  /** The bridge's version line once it has answered. */
+  bridgeInfo?: string;
   /** True while the archive scan is running. */
   scanning: boolean;
   /** How many files a deploy would add or remove right now; zero means the game folder is current. */
@@ -118,6 +120,7 @@ h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; text-transform: up
 h2 { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); margin: 22px 0 8px; }
 p.lead { margin: 6px 0 14px; color: var(--dim); max-width: 760px; }
 button.get { font: inherit; font-size: 12px; background: transparent; color: var(--yellow); border: 1px solid var(--yellow); padding: 3px 10px; cursor: pointer; margin-left: 6px; } button.get:hover { background: var(--yellow); color: #0b0d12; }
+.via { color: var(--dim); letter-spacing: 0; text-transform: none; font-size: 11px; margin-left: 8px; }
 .bar { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; }
 button.deploy { font: inherit; font-size: 13px; background: var(--yellow); color: #0b0d12; border: 1px solid var(--yellow); padding: 5px 16px; cursor: pointer; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 button.deploy:hover { background: transparent; color: var(--yellow); }
@@ -134,7 +137,7 @@ details summary { cursor: pointer; } ul { margin: 4px 0 8px 18px; padding: 0; } 
 <div class="bar">${d.pending ? `<button class="deploy" data-msg='${esc(JSON.stringify({ action: "deploy", id: "" }))}'>Deploy now</button><span class="dim">${d.pending} file${d.pending === 1 ? "" : "s"} to change in the game folder</span>` : `<span class="dim">The game folder is up to date with these choices.</span>`}</div>
 <h2>By file path</h2>
 ${fileRows ? `<table><thead><tr><th>File</th><th>Wins</th><th>Loses</th><th></th></tr></thead><tbody>${fileRows}</tbody></table>` : `<p class="dim">No two enabled mods deploy the same file path.</p>`}
-<h2>Inside archives</h2>
+<h2>Inside archives${d.bridgeInfo ? ` <span class="via">via ${esc(d.bridgeInfo)}</span>` : ""}</h2>
 ${archiveNote}
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();

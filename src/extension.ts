@@ -43,7 +43,7 @@ let globalState: vscode.Memento;
 let bridge: BridgeClient | undefined;
 let bridgeExe = "";
 let scanTimer: NodeJS.Timeout | undefined;
-let state: { plan?: Plan; changes: Change[]; archive?: ArchiveConflictSummary; version?: string } = { changes: [] };
+let state: { plan?: Plan; changes: Change[]; archive?: ArchiveConflictSummary; version?: string; bridgeInfo?: string } = { changes: [] };
 const archiveCache = new Map<string, { mtimeMs: number; resources: Map<string, string> }>();
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -282,6 +282,7 @@ async function scanArchives(explicit: boolean): Promise<void> {
     bridge.start();
     const info = await bridge.info();
     log.appendLine(`REDbridge ${info.version} (WolvenKit ${info.wolvenKit}) at ${bridgeExe}`);
+    state.bridgeInfo = `REDbridge ${info.version} (WolvenKit ${info.wolvenKit})`;
     if (compareVersions(info.version, MinBridgeVersion) < 0) {
       bridge.stop();
       bridge = undefined;
@@ -383,6 +384,7 @@ async function pageData() {
     pending: pendingCount(),
     signedIn: !!(await secrets.get(NexusKeySecret)),
     vortex: !!state.plan?.vortex,
+    bridge: state.bridgeInfo ?? (bridgeExe ? "REDbridge found, starts on the next archive scan" : undefined),
   };
 }
 
@@ -415,6 +417,8 @@ async function pageAction(m: PageMessage): Promise<void> {
       return;
     case "changes":
       return showChanges(m.id);
+    case "getBridge":
+      return getBridgeCommand();
   }
   if (!mod || !library) return;
   switch (m.action) {
@@ -595,6 +599,7 @@ function conflictsData() {
     archive: state.archive,
     names: new Map((library?.mods ?? []).map((m) => [m.id, m.name])),
     bridge: !!bridgeExe,
+    bridgeInfo: state.bridgeInfo,
     scanning,
     pending: pendingCount(),
   };
