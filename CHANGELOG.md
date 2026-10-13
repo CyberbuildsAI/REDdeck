@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.3 (2026-10-12)
+
+- Once a day, when the bridge in use is the copy REDdeck fetched, REDdeck asks GitHub whether there is a newer REDbridge release and offers it with a "Get it" button. A bridge you built or configured yourself is left alone.
+
 ## 0.13.2 (2026-10-12)
 
 - The log says where the game path came from (the setting, detection, or not found) and, when detection fails, which Steam libraries it checked. Detection runs once per reload rather than on every status refresh.

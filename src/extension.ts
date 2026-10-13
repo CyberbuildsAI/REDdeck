@@ -182,6 +182,29 @@ function reload(): void {
   });
   refresh();
   void run(maybeCheckUpdates);
+  void run(maybeCheckBridge);
+}
+
+/** Once a day, when the bridge in use is the copy REDdeck fetched: is there a newer release? */
+async function maybeCheckBridge(): Promise<void> {
+  const ours = installedBridge(storageDir);
+  if (!ours || bridgeExe !== ours) return;
+  const last = globalState.get<number>("reddeck.lastBridgeCheck", 0);
+  if (Date.now() - last < 24 * 3600 * 1000) return;
+  await globalState.update("reddeck.lastBridgeCheck", Date.now());
+  let release;
+  try {
+    release = await latestBridgeRelease();
+  } catch (err) {
+    log.appendLine(`REDbridge release check skipped: ${err instanceof Error ? err.message : String(err)}`);
+    return;
+  }
+  const installedTag = path.basename(path.dirname(ours));
+  if (compareVersions(release.version, installedTag.replace(/^v/, "")) <= 0) return;
+  log.appendLine(`REDbridge ${release.version} is available (installed: ${installedTag})`);
+  void vscode.window.showInformationMessage(`REDbridge ${release.version} is available; you have ${installedTag.replace(/^v/, "")}.`, "Get it", "Not now").then((a) => {
+    if (a === "Get it") void run(getBridgeCommand);
+  });
 }
 
 /** Recomputes the plan and the status of every mod; cheap enough to run after every change. */
