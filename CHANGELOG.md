@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.26.0 (2026-10-14)
+
+- **Loadouts you switch between.** A loadout is a named set of which mods are on and which version of each (what other managers call a profile). One is always active: the Mods view shows it, turning mods on or off saves into it, and Deploy uses it. Your library's state now becomes the loadout Default. The library, sections and load order are shared.
+- **Switch loadout** in the Mods view's title bar makes another one active (deploy afterwards); the view's header names the active one.
+- **The REDdeck page's Loadout dropdown** shows any loadout. One that is not active can be edited there (checkboxes, section boxes, versions) without touching the game or the Mods view; a banner says so, and **Make active** switches to it. Buttons beside the dropdown make a new loadout (a copy, or every mod off), rename, export, import and delete one.
+- **Save as new loadout**, **Export the active loadout** and **Import a loadout** in the Mods view's menu. Loadout files from earlier versions load as loadouts; the order they carried is no longer applied.
+- The command line's `loadout load` and the MCP tool make a loadout active by name, or import a file and make it active; `list` marks the active one.
+
 ## 0.25.2 (2026-10-14)
 
 - **The deploy message counts mods.** It says how many files went in for how many mods, what was removed, and how many mods are in the game now, so 31 files is clearly "for 6 mods".

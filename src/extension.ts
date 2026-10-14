@@ -22,7 +22,7 @@ import { forgetSizes, librarySize, modSize } from "./sizes";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
 import { findGame, gameVersion, isGameFolder, steamLibraries } from "./game";
 import { addMod, defaultLibraryPath, downloadsFolder, keepDownload, loadLibrary, modFolder, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
-import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
+import { activeLoadout, deleteLoadout, exportLoadout, findLoadout, importLoadout, listLoadouts, loadoutNameProblem, loadoutState, makeActive, newLoadout, readLoadout, renameLoadout, saveLoadout, setInLoadout, syncActiveLoadout } from "./loadouts";
 import { ModsView, type ModNode, type SetupStep } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
 import { ApiKeysPage, hasWebSocket, signIn } from "./nexusSso";
@@ -90,6 +90,8 @@ export function activate(context: vscode.ExtensionContext): REDdeckApi {
     vscode.commands.registerCommand("reddeck.addProject", (uri?: vscode.Uri) => run(() => addProjectCommand(uri?.fsPath))),
     vscode.commands.registerCommand("reddeck.saveLoadout", () => run(saveLoadoutCommand)),
     vscode.commands.registerCommand("reddeck.loadLoadout", () => run(loadLoadoutCommand)),
+    vscode.commands.registerCommand("reddeck.exportLoadout", () => run(() => exportLoadoutCommand(library ? activeLoadout(library, state.version) : ""))),
+    vscode.commands.registerCommand("reddeck.importLoadout", () => run(importLoadoutCommand)),
     vscode.commands.registerCommand("reddeck.deploy", () => run(deployCommand)),
     vscode.commands.registerCommand("reddeck.undo", () => run(undoCommand)),
     vscode.commands.registerCommand("reddeck.remove", (node: ModNode) => run(() => removeCommand(modOf(node)))),
@@ -527,6 +529,14 @@ function stopWatching(): void {
 /** Reloads when the library or the game's manifest changed and the change was not ours. */
 function watchLibrary(libraryRoot: string, gamePath: string): void {
   stopWatching();
+  if (library) {
+    try {
+      syncActiveLoadout(library, state.version);
+      tree.description = `Loadout: ${activeLoadout(library, state.version)}`;
+    } catch (err) {
+      log.appendLine(`Loadout: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
   seenManifestTime = readManifest(gamePath)?.time;
   const onChange = (): void => {
     if (watchTimer) clearTimeout(watchTimer);
@@ -756,17 +766,24 @@ function showDetails(mod: ModInfo | undefined): void {
 // ---- the mods page -------------------------------------------------------------------------------
 
 let modsPage: ModsPage;
+/** The loadout the REDdeck page shows and edits; the active one unless the user picked another. */
+let pageLoadout = "";
 
-function pageRow(fam: Family, manifestMods: Set<string>): PageRow {
+/** The loadout the page edits when it is not the active one, else undefined (edits go to the mods). */
+function editedLoadout(): string | undefined {
+  return library && pageLoadout && pageLoadout !== activeLoadout(library, state.version) ? pageLoadout : undefined;
+}
+
+function pageRow(fam: Family, manifestMods: Set<string>, viewed?: { mod: ModInfo; enabled: boolean }): PageRow {
   const p = state.plan;
-  const mod = fam.active;
+  const mod = viewed?.mod ?? fam.active;
   return {
     id: mod.id,
     name: fam.name,
     version: mod.version,
     versions: fam.mods.map((m) => ({ id: m.id, version: m.version, active: m.id === mod.id })),
     kinds: mod.kinds,
-    enabled: mod.enabled,
+    enabled: viewed ? viewed.enabled : mod.enabled,
     status: statusFor(mod, false),
     framework: mod.kinds.includes("framework"),
     deployed: manifestMods.has(mod.id),
@@ -784,10 +801,17 @@ async function pageData() {
   const manifest = readManifest(s.gamePath);
   const manifestMods = new Set((manifest?.files ?? []).map((e) => e.mod));
   const when = manifest?.time ? new Date(manifest.time) : undefined;
-  const sections = library ? sectionsOf(library).map((sec) => ({ name: sec.name, user: sec.user, rows: sec.families.map((f) => pageRow(f, manifestMods)) })) : [];
+  const active = library ? activeLoadout(library, state.version) : "";
+  if (library && (!pageLoadout || !findLoadout(library.root, pageLoadout))) pageLoadout = active;
+  const editing = library && pageLoadout !== active ? findLoadout(library.root, pageLoadout) : undefined;
+  const viewed = library && editing ? loadoutState(library, readLoadout(editing.file)) : undefined;
+  const sections = library ? sectionsOf(library).map((sec) => ({ name: sec.name, user: sec.user, rows: sec.families.map((f) => pageRow(f, manifestMods, viewed?.get(f.key))) })) : [];
   return {
     rows: sections.flatMap((sec) => sec.rows),
     sections,
+    loadouts: library ? listLoadouts(library.root).map((l) => ({ name: l.name, on: l.on })) : [],
+    activeLoadout: active,
+    viewing: pageLoadout,
     collapsed: globalState.get<string[]>(FoldedKey, []),
     game: state.version ? `Cyberpunk 2077 ${state.version}` : "game not found",
     library: library?.root ?? s.libraryPath,
@@ -916,7 +940,28 @@ async function pageAction(m: PageMessage): Promise<void> {
       }
       return;
     }
+    case "loadoutView":
+      if (m.loadout) pageLoadout = m.loadout;
+      return updatePage();
+    case "loadoutNew":
+      return newLoadoutCommand();
+    case "loadoutRename":
+      return renameLoadoutCommand(pageLoadout);
+    case "loadoutDelete":
+      return deleteLoadoutCommand(pageLoadout);
+    case "loadoutActivate":
+      return switchLoadout(pageLoadout);
+    case "loadoutExport":
+      return exportLoadoutCommand(pageLoadout);
+    case "loadoutImport":
+      return importLoadoutCommand();
     case "sectionOn":
+      if (library && m.section && editedLoadout()) {
+        const name = editedLoadout()!;
+        for (const f of sectionsOf(library).find((sec) => sec.name === m.section)?.families ?? []) setInLoadout(library, name, f.active, { enabled: !!m.on });
+        log.appendLine(`${name}: every mod in ${m.section} ${m.on ? "on" : "off"}`);
+        return updatePage();
+      }
       if (library && m.section) {
         const n = setSectionOn(library, m.section, !!m.on);
         log.appendLine(`${m.section}: every mod ${m.on ? "on" : "off"} (${n} changed)`);
@@ -925,6 +970,14 @@ async function pageAction(m: PageMessage): Promise<void> {
       return;
   }
   if (!mod || !library) return;
+  const edited = editedLoadout();
+  if (edited && (m.action === "toggle" || m.action === "activate")) {
+    // Another loadout than the active one: only its file changes; the mods and the game do not.
+    const now = loadoutState(library, readLoadout(findLoadout(library.root, edited)!.file)).get(familyKey(mod));
+    if (m.action === "toggle") setInLoadout(library, edited, mod, { enabled: !now?.enabled });
+    else setInLoadout(library, edited, mod, { version: mod });
+    return updatePage();
+  }
   switch (m.action) {
     case "toggle":
       mod.enabled = !mod.enabled;
@@ -1493,34 +1546,107 @@ async function addProjectCommand(target: string | undefined): Promise<void> {
   void vscode.window.showInformationMessage(`${mod.name} added from its project. Deploy to test it; after every pack, deploy again.`);
 }
 
+/** Save as new loadout: a copy of the mods' on/off state now, under a new name. The active loadout stays active. */
 async function saveLoadoutCommand(): Promise<void> {
   if (!library) return;
-  const name = await vscode.window.showInputBox({ title: "Save loadout", prompt: "A name for this set of mods, as they are on and ordered right now", value: new Date().toISOString().slice(0, 10) });
+  const lib = library;
+  const name = await vscode.window.showInputBox({ title: "Save as new loadout", prompt: "A new loadout with the mods on and off as they are now. The active loadout stays active.", validateInput: (v) => loadoutNameProblem(lib.root, v) });
   if (!name?.trim()) return;
-  const file = saveLoadout(library, name.trim(), state.version);
+  const file = saveLoadout(lib, name.trim(), state.version);
   log.appendLine(`Loadout saved: ${file}`);
-  void vscode.window.showInformationMessage(`Loadout "${name.trim()}" saved with ${library.mods.length} mods.`, "Open folder").then((a) => a && vscode.env.openExternal(vscode.Uri.file(path.dirname(file))));
+  void updatePage();
+  void vscode.window.showInformationMessage(`Loadout "${name.trim()}" saved. Switch to it from the Mods view's title bar or the REDdeck page.`);
 }
 
+/** + New loadout on the page: empty, or a copy of the one the page shows. The page then shows the new one. */
+async function newLoadoutCommand(): Promise<void> {
+  if (!library) return;
+  const lib = library;
+  const from = pageLoadout || activeLoadout(lib, state.version);
+  const how = await vscode.window.showQuickPick(
+    [
+      { label: `A copy of ${from}`, copy: true },
+      { label: "Every mod off", copy: false },
+    ],
+    { title: "New loadout", placeHolder: "Start from" },
+  );
+  if (!how) return;
+  const name = await vscode.window.showInputBox({ title: "New loadout", prompt: "Its name", validateInput: (v) => loadoutNameProblem(lib.root, v) });
+  if (!name?.trim()) return;
+  if (how.copy && from === activeLoadout(lib, state.version)) syncActiveLoadout(lib, state.version);
+  newLoadout(lib, name, how.copy ? from : undefined);
+  pageLoadout = name.trim();
+  log.appendLine(`Loadout ${name.trim()} made${how.copy ? ` from ${from}` : ", every mod off"}`);
+  await updatePage();
+}
+
+async function renameLoadoutCommand(from: string): Promise<void> {
+  if (!library || !from) return;
+  const lib = library;
+  const to = await vscode.window.showInputBox({ title: `Rename ${from}`, value: from, validateInput: (v) => (v.trim() === from ? undefined : loadoutNameProblem(lib.root, v, from)) });
+  if (!to?.trim() || to.trim() === from) return;
+  renameLoadout(lib, from, to);
+  if (pageLoadout === from) pageLoadout = to.trim();
+  refresh();
+}
+
+async function deleteLoadoutCommand(name: string): Promise<void> {
+  if (!library || !name) return;
+  if (name === activeLoadout(library, state.version)) {
+    void vscode.window.showInformationMessage(`${name} is the active loadout. Make another one active first.`);
+    return;
+  }
+  const a = await vscode.window.showWarningMessage(`Delete the loadout ${name}? The mods stay in the library; only this list of which are on goes.`, { modal: true }, "Delete loadout");
+  if (a !== "Delete loadout") return;
+  deleteLoadout(library, name);
+  pageLoadout = activeLoadout(library, state.version);
+  await updatePage();
+}
+
+async function exportLoadoutCommand(name: string): Promise<void> {
+  if (!library || !name) return;
+  const dest = await vscode.window.showSaveDialog({ title: `Export ${name}`, defaultUri: vscode.Uri.file(path.join(os.homedir(), `${name}.json`)), filters: { Loadout: ["json"] } });
+  if (!dest) return;
+  exportLoadout(library, name, dest.fsPath, state.version);
+  void vscode.window.showInformationMessage(`${name} exported to ${dest.fsPath}.`);
+}
+
+async function importLoadoutCommand(): Promise<void> {
+  if (!library) return;
+  const picked = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectMany: false, filters: { Loadout: ["json"] }, openLabel: "Import", title: "Import a loadout" });
+  if (!picked?.length) return;
+  const name = importLoadout(library, picked[0].fsPath);
+  pageLoadout = name;
+  log.appendLine(`Loadout imported as ${name} from ${picked[0].fsPath}`);
+  await updatePage();
+  void vscode.window.showInformationMessage(`Imported as the loadout ${name}. It is not active; the REDdeck page shows it.`);
+}
+
+/** Makes a loadout the active one and offers to deploy it. */
+async function switchLoadout(name: string): Promise<void> {
+  if (!library || !name) return;
+  if (name === activeLoadout(library, state.version)) return;
+  const r = makeActive(library, name, state.version);
+  pageLoadout = name;
+  log.appendLine(`Loadout ${name} active: ${r.on} on, ${r.off} off${r.missing.length ? `, not in the library: ${r.missing.join(", ")}` : ""}`);
+  refresh();
+  offerDeploy(`Loadout ${name} is active: ${r.on} mod${r.on === 1 ? "" : "s"} on.${r.missing.length ? ` ${r.missing.length} of its mods are not in the library.` : ""}`);
+}
+
+/** Switch loadout... from the Mods view's title bar: pick one to make active, or import one. */
 async function loadLoadoutCommand(): Promise<void> {
   if (!library) return;
-  const loadouts = listLoadouts(library.root);
+  const active = activeLoadout(library, state.version);
   const items = [
-    ...loadouts.map((l) => ({ label: l.name, description: `${l.mods} mods, saved ${l.saved.slice(0, 10)}`, file: l.file })),
-    { label: "$(folder-opened) Pick a loadout file...", description: "", file: "" },
+    ...listLoadouts(library.root).map((l) => ({ label: l.name, description: `${l.on} on${l.name === active ? " · active" : ""}`, name: l.name })),
+    { label: "$(add) Save as new loadout...", description: "", name: "\u0000new" },
+    { label: "$(folder-opened) Import a loadout file...", description: "", name: "\u0000import" },
   ];
-  const pick = await vscode.window.showQuickPick(items, { title: "Load a loadout", placeHolder: "Mods it names go on or off and into its order; mods it does not name are turned off." });
+  const pick = await vscode.window.showQuickPick(items, { title: `Switch loadout (active: ${active})`, placeHolder: "The one you pick goes into the mods' on/off state; deploy afterwards. Each loadout keeps its own choices." });
   if (!pick) return;
-  let file = pick.file;
-  if (!file) {
-    const picked = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectMany: false, filters: { Loadout: ["json"] }, openLabel: "Load" });
-    if (!picked?.length) return;
-    file = picked[0].fsPath;
-  }
-  const r = applyLoadout(library, file);
-  log.appendLine(`Loadout applied from ${file}: ${r.on} on, ${r.off} off, missing ${r.missing.join(", ") || "none"}, turned off ${r.extra.join(", ") || "none"}`);
-  refresh();
-  void vscode.window.showInformationMessage(`Loadout applied: ${r.on} on, ${r.off} off.${r.missing.length ? ` Not in the library: ${r.missing.join(", ")}.` : ""}${r.extra.length ? ` Turned off: ${r.extra.length} not in the loadout.` : ""} Deploy to make it real.`);
+  if (pick.name === "\u0000new") return saveLoadoutCommand();
+  if (pick.name === "\u0000import") return importLoadoutCommand();
+  await switchLoadout(pick.name);
 }
 
 /** More mods than this in one Vortex import asks first. */

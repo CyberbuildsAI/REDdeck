@@ -175,7 +175,7 @@ server.registerTool(
   "reddeck_loadout",
   {
     title: "Loadouts",
-    description: "save: writes which mods are on and in what order to a named loadout. load: applies one (mods in it go on, others go off; deploy afterwards). list: the saved loadouts.",
+    description: "Loadouts are named sets of which mods are on; one is active (the mods' on/off state, what a deploy uses), the order is shared. save: a new loadout from the state now. load: make a loadout active by name, or import a .json file and make it active (deploy afterwards). list: every loadout, the active one marked with *.",
     inputSchema: { action: z.enum(["save", "load", "list"]), name: z.string().optional().describe("The loadout's name, for save and load") },
   },
   ({ action, name }) => run(() => verbs.loadout(session(), action, name))(),

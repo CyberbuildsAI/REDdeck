@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.25.2",
+  "version": "0.26.0",
   "publisher": "edgemodders",
   "preview": true,
   "pricing": "Free",
@@ -216,12 +216,23 @@
       },
       {
         "command": "reddeck.saveLoadout",
-        "title": "Save loadout",
+        "title": "Save as new loadout...",
         "category": "REDdeck"
       },
       {
         "command": "reddeck.loadLoadout",
-        "title": "Load loadout",
+        "title": "Switch loadout...",
+        "category": "REDdeck",
+        "icon": "$(versions)"
+      },
+      {
+        "command": "reddeck.exportLoadout",
+        "title": "Export the active loadout...",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.importLoadout",
+        "title": "Import a loadout...",
         "category": "REDdeck"
       },
       {
@@ -348,9 +359,19 @@
           "group": "3_loadouts@1"
         },
         {
+          "command": "reddeck.exportLoadout",
+          "when": "view == reddeck.mods",
+          "group": "3_loadouts@3"
+        },
+        {
+          "command": "reddeck.importLoadout",
+          "when": "view == reddeck.mods",
+          "group": "3_loadouts@4"
+        },
+        {
           "command": "reddeck.loadLoadout",
           "when": "view == reddeck.mods",
-          "group": "3_loadouts@2"
+          "group": "3_loadouts@0"
         },
         {
           "command": "reddeck.getBridge",
@@ -361,6 +382,11 @@
           "command": "reddeck.pickGame",
           "when": "view == reddeck.mods",
           "group": "2_folders@3"
+        },
+        {
+          "command": "reddeck.loadLoadout",
+          "when": "view == reddeck.mods",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [

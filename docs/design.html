@@ -202,7 +202,7 @@ footer li { margin-bottom: 3px; letter-spacing: 0; text-transform: none; }
     <div class="panel"><div class="label">Can drop</div>
       <ul>
         <li><strong>Multi-game.</strong> Game discovery, per-game extensions, generic "mod types" with their own deployment targets.</li>
-        <li><strong>Profiles as a first-class concept.</strong> Most people have one. REDdeck offers "save this list as a loadout" later, as a file, not a mode.</li>
+        <li><strong>Profiles as a first-class concept.</strong> Most people have one. REDdeck has loadouts instead (0.26): one is always active and saves itself, the others are files the page can edit, and the order is shared. No profile switching ritual, no per-profile load order.</li>
         <li><strong>34 installers.</strong> Most exist to be strict about layouts. A picker that shows the user the folder tree and a guess is friendlier and covers the long tail.</li>
         <li><strong>Collections.</strong> A Nexus product with its own GraphQL API and a Vortex-specific manifest. Out of scope.</li>
         <li><strong>Redux state, LevelDB, the extension API.</strong> REDdeck state is one JSON file per mod and one for the library, which is also what makes it AI-readable.</li>
@@ -251,7 +251,7 @@ footer li { margin-bottom: 3px; letter-spacing: 0; text-transform: none; }
       <tr><td>Staging folder</td><td>Library</td><td>Where your mods are kept.</td></tr>
       <tr><td>Mod type, Installer</td><td>Kind</td><td>What is inside.</td></tr>
       <tr><td>File override rules, Load after</td><td>Conflicts, Wins</td><td>Shows the result, not the mechanism.</td></tr>
-      <tr><td>Profile</td><td>Loadout (later)</td><td>A saved list, not a mode you are in.</td></tr>
+      <tr><td>Profile</td><td>Loadout</td><td>A named set of which mods are on. One is active and is what deploys; others can be edited on the page.</td></tr>
       <tr><td>External changes dialog</td><td>"This file changed in the game folder. Keep the changed file, or put the mod's file back?"</td><td>One question, two answers.</td></tr>
       <tr><td>REDmod deploy, REDmod load order</td><td>"Prepare REDmod mods" (automatic on Deploy)</td><td>The user should not need to know REDmod has its own compiler step.</td></tr>
     </tbody>

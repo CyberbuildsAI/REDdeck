@@ -38,6 +38,12 @@ export interface PageData {
   sections: PageSection[];
   /** Names of the sections folded shut on the page. */
   collapsed: string[];
+  /** Every loadout, with how many mods it has on. */
+  loadouts: { name: string; on: number }[];
+  /** The loadout the mods' on/off state belongs to: what the game gets on the next deploy. */
+  activeLoadout: string;
+  /** The loadout the page shows; when it is not the active one, the rows' on/off and versions are its. */
+  viewing: string;
   game: string;
   library: string;
   method: "link" | "copy";
@@ -61,7 +67,10 @@ export interface PageData {
 export interface PageMessage {
   action:
     | "setup" | "downloads" | "getBridge" | "changes" | "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library"
-    | "sectionOn" | "newSection" | "renameSection" | "deleteSection" | "moveSection" | "pickSection" | "putIn" | "place" | "fold" | "sectionMoveMods" | "sectionRemoveMods";
+    | "sectionOn" | "newSection" | "renameSection" | "deleteSection" | "moveSection" | "pickSection" | "putIn" | "place" | "fold" | "sectionMoveMods" | "sectionRemoveMods"
+    | "loadoutView" | "loadoutNew" | "loadoutRename" | "loadoutDelete" | "loadoutActivate" | "loadoutExport" | "loadoutImport";
+  /** loadoutView: the loadout to show. */
+  loadout?: string;
   id?: string;
   /** The section a section action is about, or the one to put a mod in. */
   section?: string;
@@ -87,6 +96,9 @@ const Icons: Record<string, string> = {
   remove: '<path d="M2.5 4.4h11"/><path d="M6 4.4V2.6h4v1.8"/><path d="M4 4.4l.7 9h6.6l.7-9"/><path d="M6.8 6.8v4.4M9.2 6.8v4.4"/>',
   rename: '<path d="M10.6 2.6l2.8 2.8-7.9 7.9H2.7v-2.8z"/>',
   close: '<path d="M4 4l8 8M12 4l-8 8"/>',
+  add: '<path d="M8 3v10M3 8h10"/>',
+  export: '<path d="M8 10V2.5"/><path d="M5 5.5 8 2.5l3 3"/><path d="M2.5 9.5v4h11v-4"/>',
+  import: '<path d="M8 2.5V10"/><path d="M5 7l3 3 3-3"/><path d="M2.5 9.5v4h11v-4"/>',
   fold: '<path d="M4.5 6.2 8 9.8l3.5-3.6"/>',
 };
 const icon = (name: string) => `<svg viewBox="0 0 16 16" aria-hidden="true">${Icons[name]}</svg>`;
@@ -258,6 +270,13 @@ button.ico.blank { visibility: hidden; }
 button.ico:disabled, tr:hover button.ico:disabled { color: var(--dim); opacity: .3; cursor: default; border-color: transparent; }
 .gline { display: flex; align-items: center; gap: 6px; } .gline .glabel { color: var(--cyan); } .gline .dim, .gline .fwnote { letter-spacing: 0; text-transform: none; }
 .gline button.ico { width: 22px; height: 20px; }
+.loadouts { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; }
+.loadouts .ltitle { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.loadouts select { font: inherit; font-size: 12px; color: var(--fg); background: var(--vscode-dropdown-background, var(--bg)); border: 1px solid var(--vscode-dropdown-border, var(--line)); padding: 3px 8px; min-width: 220px; cursor: pointer; }
+.loadouts select:hover, .loadouts select:focus { border-color: var(--yellow); outline: none; }
+button.activate { color: var(--yellow); border-color: var(--yellow); margin-left: 6px; }
+.editing { border: 1px solid var(--cyan); color: var(--cyan); padding: 7px 12px; margin-bottom: 12px; } .editing b { color: var(--fg); font-weight: 600; }
+.stfor { text-transform: none; letter-spacing: 0; color: var(--cyan); }
 .gsep { width: 1px; height: 14px; background: var(--line); margin: 0 4px; }
 button.fold { display: inline-flex; align-items: center; gap: 4px; border: none; padding: 0 4px 0 0; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--cyan); }
 button.fold svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .12s; }
@@ -290,6 +309,25 @@ input[type=checkbox] { accent-color: var(--yellow); width: 15px; height: 15px; c
 </div>
 ${d.vortex ? `<div class="note">Vortex manages this game folder. Purge in Vortex before deploying with REDdeck.</div>` : ""}
 ${d.setup.length ? `<div class="setup"><span>Set up:</span>${d.setup.map((s) => `<button data-msg='${msg({ action: "setup", id: s.id })}' title="${esc(s.detail)}">${esc(s.label)}</button>`).join("")}</div>` : ""}
+<div class="loadouts">
+  <span class="ltitle">Loadout</span>
+  <select id="loadout" title="The loadout this page shows. The active one is what the game gets on the next deploy; another can be edited here without touching the game.">${d.loadouts
+    .map((l) => `<option value="${esc(l.name)}" ${l.name === d.viewing ? "selected" : ""}>${esc(l.name)}${l.name === d.activeLoadout ? " (active)" : ""} · ${l.on} on</option>`)
+    .join("")}</select>
+  ${(
+    [
+      { m: { action: "loadoutNew" }, icon: "add", title: "New loadout: a copy of this one, or every mod off" },
+      { m: { action: "loadoutRename" }, icon: "rename", title: "Rename this loadout" },
+      { m: { action: "loadoutExport" }, icon: "export", title: "Export this loadout to a file, to share or keep" },
+      { m: { action: "loadoutImport" }, icon: "import", title: "Import a loadout file as a new loadout" },
+      { m: { action: "loadoutDelete" }, icon: "close", title: d.viewing === d.activeLoadout ? "The active loadout cannot be deleted" : "Delete this loadout", cls: "danger", off: d.viewing === d.activeLoadout },
+    ] as { m: PageMessage; icon: string; title: string; off?: boolean; cls?: string }[]
+  )
+    .map((b) => `<button class="ico ${b.cls ?? ""}" data-msg='${msg(b.m)}' title="${b.title}" aria-label="${b.title}" ${b.off ? "disabled" : ""}>${icon(b.icon)}</button>`)
+    .join("")}
+  ${d.viewing !== d.activeLoadout ? `<button class="activate" data-msg='${msg({ action: "loadoutActivate" })}' title="Make ${esc(d.viewing)} the active loadout: its mods go on, the others off. Deploy afterwards.">Make active</button>` : ""}
+</div>
+${d.viewing !== d.activeLoadout ? `<div class="editing">Editing the loadout <b>${esc(d.viewing)}</b>. The game, the sidebar and Deploy still use <b>${esc(d.activeLoadout)}</b>. Turning mods on or off here changes ${esc(d.viewing)} only; the order, sections and the library are shared.</div>` : ""}
 <div class="filters">
   <input type="search" id="q" placeholder="Search name, version, kind or status" autocomplete="off">
   ${chips}
@@ -298,7 +336,7 @@ ${d.setup.length ? `<div class="setup"><span>Set up:</span>${d.setup.map((s) => 
   <span class="spacer"></span>
   <button data-msg='${msg({ action: "newSection" })}' title="A section of your own to group mods in">+ Section</button>
 </div>
-${d.rows.length ? `<table class="mods"><thead><tr><th class="chk"></th><th>Mod</th><th>Ver</th><th>Kind</th><th class="size">Size</th><th>Status</th><th class="acts">Actions</th></tr></thead><tbody id="rows">${body}</tbody></table><div class="empty" id="none" hidden>No mod matches.</div>` : `<div class="empty">No mods yet. Press + Add mod, or import from Vortex from the Mods view menu.</div>`}
+${d.rows.length ? `<table class="mods"><thead><tr><th class="chk"></th><th>Mod</th><th>Ver</th><th>Kind</th><th class="size">Size</th><th title="${d.viewing !== d.activeLoadout ? `What the game has, from the active loadout ${esc(d.activeLoadout)}` : ""}">Status${d.viewing !== d.activeLoadout ? ` <span class="stfor">in ${esc(d.activeLoadout)}</span>` : ""}</th><th class="acts">Actions</th></tr></thead><tbody id="rows">${body}</tbody></table><div class="empty" id="none" hidden>No mod matches.</div>` : `<div class="empty">No mods yet. Press + Add mod, or import from Vortex from the Mods view menu.</div>`}
 <div class="foot">
   <span>Library: <a data-msg='${msg({ action: "library" })}'>${esc(d.library)}</a> (${d.method === "link" ? "same drive as the game: hardlinks" : "other drive: copies"})</span>
   <span>Last deploy: ${d.lastDeploy ? esc(d.lastDeploy) : "never"}</span>
@@ -401,7 +439,7 @@ ${d.rows.length ? `<table class="mods"><thead><tr><th class="chk"></th><th>Mod</
   const table = document.querySelector("table.mods");
   if (table) {
     const ths = [...table.querySelectorAll("thead th")];
-    const flex = ths.findIndex((t) => t.textContent === "Status");
+    const flex = ths.findIndex((t) => t.textContent.startsWith("Status"));
     const widths = () => {
       const w = state.widths;
       const ok = Array.isArray(w) && w.length === ths.length;
@@ -429,6 +467,8 @@ ${d.rows.length ? `<table class="mods"><thead><tr><th class="chk"></th><th>Mod</
     widths();
   }
   for (const s of document.querySelectorAll("select.ver")) s.addEventListener("change", () => { if (s.value) vscode.postMessage(JSON.parse(s.value)); });
+  const lo = document.getElementById("loadout");
+  if (lo) lo.addEventListener("change", () => post({ action: "loadoutView", loadout: lo.value }));
   apply();
 </script>
 </body></html>`;

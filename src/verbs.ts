@@ -12,7 +12,7 @@ import { extractArchive, findSevenZip } from "./extract";
 import { checkFrameworks, frameworkSummary } from "./frameworks";
 import { findGame, gameVersion, isGameFolder } from "./game";
 import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, removeMod, saveLibrary, saveMod, type Library, type ModInfo } from "./library";
-import { applyLoadout, listLoadouts, loadoutsFolder, saveLoadout } from "./loadouts";
+import { activeLoadout, importLoadout, listLoadouts, makeActive, saveLoadout } from "./loadouts";
 import { installProject } from "./project";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { formatBytes, librarySize, modSize } from "./sizes";
@@ -199,6 +199,7 @@ export const verbs = {
     return { data: { conflicts: p.conflicts }, text: p.conflicts.map((c) => `${c.path}: ${c.winner} wins over ${c.losers.join(", ")}`).join("\n") || "no conflicts by file path" };
   },
 
+  /** save: a new loadout from the mods' state now. load: make one active (a file is imported first). list: every loadout, the active one marked. */
   loadout(s: Session, action: "save" | "load" | "list", name?: string): Verb {
     if (action === "save") {
       const file = saveLoadout(s.lib, name ?? "loadout");
@@ -206,12 +207,13 @@ export const verbs = {
     }
     if (action === "load") {
       if (!name) throw new Error("loadout load needs a name or file");
-      const file = fs.existsSync(name) ? name : path.join(loadoutsFolder(s.libraryRoot), name.endsWith(".json") ? name : `${name}.json`);
-      const r = applyLoadout(s.lib, file);
-      return { data: r, text: `loadout applied: ${r.on} on, ${r.off} off${r.missing.length ? `; missing: ${r.missing.join(", ")}` : ""}${r.extra.length ? `; turned off (not in loadout): ${r.extra.join(", ")}` : ""}; deploy to apply` };
+      const target = fs.existsSync(name) && name.toLowerCase().endsWith(".json") ? importLoadout(s.lib, name) : name;
+      const r = makeActive(s.lib, target);
+      return { data: { ...r, active: target }, text: `loadout ${target} active: ${r.on} on, ${r.off} off${r.missing.length ? `; not in the library: ${r.missing.join(", ")}` : ""}; deploy to apply` };
     }
+    const active = activeLoadout(s.lib);
     const l = listLoadouts(s.libraryRoot);
-    return { data: { loadouts: l }, text: l.map((x) => `${x.name.padEnd(24)} ${x.mods} mods  ${x.saved}  ${x.file}`).join("\n") || "no loadouts" };
+    return { data: { loadouts: l, active }, text: l.map((x) => `${x.name === active ? "*" : " "} ${x.name.padEnd(24)} ${String(x.on).padStart(3)} on  ${x.file}`).join("\n") || "no loadouts" };
   },
 
   vortex(s: Session, action: "list" | "import", staging?: string): Verb {

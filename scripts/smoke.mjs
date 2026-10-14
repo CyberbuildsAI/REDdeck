@@ -418,6 +418,52 @@ console.log("changes: ok");
   console.log("loadouts: ok");
 }
 
+// Active loadouts: Default made from the state now, changes saved into it, another one edited
+// without touching the mods, switching, and export and import.
+{
+  const on = () => lib.mods.filter((m) => m.enabled).map((m) => m.id).sort();
+  const before = on();
+  delete lib.info.activeLoadout;
+  assert.equal(core.activeLoadout(lib), "Default");
+  assert.ok(core.findLoadout(libRoot, "Default"));
+  // A change to the mods goes into the active loadout.
+  const first = lib.mods.find((m) => m.enabled);
+  first.enabled = false;
+  core.saveMod(lib, first);
+  assert.ok(core.syncActiveLoadout(lib), "wrote");
+  assert.equal(core.syncActiveLoadout(lib), false, "nothing new to write");
+  const def = core.readLoadout(core.findLoadout(libRoot, "Default").file);
+  assert.equal(def.mods.find((e) => e.id === first.id).enabled, false);
+  // A second loadout, every mod off, edited while Default stays active.
+  assert.throws(() => core.newLoadout(lib, "default"), /already a loadout/);
+  core.newLoadout(lib, "Testing");
+  core.setInLoadout(lib, "Testing", first, { enabled: true });
+  assert.equal(first.enabled, false, "the mods are not touched");
+  const testing = core.readLoadout(core.findLoadout(libRoot, "Testing").file);
+  assert.deepEqual(testing.mods.filter((e) => e.enabled).map((e) => e.id), [first.id]);
+  // Switching: Testing's choices go on, everything else off; Default keeps its own.
+  const r = core.makeActive(lib, "Testing");
+  assert.equal(lib.info.activeLoadout, "Testing");
+  assert.deepEqual(on(), [first.id]);
+  assert.equal(r.on, 1);
+  assert.throws(() => core.deleteLoadout(lib, "Testing"), /active loadout/);
+  core.makeActive(lib, "Default");
+  assert.deepEqual(on(), before.filter((id) => id !== first.id));
+  // Rename, export, import under a free name, delete.
+  core.renameLoadout(lib, "Testing", "Night city");
+  assert.ok(core.findLoadout(libRoot, "Night city") && !core.findLoadout(libRoot, "Testing"));
+  const out = path.join(tmp, "shared-loadout.json");
+  core.exportLoadout(lib, "Night city", out);
+  assert.equal(core.importLoadout(lib, out), "Night city (2)");
+  core.deleteLoadout(lib, "Night city (2)");
+  core.deleteLoadout(lib, "Night city");
+  first.enabled = true;
+  core.saveMod(lib, first);
+  core.syncActiveLoadout(lib);
+  assert.deepEqual(on(), before);
+  console.log("active loadouts: ok");
+}
+
 // The command line over the same library.
 {
   const cli = (...a) => execFileSync(process.execPath, [path.join(root, "bin", "reddeck.mjs"), "--library", libRoot, "--game", game, ...a], { encoding: "utf8" }).trim();

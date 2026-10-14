@@ -85,6 +85,9 @@ A game patch is the usual reason a modded game stops starting. REDdeck records t
 
 ## 6. Deploying
 
+Deploy puts the **active loadout** in the game (see [Loadouts](#10-loadouts)).
+
+
 After each deploy, the message says how many files went in for how many mods and how many mods are in the game. **View** opens a report of exactly what changed and where; the last 30 reports stay in the library's `deploys` folder.
 
 
@@ -124,7 +127,13 @@ Sizes show next to every mod, folder and file in the Mods view, in the page's Si
 
 ## 10. Loadouts
 
-**Save loadout** writes which mods are on and in what order, with the game version, to a file in the library's `loadouts` folder. **Load loadout** applies one: mods in it go on, mods not in it go off, and missing mods are named. Loadouts are plain JSON, fine to share.
+A loadout is a named set of which mods are on, and which version of each. (Other mod managers call these profiles.) One loadout is always **active**: it is what the Mods view shows, what you change when you turn mods on or off, and what Deploy puts in the game. Your first one is called Default. The library, the sections and the load order are shared by every loadout.
+
+- **Switch loadout** (the button in the Mods view's title bar, or **Make active** on the REDdeck page) puts another loadout's choices in place. Deploy afterwards to change the game. Nothing is lost: every change saves into the loadout it was made in.
+- **On the REDdeck page**, the Loadout dropdown shows any loadout. Pick one that is not active and the page edits it: a banner says so, and its checkboxes, section boxes and version choices change that loadout only. The game and the Mods view keep the active one. The Status column still describes the game.
+- **+** makes a new loadout, a copy of the one shown or with every mod off. The other buttons rename, export to a file, import a file as a new loadout, and delete (not the active one).
+- A mod added to the library arrives off in every loadout but the active one.
+- Loadouts are plain JSON in the library's `loadouts` folder, fine to share. Files saved by REDdeck before 0.26 load as loadouts; their order is no longer applied.
 
 ## 11. Settings
 
@@ -171,7 +180,7 @@ node bin/reddeck.mjs undo
 node bin/reddeck.mjs changes                 files changed in the game folder since the deploy
 node bin/reddeck.mjs pending                 what the next deploy does, and why
 node bin/reddeck.mjs conflicts               conflicts by file path
-node bin/reddeck.mjs loadout save <name> | load <file> | list
+node bin/reddeck.mjs loadout save <name> | load <name or file> | list
 node bin/reddeck.mjs vortex list | import
 ```
 
