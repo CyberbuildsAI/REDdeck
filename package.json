@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.21.1",
+  "version": "0.22.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -142,6 +142,11 @@
       {
         "command": "reddeck.openInExplorer",
         "title": "Reveal in File Explorer",
+        "category": "REDdeck"
+      },
+      {
+        "command": "reddeck.revealInGame",
+        "title": "Reveal in Game Folder",
         "category": "REDdeck"
       },
       {
@@ -383,6 +388,11 @@
           "group": "1_open@1"
         },
         {
+          "command": "reddeck.revealInGame",
+          "when": "view == reddeck.mods && viewItem =~ /^(mod|folder|file)$/",
+          "group": "1_open@1"
+        },
+        {
           "command": "reddeck.remove",
           "when": "view == reddeck.mods && viewItem == mod",
           "group": "9_remove@1"
@@ -423,6 +433,10 @@
         },
         {
           "command": "reddeck.openInExplorer",
+          "when": "false"
+        },
+        {
+          "command": "reddeck.revealInGame",
           "when": "false"
         },
         {

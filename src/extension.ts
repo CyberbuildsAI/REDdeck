@@ -112,6 +112,7 @@ export function activate(context: vscode.ExtensionContext): REDdeckApi {
     vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
     vscode.commands.registerCommand("reddeck.addToProject", (node: ModNode) => run(() => addToProjectCommand(node))),
     vscode.workspace.onDidChangeWorkspaceFolders(() => updateProjectContext()),
+    vscode.commands.registerCommand("reddeck.revealInGame", (node: ModNode) => run(() => revealInGameCommand(node))),
     vscode.commands.registerCommand("reddeck.openInExplorer", (node: ModNode) => {
       if (node?.type === "mod" && library) vscode.env.openExternal(vscode.Uri.file(modFolder(library, node.mod)));
     }),
@@ -1166,6 +1167,43 @@ function versionFrom(base: string): string {
   if (m) return m[3].replace(/-/g, ".");
   const v = /\b(v?\d+(?:\.\d+)+)\b/i.exec(base);
   return v ? v[1].replace(/^v/i, "") : "";
+}
+
+/**
+ * Reveal in Game Folder: where a mod, folder or file sits in the game, in File Explorer. A file is
+ * selected in its folder; a folder opens; a mod opens the deepest folder all its files share, or
+ * selects its only file. Says so when nothing of it is in the game yet.
+ */
+async function revealInGameCommand(node: ModNode): Promise<void> {
+  const mod = modOf(node);
+  if (!mod) return;
+  const { gamePath } = settings();
+  if (!isGameFolder(gamePath)) throw new Error("REDdeck does not know the game folder yet. Use REDdeck: Pick the game folder... first.");
+  const inGame = (rel: string) => path.join(gamePath, ...rel.split("/").filter(Boolean));
+  const notThere = (what: string) => vscode.window.showInformationMessage(`${what} is not in the game folder${mod.enabled ? " yet; deploy to put it there" : ": the mod is off"}.`);
+  if (node.type === "file") {
+    const target = inGame(node.file);
+    if (!fs.existsSync(target)) return void notThere(path.basename(node.file));
+    await vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(target));
+    return;
+  }
+  if (node.type === "folder") {
+    const target = inGame(node.label);
+    if (!node.files.some((f) => fs.existsSync(inGame(f)))) return void notThere(node.label || "This folder");
+    await vscode.env.openExternal(vscode.Uri.file(target));
+    return;
+  }
+  const deployed = mod.files.filter((f) => fs.existsSync(inGame(f)));
+  if (deployed.length === 0) return void notThere(mod.name);
+  if (deployed.length === 1) {
+    await vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(inGame(deployed[0])));
+    return;
+  }
+  // The deepest folder every deployed file shares; the game folder itself when they spread out.
+  const split = deployed.map((f) => f.split("/").slice(0, -1));
+  const common: string[] = [];
+  for (let i = 0; split.every((parts) => i < parts.length && parts[i].toLowerCase() === split[0][i].toLowerCase()); i++) common.push(split[0][i]);
+  await vscode.env.openExternal(vscode.Uri.file(inGame(common.join("/"))));
 }
 
 /** Adds a project's packed output as a mod that follows the project. */

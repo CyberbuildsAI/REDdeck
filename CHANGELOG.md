@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.22.0 (2026-10-14)
+
+- **Reveal in Game Folder** on a mod, a folder or a file in the Mods view shows where it sits in the game, in File Explorer: a file is selected in its folder, a folder opens, and a mod opens the deepest folder its deployed files share (or selects its only file). When nothing of it is in the game yet, REDdeck says so instead. **Reveal in File Explorer** still opens the mod's copy in the library.
+
 ## 0.21.1 (2026-10-14)
 
 - A new version takes the old one's place. Adding a mod that is a newer version of one already in the library puts it in the old version's place in the order, gives it the old version's on/off state, and turns the old one off, so two versions never overwrite each other's files. An older version arrives switched off. A toast says which, and the old version stays in the version list for going back. The same happens from the command line and the MCP server.
