@@ -62,8 +62,10 @@ A game patch is the usual reason a modded game stops starting. REDdeck records t
 
 **Open REDdeck** (the first title-bar button, or the command) opens the wide table in the editor area. Use it for bigger jobs; the sidebar is its compact companion.
 
-- **Columns:** on/off, name, version, kinds, size, status, and a `...` menu per row.
-- **Search** matches name, version, kind and status. **Facet chips** narrow to On, Off, Deployed, Not deployed, Needs deploy, Changed in game folder, Conflicts and Update available, each with its count. **Largest first** sorts by size across both groups. The page remembers your filters.
+- **Columns:** on/off, name, version, kinds, size, status, and Actions: icon buttons for Details, Move up, Move down, Section, Open folder, Open on Nexus (for a mod from Nexus) and Remove. Drag the edge of a column heading to resize it; double-click the edge for automatic widths.
+- **Sections.** Mods are grouped into Frameworks, sections of your own, and Mods. **+ Section** makes one. Put a mod in it with the mod's Section button, or drag the row onto the section's header. A section's header can rename, move or delete it; deleting sends its mods back to Mods and removes nothing. Click a section's name to fold it down to its header. The box on a header turns every mod in that section on or off. Sections only group the list: the order still decides who wins a conflict.
+- **Order.** Move up and Move down move a mod past its neighbour in its section. Or drag a row onto another to put it directly above or below that one.
+- **Search** matches name, version, kind and status. **Facet chips** narrow to On, Off, Deployed, Not deployed, Needs deploy, Changed in game folder, Conflicts and Update available, each with its count. A search or a filter opens folded sections while it lasts. **Largest first** sorts by size across every section. The page remembers your filters.
 - **The version cell** is a dropdown when the library holds more than one version of a mod, or when Nexus has a newer one: pick a version to make it the active one, or **Get x.y from Nexus**.
 - **Status** is a link when a deploy is waiting for that mod: it opens the list of files the next deploy adds, replaces, puts back or removes for it, and why.
 - **The toolbar** has Add mod, Check updates or Nexus sign in, Conflicts with a count, Undo deploy, the number of changes waiting, and Deploy.
