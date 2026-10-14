@@ -684,6 +684,26 @@ console.log("undo: ok");
   console.log("frameworks: ok");
 }
 
+// Vortex's staging folder found where the user named it, or where Vortex's manifest says, or not at all.
+{
+  const fakeGame = path.join(tmp, "vortex-game");
+  const staging = path.join(tmp, "Vortex Mods", "cyberpunk2077");
+  fs.mkdirSync(path.join(staging, "Codeware-7780-1-20-5-1777845006", "red4ext", "plugins", "Codeware"), { recursive: true });
+  fs.writeFileSync(path.join(staging, "Codeware-7780-1-20-5-1777845006", "red4ext", "plugins", "Codeware", "Codeware.dll"), "x");
+  fs.mkdirSync(fakeGame, { recursive: true });
+  const named = core.listVortexMods(fakeGame, staging);
+  assert.equal(named.length, 1);
+  assert.equal(named[0].name, "Codeware");
+  assert.equal(named[0].modId, 7780);
+  assert.ok(core.vortexStagingCandidates(fakeGame, staging)[0] === staging, "the user's folder is tried first");
+  fs.writeFileSync(path.join(fakeGame, "vortex.deployment.json"), JSON.stringify({ stagingPath: staging, files: [{ source: "Codeware-7780-1-20-5-1777845006" }] }));
+  assert.equal(core.findVortexStaging(fakeGame), staging, "the manifest's stagingPath is found without a setting");
+  assert.equal(core.listVortexMods(fakeGame)[0].deployed, true);
+  assert.equal(core.findVortexStaging(fakeGame, path.join(tmp, "nowhere")), staging, "a wrong setting falls through to the others");
+  assert.ok(core.vortexStagingCandidates(fakeGame).some((p) => /Vortex Mods[\\/]cyberpunk2077$/.test(p)), "Vortex's other-drive suggestion is searched");
+  console.log("vortex staging: ok");
+}
+
 // Vortex, if present on this machine: list and classify, import into the temp library, never write.
 const vortex = core.listVortexMods(game);
 if (vortex.length) {

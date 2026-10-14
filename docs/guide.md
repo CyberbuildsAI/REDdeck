@@ -133,6 +133,7 @@ Open Settings (`Ctrl+,`) and search for `reddeck`.
 | `reddeck.dotnetRoot` | empty | A .NET root for the REDbridge process only. Empty means the per-user .NET 10 runtime. Never set `DOTNET_ROOT` for your whole account; it breaks Vortex. |
 | `reddeck.nexusCheckUpdatesOnStart` | on | The daily Nexus update check. |
 | `reddeck.nexusClientId` | empty | The OAuth client id Nexus assigns to REDdeck. With it, sign in happens in the browser and renews itself. |
+| `reddeck.vortexStagingPath` | empty | Where Vortex keeps its mods, for Import from Vortex. Empty means REDdeck searches the usual places and asks when it finds none. |
 | `reddeck.nexusApplication` | empty | The application slug for Nexus's older single sign-on, used when there is no client id. |
 
 ## 12. The library folder

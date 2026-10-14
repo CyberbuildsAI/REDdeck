@@ -29,7 +29,7 @@ import { fetchUser, needsRefresh, OAuthTokens, refreshTokens, signInWithOAuth, t
 import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { addToProject, classifyProject, findProjectFile, projectName, syncProjects } from "./project";
-import { importFromVortex, listVortexMods } from "./vortex";
+import { importFromVortex, listVortexMods, vortexStagingCandidates } from "./vortex";
 
 let library: Library | undefined;
 let view: ModsView;
@@ -198,7 +198,7 @@ async function setupCommand(): Promise<void> {
   if (picked && !picked.step.done) await vscode.commands.executeCommand(picked.step.command);
 }
 
-function settings(): { gamePath: string; libraryPath: string; bridgePath: string; dotnetRoot: string; checkUpdates: boolean } {
+function settings(): { gamePath: string; libraryPath: string; bridgePath: string; dotnetRoot: string; checkUpdates: boolean; vortexStaging: string } {
   const cfg = vscode.workspace.getConfiguration("reddeck");
   return {
     gamePath: cfg.get<string>("gamePath", "") || detectedGame || "",
@@ -206,6 +206,7 @@ function settings(): { gamePath: string; libraryPath: string; bridgePath: string
     bridgePath: cfg.get<string>("bridgePath", ""),
     dotnetRoot: cfg.get<string>("dotnetRoot", ""),
     checkUpdates: cfg.get<boolean>("nexusCheckUpdatesOnStart", true),
+    vortexStaging: cfg.get<string>("vortexStagingPath", ""),
   };
 }
 
@@ -240,7 +241,7 @@ function reload(): void {
   }
   bridgeExe = findBridge(settings().bridgePath, extensionRoot) ?? installedBridge(storageDir) ?? "";
   try {
-    state.vortexMods = listVortexMods(gamePath).length;
+    state.vortexMods = listVortexMods(gamePath, settings().vortexStaging || undefined).length;
   } catch (err) {
     state.vortexMods = 0;
     log.appendLine(`Vortex staging folder not readable: ${String(err)}`);
@@ -1123,10 +1124,26 @@ async function loadLoadoutCommand(): Promise<void> {
 
 async function importVortexCommand(): Promise<void> {
   if (!library) return;
-  const mods = listVortexMods(settings().gamePath);
+  let mods = listVortexMods(settings().gamePath, settings().vortexStaging || undefined);
   if (!mods.length) {
-    void vscode.window.showInformationMessage("No Vortex mods for Cyberpunk 2077 were found on this machine.");
-    return;
+    // Vortex may keep its mods anywhere (Settings > Mods > Mod Staging Folder); ask once and remember.
+    const checked = vortexStagingCandidates(settings().gamePath, settings().vortexStaging || undefined);
+    log.appendLine(`Vortex mods: none found in\n  ${checked.join("\n  ")}`);
+    const a = await vscode.window.showInformationMessage(
+      "No Vortex mods for Cyberpunk 2077 were found in the usual places. Where does Vortex keep them? Vortex shows the folder under Settings > Mods > Mod Staging Folder.",
+      "Pick the folder",
+    );
+    if (a !== "Pick the folder") return;
+    const picked = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, openLabel: "Use this folder", title: "Vortex's mod staging folder for Cyberpunk 2077" });
+    if (!picked?.length) return;
+    const folder = picked[0].fsPath;
+    mods = listVortexMods(settings().gamePath, folder);
+    if (!mods.length) {
+      void vscode.window.showWarningMessage(`${folder} holds no Vortex mods. Pick the folder that has one folder per mod, often ending in cyberpunk2077.`);
+      return;
+    }
+    await vscode.workspace.getConfiguration("reddeck").update("vortexStagingPath", folder, vscode.ConfigurationTarget.Global);
+    log.appendLine(`Vortex staging folder set to ${folder}`);
   }
   const picked = await vscode.window.showQuickPick(
     mods.map((m) => ({ label: m.name, description: m.version, detail: `${m.files} files${m.deployed ? ", deployed by Vortex (will be on)" : " (will be off)"}`, picked: true, mod: m })),

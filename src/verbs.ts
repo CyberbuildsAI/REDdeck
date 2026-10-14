@@ -198,8 +198,8 @@ export const verbs = {
     return { data: { loadouts: l }, text: l.map((x) => `${x.name.padEnd(24)} ${x.mods} mods  ${x.saved}  ${x.file}`).join("\n") || "no loadouts" };
   },
 
-  vortex(s: Session, action: "list" | "import"): Verb {
-    const mods = listVortexMods(s.game);
+  vortex(s: Session, action: "list" | "import", staging?: string): Verb {
+    const mods = listVortexMods(s.game, staging);
     if (action === "import") {
       const r = importFromVortex(s.lib, mods);
       return { data: r, text: `imported ${r.added.length}, skipped ${r.skipped.length}${r.skipped.length ? `: ${r.skipped.map((x) => `${x.name} (${x.reason})`).join(", ")}` : ""}` };

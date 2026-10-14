@@ -16,8 +16,59 @@ export interface VortexMod {
   files: number;
 }
 
+/** Vortex's default staging folder for the game, in the user's AppData. */
 export function vortexStagingPath(): string {
   return path.join(process.env.APPDATA ?? path.join(process.env.USERPROFILE ?? "", "AppData", "Roaming"), "Vortex", "cyberpunk2077", "mods");
+}
+
+/** The staging folder Vortex wrote into its deployment manifest, while the game is still deployed. */
+function manifestStaging(gamePath: string | undefined): string | undefined {
+  if (!gamePath) return undefined;
+  try {
+    const m = JSON.parse(fs.readFileSync(path.join(gamePath, "vortex.deployment.json"), "utf8")) as { stagingPath?: string };
+    return m.stagingPath || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Drive roots that exist, the game's drive first. */
+function driveRoots(gamePath: string | undefined): string[] {
+  if (process.platform !== "win32") return [];
+  const first = gamePath ? path.parse(path.resolve(gamePath)).root.toUpperCase() : "";
+  const roots: string[] = first ? [first] : [];
+  for (let c = 67; c <= 90; c++) {
+    const r = `${String.fromCharCode(c)}:\\`;
+    if (r !== first && fs.existsSync(r)) roots.push(r);
+  }
+  return roots;
+}
+
+/**
+ * Every place Vortex's Cyberpunk mods may be, most likely first: the folder the user named, the one
+ * Vortex's manifest names, Vortex's default in AppData, and the folders Vortex suggests on another
+ * drive. Vortex must keep its mods on the game's drive to hardlink them, so a game outside C: often
+ * means a staging folder like "E:\\Vortex Mods\\cyberpunk2077".
+ */
+export function vortexStagingCandidates(gamePath?: string, setting?: string): string[] {
+  const list = [setting, manifestStaging(gamePath), vortexStagingPath()];
+  for (const root of driveRoots(gamePath)) {
+    list.push(path.join(root, "Vortex Mods", "cyberpunk2077"), path.join(root, "VortexMods", "cyberpunk2077"), path.join(root, "Vortex", "cyberpunk2077", "mods"), path.join(root, "Vortex", "mods", "cyberpunk2077"));
+  }
+  const seen = new Set<string>();
+  return list.filter((p): p is string => !!p && !seen.has(p.toLowerCase()) && !!seen.add(p.toLowerCase()));
+}
+
+/** The first candidate that exists and holds at least one mod folder. */
+export function findVortexStaging(gamePath?: string, setting?: string): string | undefined {
+  for (const dir of vortexStagingCandidates(gamePath, setting)) {
+    try {
+      if (fs.readdirSync(dir, { withFileTypes: true }).some((e) => e.isDirectory() && !e.name.startsWith("__"))) return dir;
+    } catch {
+      // Not there.
+    }
+  }
+  return undefined;
 }
 
 function countFiles(dir: string): number {
@@ -47,9 +98,14 @@ export function guessName(folder: string): string | undefined {
   return undefined;
 }
 
-/** Lists Vortex's mods for this game. `gamePath` is used to read which ones are deployed. */
-export function listVortexMods(gamePath: string, staging = vortexStagingPath()): VortexMod[] {
-  if (!fs.existsSync(staging)) return [];
+/**
+ * Lists Vortex's mods for this game. `gamePath` is used to read which ones are deployed and to find
+ * the staging folder; `staging` overrides the search (a folder the user named).
+ */
+export function listVortexMods(gamePath: string, staging?: string): VortexMod[] {
+  const dir = findVortexStaging(gamePath, staging);
+  if (!dir) return [];
+  staging = dir;
   const deployed = new Set<string>();
   const manifest = path.join(gamePath, "vortex.deployment.json");
   if (fs.existsSync(manifest)) {

@@ -2,7 +2,7 @@
   "name": "reddeck",
   "displayName": "REDdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -487,6 +487,11 @@
           "type": "string",
           "default": "",
           "description": "The application slug Nexus Mods registered for REDdeck's older single sign-on. Used when there is no client id. Empty means sign-in opens the API Access page and asks you to paste the key."
+        },
+        "reddeck.vortexStagingPath": {
+          "type": "string",
+          "default": "",
+          "description": "Where Vortex keeps its Cyberpunk 2077 mods (Vortex: Settings > Mods > Mod Staging Folder), for Import from Vortex. Empty means REDdeck looks in Vortex's deployment manifest, Vortex's default folder in AppData, and \"Vortex Mods\\cyberpunk2077\" on each drive, and asks when none has mods."
         }
       }
     },

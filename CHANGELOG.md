@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.20.1 (2026-10-13)
+
+- Import from Vortex finds Vortex's mods when Vortex keeps them outside its default folder in AppData, as it must when the game is on another drive. REDdeck looks in Vortex's deployment manifest, the default folder, and "Vortex Mods\cyberpunk2077" (and similar) on every drive, the game's first. When none has mods, it asks for the folder (Vortex shows it under Settings > Mods > Mod Staging Folder) and remembers it in `reddeck.vortexStagingPath`.
+
 ## 0.20.0 (2026-10-13)
 
 - REDnode packages are a kind of their own. A zip or folder with a `rednode-app.json` deploys into REDnode's apps folder, `red4ext/plugins/REDnode/apps/<id>/`, under the id the manifest gives, wherever the manifest sits in the zip; a zip laid out with that path already works too. REDnode itself stays in the Frameworks group. Overlay apps and Node mods such as EDGEbuilder and REDagent install like any other mod, and the REDnode host picks them up while it runs.
