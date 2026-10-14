@@ -17,10 +17,11 @@ import { DetailPanel } from "./detailPanel";
 import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family, settleNewVersion, familiesWithTwoOn, familyKey } from "./families";
 import { checkFrameworks, frameworkDetail, frameworkSummary, type FrameworkCheck } from "./frameworks";
 import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
+import { addSection, deleteSection, moveInSection, moveSection, placeNextTo, putInSection, renameSection, sectionNameOf, sectionNameProblem, sectionsOf, setSectionOn } from "./sections";
 import { forgetSizes, librarySize, modSize } from "./sizes";
 import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
 import { findGame, gameVersion, isGameFolder, steamLibraries } from "./game";
-import { addMod, defaultLibraryPath, downloadsFolder, keepDownload, loadLibrary, modFolder, moveMod, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
+import { addMod, defaultLibraryPath, downloadsFolder, keepDownload, loadLibrary, modFolder, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { applyLoadout, listLoadouts, saveLoadout } from "./loadouts";
 import { ModsView, type ModNode, type SetupStep } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
@@ -709,8 +710,10 @@ async function pageData() {
   const manifest = readManifest(s.gamePath);
   const manifestMods = new Set((manifest?.files ?? []).map((e) => e.mod));
   const when = manifest?.time ? new Date(manifest.time) : undefined;
+  const sections = library ? sectionsOf(library).map((sec) => ({ name: sec.name, user: sec.user, rows: sec.families.map((f) => pageRow(f, manifestMods)) })) : [];
   return {
-    rows: library ? families(library).map((f) => pageRow(f, manifestMods)) : [],
+    rows: sections.flatMap((sec) => sec.rows),
+    sections,
     game: state.version ? `Cyberpunk 2077 ${state.version}` : "game not found",
     library: library?.root ?? s.libraryPath,
     method: state.plan?.method ?? ("link" as const),
@@ -776,6 +779,26 @@ async function pageAction(m: PageMessage): Promise<void> {
         void vscode.env.openExternal(vscode.Uri.file(downloadsFolder(library.root)));
       }
       return;
+    case "newSection":
+      await newSectionCommand();
+      return;
+    case "renameSection":
+      return renameSectionCommand(m.section);
+    case "deleteSection":
+      return deleteSectionCommand(m.section);
+    case "moveSection":
+      if (library && m.section && m.delta) {
+        moveSection(library, m.section, m.delta);
+        refresh();
+      }
+      return;
+    case "sectionOn":
+      if (library && m.section) {
+        const n = setSectionOn(library, m.section, !!m.on);
+        log.appendLine(`${m.section}: every mod ${m.on ? "on" : "off"} (${n} changed)`);
+        refresh();
+      }
+      return;
   }
   if (!mod || !library) return;
   switch (m.action) {
@@ -809,7 +832,78 @@ async function pageAction(m: PageMessage): Promise<void> {
     case "remove":
       await removeCommand(mod);
       break;
+    case "pickSection":
+      await pickSectionCommand(mod);
+      break;
+    case "putIn":
+      if (m.section) {
+        putInSection(library, mod, m.section);
+        refresh();
+      }
+      break;
+    case "place": {
+      const target = m.target ? library.mods.find((x) => x.id === m.target) : undefined;
+      if (target) {
+        placeNextTo(library, mod, target, !!m.below);
+        log.appendLine(`${mod.name}: placed ${m.below ? "below" : "above"} ${target.name}`);
+        refresh();
+      }
+      break;
+    }
   }
+}
+
+// ---- sections ------------------------------------------------------------------------------------
+
+/** Asks for a new section's name; returns it once made. */
+async function newSectionCommand(): Promise<string | undefined> {
+  if (!library) return undefined;
+  const lib = library;
+  const name = await vscode.window.showInputBox({ title: "New section", prompt: "A group of your own for the mods list, shown between Frameworks and Mods", validateInput: (v) => sectionNameProblem(lib, v) });
+  if (!name) return undefined;
+  addSection(lib, name);
+  refresh();
+  return name.trim();
+}
+
+async function renameSectionCommand(from: string | undefined): Promise<void> {
+  if (!library || !from) return;
+  const lib = library;
+  const to = await vscode.window.showInputBox({ title: `Rename ${from}`, value: from, validateInput: (v) => (v.trim() === from ? undefined : sectionNameProblem(lib, v, from)) });
+  if (!to || to.trim() === from) return;
+  renameSection(lib, from, to);
+  refresh();
+}
+
+async function deleteSectionCommand(name: string | undefined): Promise<void> {
+  if (!library || !name) return;
+  const count = sectionsOf(library).find((sec) => sec.name === name)?.families.length ?? 0;
+  if (count) {
+    const a = await vscode.window.showWarningMessage(`Delete the section ${name}? Its ${count} mod${count === 1 ? "" : "s"} go back to Mods (or Frameworks). Nothing is removed from the library.`, { modal: true }, "Delete section");
+    if (a !== "Delete section") return;
+  }
+  deleteSection(library, name);
+  refresh();
+}
+
+/** Quick pick of the sections, to put a mod in one; "New section..." makes one first. */
+async function pickSectionCommand(mod: ModInfo | undefined): Promise<void> {
+  if (!mod || !library) return;
+  const fam = familyOf(library, mod);
+  const current = sectionNameOf(library, fam);
+  const New = "$(add) New section...";
+  const names = sectionsOf(library).map((sec) => sec.name);
+  if (!names.includes("Frameworks") && mod.kinds.includes("framework")) names.unshift("Frameworks");
+  const pick = await vscode.window.showQuickPick(
+    [...names.map((n) => ({ label: n, description: n === current ? "here now" : "" })), { label: New, description: "" }],
+    { title: `${fam.name}: which section?`, placeHolder: "Sections only group the list; the order still decides who wins a conflict" },
+  );
+  if (!pick || pick.label === current) return;
+  const name = pick.label === New ? await newSectionCommand() : pick.label;
+  if (!name) return;
+  putInSection(library, mod, name);
+  log.appendLine(`${fam.name}: in section ${name}`);
+  refresh();
 }
 
 /** Makes this version the one the mod's row stands for. */
@@ -1396,10 +1490,10 @@ async function removeCommand(mod: ModInfo | undefined): Promise<void> {
   reload();
 }
 
+/** Moves a mod past its neighbour in its section, the row above or below it on the page and in the tree. */
 function move(mod: ModInfo | undefined, delta: -1 | 1): void {
   if (!mod || !library) return;
-  moveMod(library, mod, delta);
-  refresh();
+  if (moveInSection(library, mod, delta)) refresh();
 }
 
 // ---- Nexus Mods ----------------------------------------------------------------------------------

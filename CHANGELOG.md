@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.23.0 (2026-10-14)
+
+- **Sections of your own.** + Section on the mods page makes a section, shown between Frameworks and Mods, in the page and the Mods view. Put a mod in one with its section button, or drag its row onto the section's header. A section can be renamed, moved up or down and deleted; deleting one sends its mods back to Mods (or Frameworks) and removes nothing. Sections only group the list: the order still decides who wins a conflict. They are kept in library.json (`sections`, `sectionOf`) by mod family, so a new version stays in its section.
+- **A box on each section's header** turns every mod in it on or off. It shows a dash when some are on.
+- **Icon buttons instead of the ... menu:** Details, Move up, Move down, Section, Open folder, Open on Nexus (when it is from Nexus) and Remove, in a column now headed Actions. Move up and down move a mod past its neighbour within its section, on the page, in the Mods view and in the detail panel.
+- **Drag a row** onto another to put it directly above or below that one, in that one's section.
+- **Resizable columns:** drag the edge of a column heading; double-click it to go back to automatic widths. Status takes the room that is left. Widths are kept while the page is open.
+
 ## 0.22.0 (2026-10-14)
 
 - **Reveal in Game Folder** on a mod, a folder or a file in the Mods view shows where it sits in the game, in File Explorer: a file is selected in its folder, a folder opens, and a mod opens the deepest folder its deployed files share (or selects its only file). When nothing of it is in the game yet, REDdeck says so instead. **Reveal in File Explorer** still opens the mod's copy in the library.

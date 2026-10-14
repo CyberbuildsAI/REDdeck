@@ -332,6 +332,62 @@ console.log("changes: ok");
   console.log("placeAbove: ok");
 }
 
+// Sections: a user section between Frameworks and Mods; moving, placing and turning a section on or off.
+{
+  const before = [...lib.info.order];
+  const enabled = new Map(lib.mods.map((m) => [m.id, m.enabled]));
+  const names = () => core.sectionsOf(lib).map((s) => s.name);
+  const where = (m) => core.sectionsOf(lib).find((s) => s.families.some((f) => f.active.id === m.id))?.name;
+  assert.equal(names().at(-1), "Mods", "Mods comes last");
+  core.addSection(lib, "Visual");
+  core.addSection(lib, "Gameplay");
+  assert.throws(() => core.addSection(lib, "mods"), /already a section/);
+  assert.throws(() => core.addSection(lib, "visual"), /already a section/);
+  assert.deepEqual(names().slice(-3), ["Visual", "Gameplay", "Mods"]);
+  const plain = lib.mods.filter((m) => !m.kinds.includes("framework"));
+  assert.ok(plain.length >= 2, "the fake library has two plain mods");
+  const [a, b] = plain;
+  core.putInSection(lib, a, "Gameplay");
+  core.putInSection(lib, b, "Gameplay");
+  assert.equal(where(a), "Gameplay");
+  const reread = core.loadLibrary(libRoot, game);
+  assert.equal(reread.info.sectionOf[core.familyKey(a)], "Gameplay", "kept in library.json");
+  // Moving within the section: the two swap, whatever sits between them elsewhere.
+  const fam = () => core.sectionsOf(lib).find((s) => s.name === "Gameplay").families.map((f) => f.active.id);
+  const top = fam()[0];
+  assert.equal(core.moveInSection(lib, lib.mods.find((m) => m.id === top), -1), false, "the first cannot go up");
+  assert.ok(core.moveInSection(lib, lib.mods.find((m) => m.id === top), 1));
+  assert.equal(fam()[1], top, "moved down past its neighbour");
+  // Placing next to a mod in another section moves it there too.
+  const other = lib.mods.find((m) => m.id !== a.id && m.id !== b.id && !m.kinds.includes("framework"));
+  if (other) {
+    core.placeNextTo(lib, other, a, true);
+    assert.equal(where(other), "Gameplay");
+    assert.equal(lib.info.order.indexOf(other.id), lib.info.order.indexOf(a.id) + 1, "directly below");
+    core.putInSection(lib, other, "Mods");
+    assert.equal(lib.info.sectionOf[core.familyKey(other)], undefined, "back where its kinds put it: no entry");
+  }
+  // A section's box.
+  core.setSectionOn(lib, "Gameplay", false);
+  assert.ok(!a.enabled && !b.enabled);
+  core.setSectionOn(lib, "Gameplay", true);
+  assert.ok(a.enabled && b.enabled);
+  core.moveSection(lib, "Gameplay", -1);
+  assert.deepEqual(names().slice(-3), ["Gameplay", "Visual", "Mods"]);
+  core.renameSection(lib, "Gameplay", "Play");
+  assert.equal(where(a), "Play");
+  core.deleteSection(lib, "Play");
+  core.deleteSection(lib, "Visual");
+  assert.equal(where(a), "Mods", "back in Mods");
+  assert.deepEqual(lib.info.sections, []);
+  for (const m of lib.mods) if (m.enabled !== enabled.get(m.id)) { m.enabled = enabled.get(m.id); core.saveMod(lib, m); }
+  lib.info.order = before;
+  const rank = new Map(before.map((id, k) => [id, k]));
+  lib.mods.sort((x, y) => rank.get(x.id) - rank.get(y.id));
+  core.saveLibrary(lib);
+  console.log("sections: ok");
+}
+
 // Loadouts: save the current set, change things, load it back.
 {
   const file = core.saveLoadout(lib, "smoke", "2.31");

@@ -38,6 +38,10 @@ export interface LibraryInfo {
   gamePath: string;
   /** Mod ids, first wins a conflict. */
   order: string[];
+  /** The user's own sections, in display order, shown between Frameworks and Mods. */
+  sections?: string[];
+  /** Family key to section name, for families put somewhere other than where their kinds put them. */
+  sectionOf?: Record<string, string>;
 }
 
 export interface Library {

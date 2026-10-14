@@ -1,4 +1,4 @@
-// The Mods view: one list, grouped into Frameworks and Mods, with a checkbox and a status per mod.
+// The Mods view: one list, grouped into Frameworks, the user's sections and Mods, with a checkbox and a status per mod.
 // A mod expands into the folders and files it deploys; a file opens from the library copy.
 
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 import { families } from "./families";
 import { frameworkDetail, frameworkSummary, type FrameworkCheck } from "./frameworks";
 import { modFolder, type Library, type ModInfo } from "./library";
+import { sectionsOf } from "./sections";
 import { formatBytes, modSize } from "./sizes";
 
 /** One thing REDdeck needs or can use that is not in place yet; the row is a button for it. */
@@ -19,7 +20,7 @@ export interface SetupStep {
 const SetupIcons: Record<SetupStep["id"], string> = { game: "folder-opened", bridge: "cloud-download", nexus: "account", links: "link", vortex: "archive" };
 
 export type ModNode =
-  | { type: "group"; label: string; mods: ModInfo[]; steps?: SetupStep[] }
+  | { type: "group"; label: string; mods: ModInfo[]; steps?: SetupStep[]; user?: boolean }
   | { type: "setup"; step: SetupStep }
   | { type: "mod"; mod: ModInfo }
   | { type: "folder"; mod: ModInfo; label: string; files: string[] }
@@ -54,14 +55,10 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
       // No mods: the view's welcome content takes over, with the setup buttons in it.
       if (!lib.mods.length) return [];
       // One node per mod; a mod with several versions in the library shows its active one.
-      const active = families(lib).map((f) => f.active);
-      const frameworks = active.filter((m) => m.kinds.includes("framework"));
-      const mods = active.filter((m) => !m.kinds.includes("framework"));
       const groups: ModNode[] = [];
       const steps = this.setup();
       if (steps.length) groups.push({ type: "group", label: "Set up", mods: [], steps });
-      if (frameworks.length) groups.push({ type: "group", label: "Frameworks", mods: frameworks });
-      groups.push({ type: "group", label: "Mods", mods });
+      for (const sec of sectionsOf(lib)) groups.push({ type: "group", label: sec.name, mods: sec.families.map((f) => f.active), user: sec.user });
       return groups;
     }
     if (node.type === "group") return node.steps ? node.steps.map((step) => ({ type: "setup", step })) : node.mods.map((mod) => ({ type: "mod", mod }));
@@ -97,7 +94,7 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
       const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.Expanded);
       item.description = `${node.mods.length}, ${on} on`;
       item.contextValue = "group";
-      const check = node.label === "Frameworks" ? this.frameworks() : undefined;
+      const check = node.label === "Frameworks" && !node.user ? this.frameworks() : undefined;
       if (check) {
         const summary = frameworkSummary(check);
         if (summary) item.description += ` · ${summary}`;
