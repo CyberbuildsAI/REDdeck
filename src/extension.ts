@@ -1523,6 +1523,9 @@ async function loadLoadoutCommand(): Promise<void> {
   void vscode.window.showInformationMessage(`Loadout applied: ${r.on} on, ${r.off} off.${r.missing.length ? ` Not in the library: ${r.missing.join(", ")}.` : ""}${r.extra.length ? ` Turned off: ${r.extra.length} not in the loadout.` : ""} Deploy to make it real.`);
 }
 
+/** More mods than this in one Vortex import asks first. */
+const VortexConfirmOver = 20;
+
 async function importVortexCommand(): Promise<void> {
   if (!library) return;
   let mods = listVortexMods(settings().gamePath, settings().vortexStaging || undefined);
@@ -1563,6 +1566,16 @@ async function importVortexCommand(): Promise<void> {
     },
   );
   if (!picked?.length) return;
+  // A big import is usually a slip (ticks hidden by the search): ask before copying that many.
+  if (picked.length > VortexConfirmOver) {
+    const go = `Import ${picked.length}`;
+    const a = await vscode.window.showWarningMessage(
+      `Import ${picked.length} mods from Vortex?`,
+      { modal: true, detail: `${picked.slice(0, 10).map((p) => p.mod.name).join("\n")}${picked.length > 10 ? `\n...and ${picked.length - 10} more` : ""}\n\nTicks stay on mods a search hides; if you meant fewer, choose Cancel and pick again.` },
+      go,
+    );
+    if (a !== go) return;
+  }
   const added: ModInfo[] = [];
   const skipped: { name: string; reason: string }[] = [];
   let stopped = false;
