@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.24.0 (2026-10-14)
+
+- **Sections fold.** Click a section's name (or its arrow) on the mods page to fold it down to its header and click again to open it. Folded sections stay folded across restarts. A search or a filter opens them while it lasts, so nothing is hidden from a search. A folded header still takes dropped rows, and its box still turns the whole section on or off.
+
 ## 0.23.1 (2026-10-14)
 
 - The action icons are a soft grey: they brighten on the row under the mouse, and the one under the pointer turns yellow (red for Remove).

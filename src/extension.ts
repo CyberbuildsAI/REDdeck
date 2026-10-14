@@ -714,6 +714,7 @@ async function pageData() {
   return {
     rows: sections.flatMap((sec) => sec.rows),
     sections,
+    collapsed: globalState.get<string[]>(FoldedKey, []),
     game: state.version ? `Cyberpunk 2077 ${state.version}` : "game not found",
     library: library?.root ?? s.libraryPath,
     method: state.plan?.method ?? ("link" as const),
@@ -792,6 +793,16 @@ async function pageAction(m: PageMessage): Promise<void> {
         refresh();
       }
       return;
+    case "fold": {
+      // Kept for next time; the page has already folded it, so no re-render.
+      const folded = new Set(globalState.get<string[]>(FoldedKey, []));
+      if (m.section) {
+        if (m.on) folded.add(m.section);
+        else folded.delete(m.section);
+        await globalState.update(FoldedKey, [...folded]);
+      }
+      return;
+    }
     case "sectionOn":
       if (library && m.section) {
         const n = setSectionOn(library, m.section, !!m.on);
@@ -855,6 +866,9 @@ async function pageAction(m: PageMessage): Promise<void> {
 
 // ---- sections ------------------------------------------------------------------------------------
 
+/** Sections folded shut on the mods page, by name. */
+const FoldedKey = "reddeck.foldedSections";
+
 /** Asks for a new section's name; returns it once made. */
 async function newSectionCommand(): Promise<string | undefined> {
   if (!library) return undefined;
@@ -872,6 +886,8 @@ async function renameSectionCommand(from: string | undefined): Promise<void> {
   const to = await vscode.window.showInputBox({ title: `Rename ${from}`, value: from, validateInput: (v) => (v.trim() === from ? undefined : sectionNameProblem(lib, v, from)) });
   if (!to || to.trim() === from) return;
   renameSection(lib, from, to);
+  const folded = globalState.get<string[]>(FoldedKey, []);
+  if (folded.includes(from)) await globalState.update(FoldedKey, folded.map((n) => (n === from ? to.trim() : n)));
   refresh();
 }
 

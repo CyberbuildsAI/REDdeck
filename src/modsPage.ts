@@ -36,6 +36,8 @@ export interface PageData {
   rows: PageRow[];
   /** The rows grouped for display, in order: Frameworks, the user's sections, Mods. */
   sections: PageSection[];
+  /** Names of the sections folded shut on the page. */
+  collapsed: string[];
   game: string;
   library: string;
   method: "link" | "copy";
@@ -59,11 +61,11 @@ export interface PageData {
 export interface PageMessage {
   action:
     | "setup" | "downloads" | "getBridge" | "changes" | "toggle" | "details" | "activate" | "moveUp" | "moveDown" | "open" | "nexus" | "update" | "remove" | "add" | "deploy" | "undo" | "updates" | "conflicts" | "signIn" | "library"
-    | "sectionOn" | "newSection" | "renameSection" | "deleteSection" | "moveSection" | "pickSection" | "putIn" | "place";
+    | "sectionOn" | "newSection" | "renameSection" | "deleteSection" | "moveSection" | "pickSection" | "putIn" | "place" | "fold";
   id?: string;
   /** The section a section action is about, or the one to put a mod in. */
   section?: string;
-  /** sectionOn: on or off. */
+  /** sectionOn: on or off. fold: folded shut or open. */
   on?: boolean;
   /** moveSection: up or down. */
   delta?: -1 | 1;
@@ -82,6 +84,7 @@ const Icons: Record<string, string> = {
   nexus: '<path d="M9.2 2.5h4.3v4.3"/><path d="M13.5 2.5 7.6 8.4"/><path d="M12 9.6v3.9H2.5V4h3.9"/>',
   remove: '<path d="M2.5 4.4h11"/><path d="M6 4.4V2.6h4v1.8"/><path d="M4 4.4l.7 9h6.6l.7-9"/><path d="M6.8 6.8v4.4M9.2 6.8v4.4"/>',
   rename: '<path d="M10.6 2.6l2.8 2.8-7.9 7.9H2.7v-2.8z"/>',
+  fold: '<path d="M4.5 6.2 8 9.8l3.5-3.6"/>',
 };
 const icon = (name: string) => `<svg viewBox="0 0 16 16" aria-hidden="true">${Icons[name]}</svg>`;
 
@@ -196,7 +199,7 @@ function render(d: PageData, csp: string): string {
     const box = s.rows.length
       ? `<input type="checkbox" class="all" data-section="${esc(s.name)}" ${all ? "checked" : ""} data-some="${some ? 1 : 0}" title="${all ? "Turn off" : "Turn on"} every mod in ${esc(s.name)}">`
       : "";
-    return `<tr class="group" data-groupfor="${esc(s.name)}"><td class="chk">${box}</td><td colspan="6"><div class="gline"><span class="glabel">${esc(s.name)}</span> <span class="dim">${s.rows.length}, ${n} on, ${fmt(s.rows.reduce((t, r) => t + r.size, 0))}</span>${note(s)}<span class="spacer"></span>${tools}</div></td></tr>`;
+    return `<tr class="group ${d.collapsed.includes(s.name) ? "folded" : ""}" data-groupfor="${esc(s.name)}"><td class="chk">${box}</td><td colspan="6"><div class="gline"><button class="fold" data-fold="${esc(s.name)}" aria-expanded="${d.collapsed.includes(s.name) ? "false" : "true"}" title="Fold or unfold ${esc(s.name)}">${icon("fold")}<span class="glabel">${esc(s.name)}</span></button> <span class="dim">${s.rows.length}, ${n} on, ${fmt(s.rows.reduce((t, r) => t + r.size, 0))}</span>${note(s)}<span class="spacer"></span>${tools}</div></td></tr>`;
   };
   const body = d.sections
     .map((s) => groupRow(s) + (s.rows.length ? s.rows.map((r, i) => row(r, s.name, i === 0, i === s.rows.length - 1)).join("") : `<tr class="hint" data-hintfor="${esc(s.name)}"><td></td><td colspan="6">Empty. Drag mods here, or use a mod's section button.</td></tr>`))
@@ -243,6 +246,10 @@ button.ico.blank { visibility: hidden; }
 button.ico:disabled, tr:hover button.ico:disabled { color: var(--dim); opacity: .3; cursor: default; border-color: transparent; }
 .gline { display: flex; align-items: center; gap: 6px; } .gline .glabel { color: var(--cyan); } .gline .dim, .gline .fwnote { letter-spacing: 0; text-transform: none; }
 .gline button.ico { width: 22px; height: 20px; }
+button.fold { display: inline-flex; align-items: center; gap: 4px; border: none; padding: 0 4px 0 0; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--cyan); }
+button.fold svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .12s; }
+button.fold:hover, button.fold:hover .glabel { color: var(--yellow); }
+tr.folded button.fold svg { transform: rotate(-90deg); }
 tr.hint td { color: var(--dim); font-style: italic; font-size: 12px; }
 tr[draggable] { cursor: grab; } tr.dragging { opacity: .4; }
 tr.dropabove td { box-shadow: inset 0 2px 0 var(--yellow); } tr.dropbelow td { box-shadow: inset 0 -2px 0 var(--yellow); }
@@ -305,16 +312,22 @@ ${d.rows.length ? `<table class="mods"><thead><tr><th class="chk"></th><th>Mod</
   const q = document.getElementById("q");
   const rows = [...document.querySelectorAll("tr[data-facets]")];
   const groups = [...document.querySelectorAll("tr.group")];
+  // Folded sections show only their header; a search or a filter opens them while it lasts.
+  const folded = new Set(${JSON.stringify(d.collapsed).replace(/</g, "\\u003c")});
   function apply() {
     const needle = state.q.trim().toLowerCase();
     let shown = 0;
     for (const r of rows) {
       const ok = (state.facet === "all" || r.dataset.facets.split(" ").includes(state.facet)) && (!needle || r.dataset.text.includes(needle));
-      r.hidden = !ok; if (ok) shown++;
+      r.dataset.match = ok ? "1" : ""; if (ok) shown++;
     }
     const filtering = !!needle || state.facet !== "all";
-    for (const g of groups) g.hidden = state.bySize || (filtering && !rows.some((r) => !r.hidden && r.dataset.group === g.dataset.groupfor));
-    for (const h of document.querySelectorAll("tr.hint")) h.hidden = state.bySize || filtering;
+    for (const r of rows) r.hidden = !r.dataset.match || (!filtering && !state.bySize && folded.has(r.dataset.group));
+    for (const g of groups) {
+      g.hidden = state.bySize || (filtering && !rows.some((r) => r.dataset.match && r.dataset.group === g.dataset.groupfor));
+      g.classList.toggle("folded", !filtering && folded.has(g.dataset.groupfor));
+    }
+    for (const h of document.querySelectorAll("tr.hint")) h.hidden = state.bySize || filtering || folded.has(h.dataset.hintfor);
     for (const c of document.querySelectorAll(".chip")) c.classList.toggle("active", c.dataset.facet === state.facet);
     const none = document.getElementById("none"); if (none) none.hidden = shown > 0;
     vscode.setState(state);
@@ -323,6 +336,14 @@ ${d.rows.length ? `<table class="mods"><thead><tr><th class="chk"></th><th>Mod</
   for (const c of document.querySelectorAll(".chip[data-facet]")) c.addEventListener("click", () => { state.facet = c.dataset.facet; apply(); });
   document.getElementById("bysize").addEventListener("click", () => { state.bySize = !state.bySize; order(); apply(); });
   order();
+  for (const b of document.querySelectorAll("button.fold")) b.addEventListener("click", () => {
+    const name = b.dataset.fold;
+    const on = !folded.has(name);
+    if (on) folded.add(name); else folded.delete(name);
+    b.setAttribute("aria-expanded", on ? "false" : "true");
+    post({ action: "fold", section: name, on });
+    apply();
+  });
   for (const b of document.querySelectorAll("button[data-msg], a[data-msg]")) b.addEventListener("click", () => post(JSON.parse(b.dataset.msg)));
   for (const c of document.querySelectorAll("input[type=checkbox][data-msg]")) c.addEventListener("change", () => vscode.postMessage(JSON.parse(c.dataset.msg)));
   // A section's box: on when every mod in it is on, a dash when some are; a click turns them all on or off.
