@@ -1,0 +1,65 @@
+# Publishes a release when a version tag is pushed: git tag v0.25.0 && git push origin v0.25.0
+# Checks the tag against package.json, builds, tests, packages for Windows x64, then publishes to
+# the VS Code Marketplace (VSCE_PAT) and Open VSX (OVSX_PAT, skipped while that secret is not set)
+# and attaches the .vsix to a GitHub release. Both tokens are Edgemodders organisation secrets.
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: The tag matches package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
+            exit 1
+          fi
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run smoke
+
+      - name: Package
+        run: npx vsce package --no-dependencies --target win32-x64 --readme-path docs/marketplace.md --out "dist/reddeck-${VERSION}.vsix"
+
+      - name: VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath "dist/reddeck-${VERSION}.vsix"
+
+      - name: Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "${OVSX_PAT}" ]; then
+            echo "::warning::OVSX_PAT is not set; not published to Open VSX"
+            exit 0
+          fi
+          npx ovsx publish "dist/reddeck-${VERSION}.vsix" --target win32-x64 --pat "${OVSX_PAT}"
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=$(node -e "const s=require('fs').readFileSync('CHANGELOG.md','utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' '));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}")
+          gh release create "${GITHUB_REF_NAME}" "dist/reddeck-${VERSION}.vsix" --title "REDdeck ${VERSION}" --notes "${notes}"

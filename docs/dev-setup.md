@@ -64,3 +64,10 @@ The site at https://edgemodders.github.io/REDdeck/ is built by `.github/workflow
 | `docs/assets/brand/social.png` | Upload by hand in Settings > General > Social preview |
 | `docs/assets/brand/icon.png` | Extension and site icon (copied to `images/icon.png`) |
 | `docs/assets/brand/badges/*.svg` | README badges. Edit the list in `tools/brand/badges.py` |
+
+## Publishing (2026-10-14)
+
+- `ovsx` (Open VSX command line) added as a dev dependency: `npm i -D ovsx` (1.2.x). `@vscode/vsce` was already one.
+- The publisher `edgemodders` was made by the owner at https://marketplace.visualstudio.com/manage, with an Azure DevOps token scoped Marketplace > Manage for all accessible organisations, stored as the organisation secret `VSCE_PAT`.
+- Open VSX: an Eclipse account linked at https://open-vsx.org, the publisher agreement signed, a token stored as the organisation secret `OVSX_PAT`, the namespace made with `npx ovsx create-namespace edgemodders -p <token>`.
+- Releases go through `.github/workflows/publish.yml` on a version tag; see CLAUDE.md.

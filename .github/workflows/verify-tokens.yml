@@ -1,0 +1,28 @@
+# Run by hand (Actions > Verify publish tokens > Run workflow, or gh workflow run verify-tokens.yml)
+# to check the Marketplace and Open VSX tokens without publishing anything.
+name: Verify publish tokens
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: VS Code Marketplace token
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "${VSCE_PAT}" ]; then echo "::error::VSCE_PAT is not set"; exit 1; fi
+          npx --yes @vscode/vsce@4 verify-pat edgemodders
+
+      - name: Open VSX token
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "${OVSX_PAT}" ]; then echo "::warning::OVSX_PAT is not set yet"; exit 0; fi
+          npx --yes ovsx verify-pat edgemodders --pat "${OVSX_PAT}"

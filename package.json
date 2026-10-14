@@ -4,6 +4,8 @@
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
   "version": "0.24.0",
   "publisher": "edgemodders",
+  "preview": true,
+  "pricing": "Free",
   "license": "MIT",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -533,7 +535,7 @@
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke": "node scripts/smoke.mjs",
-    "package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && vsce package --no-dependencies --readme-path docs/marketplace.md --out dist/",
+    "package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && vsce package --no-dependencies --target win32-x64 --readme-path docs/marketplace.md --out dist/",
     "test:ui": "node scripts/ui-test.mjs"
   },
   "dependencies": {
@@ -548,6 +550,7 @@
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
+    "ovsx": "^1.2.0",
     "typescript": "~5.9.3"
   },
   "bin": {

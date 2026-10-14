@@ -17,4 +17,6 @@ Guide, docs and design: https://edgemodders.github.io/REDdeck/
 
 Settings: `reddeck.gamePath` (the Cyberpunk 2077 folder) and `reddeck.libraryPath` (where mods are kept; put it on the game's drive so deploy can use hardlinks).
 
-REDdeck is part of an AI-first modding ecosystem with REDcode, REDbridge and REDnode. MIT licensed. Not affiliated with CD PROJEKT.
+**Preview.** REDdeck is young and Windows only. Deploy, undo and the library are in daily use; Nexus downloads and REDmod deploy have had little real-world use yet. Report problems at https://github.com/Edgemodders/REDdeck/issues and attach the REDdeck log (Show log in the Mods view's menu).
+
+REDdeck is part of an AI-first modding ecosystem with REDcode, REDbridge and REDnode. MIT licensed; it ships 7-Zip's 7za.exe (GNU LGPL), see ThirdPartyNotices.txt. Not affiliated with CD PROJEKT.

@@ -44,6 +44,11 @@ Simplicity with a friendly and obvious UI. Rules that follow from it:
 - Safe by default: never delete a file REDdeck did not put there; everything deployed is in the manifest and can be undone.
 - Works offline and alone. REDcode and REDbridge add features when present and are found at runtime with `extensions.getExtension(...)`. Never import their code.
 
+## Releases
+
+- **Publishing (set up 2026-10-14, first publish pending):** push a tag `vX.Y.Z` that matches `package.json`; `.github/workflows/publish.yml` checks the match, runs typecheck, build and smoke, packages `--target win32-x64`, publishes to the VS Code Marketplace (`VSCE_PAT`) and Open VSX (`OVSX_PAT`, skipped while unset) and makes the GitHub release with the CHANGELOG section as notes. Do not also run `gh release create` by hand. Both tokens are Edgemodders organisation secrets; `verify-tokens.yml` (run by hand) checks them. Publisher id `edgemodders` on both. `"preview": true` until the owner says otherwise.
+- `ThirdPartyNotices.txt` is written by `esbuild.mjs` on every build from what extension.js and mcp.js bundle, plus 7-Zip for `bin/7za.exe`. Commit it when it changes.
+
 ## Conventions
 
 - Commit straight to `main` and push, in small logical commits. Agree the plan in chat first. PRs only for large or risky changes.
