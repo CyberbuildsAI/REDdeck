@@ -81,6 +81,11 @@
     ],
     "commands": [
       {
+        "command": "reddeck.suggestTheme",
+        "title": "Suggest the HUD theme",
+        "category": "REDdeck"
+      },
+      {
         "command": "reddeck.openPage",
         "title": "Open REDdeck",
         "category": "REDdeck",

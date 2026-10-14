@@ -209,6 +209,8 @@ function render(d: PageData, csp: string): string {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${csp}; script-src 'nonce-${nonce}';">
 <style>
 :root { --bg: var(--vscode-editor-background); --fg: var(--vscode-editor-foreground); --dim: var(--vscode-descriptionForeground); --line: var(--vscode-widget-border, #262c3d); --yellow: #fcee0a; --cyan: #19f3ff; --green: #5dffa1; --red: #ff2a52; --ink: #0b0d12; }
+/* Light themes: the HUD accents darkened so they read on white. */
+body.vscode-light, body.vscode-high-contrast-light { --yellow: #7a6a00; --cyan: #00727a; --green: #17803d; --red: #c4002b; --ink: #ffffff; }
 body { font-family: var(--vscode-font-family); font-size: 13px; color: var(--fg); background: var(--bg); padding: 14px 20px 24px; }
 .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 h1 { font-size: 20px; margin: 0; letter-spacing: .02em; text-transform: uppercase; } h1 span { color: var(--yellow); } h1 small { font-size: 12px; color: var(--dim); text-transform: none; letter-spacing: 0; margin-left: 10px; }

@@ -151,7 +151,9 @@ function render(d: ConflictsData, csp: string): string {
   return `<!doctype html><html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${csp}; script-src 'nonce-${nonce}';">
 <style>
-:root { --bg: var(--vscode-editor-background); --fg: var(--vscode-editor-foreground); --dim: var(--vscode-descriptionForeground); --line: var(--vscode-widget-border, #262c3d); --yellow: #fcee0a; --cyan: #19f3ff; --green: #5dffa1; --red: #ff2a52; }
+:root { --bg: var(--vscode-editor-background); --fg: var(--vscode-editor-foreground); --dim: var(--vscode-descriptionForeground); --line: var(--vscode-widget-border, #262c3d); --yellow: #fcee0a; --cyan: #19f3ff; --green: #5dffa1; --red: #ff2a52; --ink: #0b0d12; }
+/* Light themes: the HUD accents darkened so they read on white. */
+body.vscode-light, body.vscode-high-contrast-light { --yellow: #7a6a00; --cyan: #00727a; --green: #17803d; --red: #c4002b; --ink: #ffffff; }
 body { font-family: var(--vscode-font-family); font-size: 13px; color: var(--fg); background: var(--bg); padding: 16px 20px; max-width: 1100px; }
 h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; text-transform: uppercase; } h1 span { color: var(--yellow); }
 h2 { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); margin: 22px 0 8px; }
@@ -159,7 +161,7 @@ p.lead { margin: 6px 0 14px; color: var(--dim); max-width: 760px; }
 button.get { font: inherit; font-size: 12px; background: transparent; color: var(--yellow); border: 1px solid var(--yellow); padding: 3px 10px; cursor: pointer; margin-left: 6px; } button.get:hover { background: var(--yellow); color: #0b0d12; }
 .via { color: var(--dim); letter-spacing: 0; text-transform: none; font-size: 11px; margin-left: 8px; }
 .bar { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; }
-button.deploy { font: inherit; font-size: 13px; background: var(--yellow); color: #0b0d12; border: 1px solid var(--yellow); padding: 5px 16px; cursor: pointer; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+button.deploy { font: inherit; font-size: 13px; background: var(--yellow); color: var(--ink); border: 1px solid var(--yellow); padding: 5px 16px; cursor: pointer; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 button.deploy:hover { background: transparent; color: var(--yellow); }
 select.resolve { font: inherit; font-size: 12px; color: var(--fg); background: var(--vscode-dropdown-background, var(--bg)); border: 1px solid var(--vscode-dropdown-border, var(--line)); padding: 3px 8px; cursor: pointer; min-width: 150px; }
 select.resolve:hover, select.resolve:focus { border-color: var(--yellow); outline: none; }

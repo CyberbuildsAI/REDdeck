@@ -96,6 +96,7 @@ export function activate(context: vscode.ExtensionContext): REDdeckApi {
     vscode.commands.registerCommand("reddeck.details", (node: ModNode) => run(() => showDetails(modOf(node)))),
     vscode.commands.registerCommand("reddeck.checkConflicts", () => run(showConflicts)),
     vscode.commands.registerCommand("reddeck.openPage", () => run(showPage)),
+    vscode.commands.registerCommand("reddeck.suggestTheme", () => run(() => suggestTheme(true))),
     vscode.commands.registerCommand("reddeck.showChanges", () => run(() => showChanges())),
     vscode.commands.registerCommand("reddeck.getBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
     vscode.commands.registerCommand("reddeck.updateBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
@@ -813,6 +814,41 @@ function frameworkNote(): { summary: string; detail: string; warn: boolean } | u
 
 async function showPage(): Promise<void> {
   modsPage.show(await pageData());
+  void suggestTheme();
+}
+
+/** The house colour theme of the EDGE tools, from the REDcode repository. */
+const HudThemeId = "edgemodders.rednode-hud-theme";
+const HudThemeLabel = "REDnode HUD";
+const ThemeSuggestedKey = "reddeck.themeSuggested";
+
+/**
+ * Once, the first time the REDdeck page opens under another theme: offers the REDnode HUD theme,
+ * which REDdeck's pages are drawn for. Never asks again by itself, whatever the answer; the
+ * reddeck.suggestTheme command asks on demand.
+ */
+async function suggestTheme(asked = false): Promise<void> {
+  if (!asked && globalState.get<boolean>(ThemeSuggestedKey)) return;
+  const workbench = vscode.workspace.getConfiguration("workbench");
+  if (workbench.get<string>("colorTheme") === HudThemeLabel) {
+    if (asked) void vscode.window.showInformationMessage("REDnode HUD is already your colour theme.");
+    return;
+  }
+  await globalState.update(ThemeSuggestedKey, true);
+  const installed = !!vscode.extensions.getExtension(HudThemeId);
+  const use = installed ? "Use REDnode HUD" : "Install REDnode HUD";
+  const a = await vscode.window.showInformationMessage("REDdeck is drawn for REDnode HUD, the colour theme of the EDGE modding tools. Try it? You can switch back any time with Preferences: Color Theme.", use, "No thanks");
+  if (a !== use) return;
+  if (!installed) {
+    try {
+      await vscode.commands.executeCommand("workbench.extensions.installExtension", HudThemeId);
+    } catch (err) {
+      log.appendLine(`Installing ${HudThemeId}: ${err instanceof Error ? err.message : String(err)}`);
+      void vscode.window.showInformationMessage("REDnode HUD could not be installed: it may not be in the extension store yet. Run REDdeck: Suggest the HUD theme to try again later.");
+      return;
+    }
+  }
+  await workbench.update("colorTheme", HudThemeLabel, vscode.ConfigurationTarget.Global);
 }
 
 async function updatePage(): Promise<void> {
