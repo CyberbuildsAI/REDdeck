@@ -902,6 +902,10 @@ async function pageAction(m: PageMessage): Promise<void> {
         refresh();
       }
       return;
+    case "sectionMoveMods":
+      return sectionMoveModsCommand(m.section, m.ids ?? []);
+    case "sectionRemoveMods":
+      return sectionRemoveModsCommand(m.section, m.ids ?? []);
     case "fold": {
       // Kept for next time; the page has already folded it, so no re-render.
       const folded = new Set(globalState.get<string[]>(FoldedKey, []));
@@ -1009,6 +1013,48 @@ async function deleteSectionCommand(name: string | undefined): Promise<void> {
   }
   deleteSection(library, name);
   refresh();
+}
+
+/** The page's filter and search, in words, for a bulk question: "the 12 mods shown in Mods". */
+function shownIn(section: string, shown: number): string {
+  const total = library ? sectionsOf(library).find((sec) => sec.name === section)?.families.length ?? shown : shown;
+  return shown === total ? `all ${shown} mod${shown === 1 ? "" : "s"} in ${section}` : `the ${shown} mod${shown === 1 ? "" : "s"} shown in ${section} (of ${total}; the search or filter hides the rest)`;
+}
+
+/** A section header's Put in section button: the mods it shows go to another section. */
+async function sectionMoveModsCommand(from: string | undefined, ids: string[]): Promise<void> {
+  if (!library || !from) return;
+  const mods = ids.map((id) => library!.mods.find((x) => x.id === id)).filter((x): x is ModInfo => !!x);
+  if (!mods.length) return;
+  const New = "$(add) New section...";
+  const names = sectionsOf(library).map((sec) => sec.name).filter((n) => n !== from);
+  if (!names.includes("Frameworks") && from !== "Frameworks") names.unshift("Frameworks");
+  const pick = await vscode.window.showQuickPick([...names.map((n) => ({ label: n })), { label: New }], { title: `Put ${shownIn(from, mods.length)} in which section?` });
+  if (!pick) return;
+  const to = pick.label === New ? await newSectionCommand() : pick.label;
+  if (!to) return;
+  for (const mod of mods) putInSection(library, mod, to);
+  log.appendLine(`${mods.length} mod${mods.length === 1 ? "" : "s"} from ${from} put in ${to}`);
+  refresh();
+}
+
+/** A section header's Remove button: the mods it shows leave the library, every version of each, after one question. */
+async function sectionRemoveModsCommand(section: string | undefined, ids: string[]): Promise<void> {
+  if (!library || !section) return;
+  const rows = ids.map((id) => library!.mods.find((x) => x.id === id)).filter((x): x is ModInfo => !!x);
+  if (!rows.length) return;
+  const mods = [...new Map(rows.flatMap((r) => familyOf(library!, r).mods).map((m) => [m.id, m])).values()];
+  const deployed = rows.filter((r) => familyOf(library!, r).mods.some((m) => m.enabled)).length;
+  const detail = [
+    rows.slice(0, 12).map((r) => r.name).join("\n") + (rows.length > 12 ? `\n...and ${rows.length - 12} more` : ""),
+    mods.length > rows.length ? `\n\nEvery version of each is removed: ${mods.length} library entries.` : "",
+    deployed ? `\n\n${deployed} of them ${deployed === 1 ? "is" : "are"} on; ${deployed === 1 ? "its" : "their"} files leave the game on the next deploy.` : "",
+  ].join("");
+  const a = await vscode.window.showWarningMessage(`Remove ${shownIn(section, rows.length)} from the library?`, { modal: true, detail }, `Remove ${rows.length}`);
+  if (a !== `Remove ${rows.length}`) return;
+  for (const m of mods) removeMod(library, m);
+  log.appendLine(`Removed ${rows.length} mod${rows.length === 1 ? "" : "s"} (${mods.length} library entries) from ${section}: ${rows.map((r) => r.name).join(", ")}`);
+  reload();
 }
 
 /** Quick pick of the sections, to put a mod in one; "New section..." makes one first. */
@@ -1500,17 +1546,45 @@ async function importVortexCommand(): Promise<void> {
     await vscode.workspace.getConfiguration("reddeck").update("vortexStagingPath", folder, vscode.ConfigurationTarget.Global);
     log.appendLine(`Vortex staging folder set to ${folder}`);
   }
+  // Mods already imported are left out; nothing starts ticked, so a search and a tick import just that one.
+  const imported = new Set(library.mods.filter((m) => m.source.type === "vortex").map((m) => m.source.path));
+  const fresh = mods.filter((m) => !imported.has(m.folder));
+  if (!fresh.length) {
+    void vscode.window.showInformationMessage(`Every one of Vortex's ${mods.length} mods is already in the library.`);
+    return;
+  }
+  const already = mods.length - fresh.length;
   const picked = await vscode.window.showQuickPick(
-    mods.map((m) => ({ label: m.name, description: m.version, detail: `${m.files} files${m.deployed ? ", deployed by Vortex (will be on)" : " (will be off)"}`, picked: true, mod: m })),
-    { canPickMany: true, placeHolder: "Vortex is not changed. Mods it has deployed start as on.", title: "Import from Vortex" },
+    fresh.map((m) => ({ label: m.name, description: m.version, detail: `${m.files} files${m.deployed ? ", deployed by Vortex (will be on)" : " (will be off)"}`, mod: m })),
+    {
+      canPickMany: true,
+      title: "Import from Vortex",
+      placeHolder: `Tick the mods to import (the box at the top ticks all). Vortex is not changed.${already ? ` ${already} already imported, not listed.` : ""}`,
+    },
   );
   if (!picked?.length) return;
-  const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Importing from Vortex" }, async () => importFromVortex(library!, picked.map((p) => p.mod)));
-  for (const s of result.skipped) log.appendLine(`Skipped ${s.name}: ${s.reason}`);
-  for (const m of result.added) log.appendLine(`Imported ${m.name} ${m.version} (${m.files.length} files, ${m.kinds.join(", ")})`);
+  const added: ModInfo[] = [];
+  const skipped: { name: string; reason: string }[] = [];
+  let stopped = false;
+  await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Importing from Vortex", cancellable: true }, async (progress, token) => {
+    for (const [i, p] of picked.entries()) {
+      if (token.isCancellationRequested) {
+        stopped = true;
+        break;
+      }
+      progress.report({ message: `${i + 1} of ${picked.length}: ${p.mod.name}`, increment: 100 / picked.length });
+      // Let the toast draw before the copy, which blocks while it runs.
+      await new Promise((r) => setTimeout(r, 15));
+      const r = importFromVortex(library!, [p.mod]);
+      added.push(...r.added);
+      skipped.push(...r.skipped);
+    }
+  });
+  for (const s of skipped) log.appendLine(`Skipped ${s.name}: ${s.reason}`);
+  for (const m of added) log.appendLine(`Imported ${m.name} ${m.version} (${m.files.length} files, ${m.kinds.join(", ")})`);
   refresh();
-  const note = result.skipped.length ? ` ${result.skipped.length} skipped, see the log.` : "";
-  void vscode.window.showInformationMessage(`Imported ${result.added.length} mods from Vortex.${note}`);
+  const note = skipped.length ? ` ${skipped.length} skipped, see the log.` : "";
+  void vscode.window.showInformationMessage(`Imported ${added.length} mod${added.length === 1 ? "" : "s"} from Vortex${stopped ? ` before you stopped it (${picked.length - added.length - skipped.length} not imported)` : ""}.${note}`);
 }
 
 async function deployCommand(): Promise<void> {
