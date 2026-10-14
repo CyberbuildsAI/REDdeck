@@ -12,6 +12,7 @@ import { checkFrameworks, frameworkSummary } from "./frameworks";
 import { findGame, gameVersion, isGameFolder } from "./game";
 import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, removeMod, saveLibrary, saveMod, type Library, type ModInfo } from "./library";
 import { applyLoadout, listLoadouts, loadoutsFolder, saveLoadout } from "./loadouts";
+import { installProject } from "./project";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { formatBytes, librarySize, modSize } from "./sizes";
 import { importFromVortex, listVortexMods } from "./vortex";
@@ -123,6 +124,16 @@ export const verbs = {
     } finally {
       if (temp) fs.rmSync(temp, { recursive: true, force: true });
     }
+  },
+
+  /** Adds a REDcode or WolvenKit project's packed output, or refreshes the mod that follows it, and turns it on. */
+  installProject(s: Session, projectFile: string): Verb {
+    if (!fs.existsSync(projectFile)) throw new Error(`${projectFile} does not exist`);
+    const { mod, added } = installProject(s.lib, projectFile);
+    return {
+      data: { id: mod.id, name: mod.name, version: mod.version, kinds: mod.kinds, files: mod.files.length, added },
+      text: `${added ? "added" : "refreshed"} ${mod.id} from its project (${mod.files.length} files, ${mod.kinds.join(", ")}); it is on, deploy to put it in the game`,
+    };
   },
 
   turn(s: Session, id: string, on: boolean): Verb {

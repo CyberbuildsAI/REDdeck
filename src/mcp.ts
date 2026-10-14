@@ -79,6 +79,16 @@ server.registerTool(
 );
 
 server.registerTool(
+  "reddeck_install_project",
+  {
+    title: "Install a project",
+    description: "Takes a REDcode or WolvenKit project's packed/ folder into the library: adds it as version dev the first time, and on later calls replaces the files of the mod that follows the project. The mod is turned on; deploy to put it in the game. Pack the project first.",
+    inputSchema: { project: z.string().describe("Full path of the .cpmodproj file") },
+  },
+  ({ project }) => run(() => verbs.installProject(session(), project))(),
+);
+
+server.registerTool(
   "reddeck_turn",
   {
     title: "Turn a mod on or off",

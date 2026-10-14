@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.0 (2026-10-14)
+
+- An API for other extensions, from `extensions.getExtension("edgemodders.reddeck").exports`: `apiVersion`, `gamePath()`, `projectMod(projectFile)`, `installProject(projectFile)`, `pendingMods(except)`, `deploy()` and `turnOff(id)`. REDcode's Install uses it, so REDdeck stays the one tool that writes to the game folder.
+- `installProject` takes a REDcode or WolvenKit project's packed output: added as version dev the first time, and after that the same mod gets the new files in place, keeps its place in the order and is turned on. Also `reddeck install-project <.cpmodproj>` and the `reddeck_install_project` MCP tool.
+- The command line works from a folder whose path has a space in it, such as "Cyberpunk 2077": it looked for `dist/core.js` under `Cyberpunk%202077`.
+
 ## 0.20.1 (2026-10-13)
 
 - Import from Vortex finds Vortex's mods when Vortex keeps them outside its default folder in AppData, as it must when the game is on another drive. REDdeck looks in Vortex's deployment manifest, the default folder, and "Vortex Mods\cyberpunk2077" (and similar) on every drive, the game's first. When none has mods, it asks for the folder (Vortex shows it under Settings > Mods > Mod Staging Folder) and remembers it in `reddeck.vortexStagingPath`.

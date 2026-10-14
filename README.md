@@ -76,13 +76,14 @@ Open the folder in VS Code and press F5 to run the extension in a second window.
 ```
 node bin/reddeck.mjs list                      # what is in the library and its status
 node bin/reddeck.mjs add "C:\Downloads\Mod.zip" --name "My Mod"
+node bin/reddeck.mjs install-project "C:\Mods\MyMod\MyMod.cpmodproj"   # a packed project, added or refreshed
 node bin/reddeck.mjs on my-mod && node bin/reddeck.mjs deploy
 node bin/reddeck.mjs conflicts --json          # every command prints JSON with --json
 ```
 
 `--library` and `--game` override the folders. The library's JSON files are the only state, so an assistant can read them directly and use the command line to act.
 
-The same verbs are MCP tools: `node dist/mcp.js --library <folder> --game <folder>` serves `reddeck_list`, `reddeck_mod`, `reddeck_add`, `reddeck_turn`, `reddeck_move`, `reddeck_remove`, `reddeck_pending`, `reddeck_deploy`, `reddeck_undo`, `reddeck_changes`, `reddeck_conflicts`, `reddeck_loadout` and `reddeck_vortex` over stdio. VS Code 1.101 and later picks the server up from the extension for the agents it hosts; **REDdeck: Connect an assistant (MCP)...** copies the `claude mcp add` line for Claude Code. The Mods view follows what an assistant changes.
+The same verbs are MCP tools: `node dist/mcp.js --library <folder> --game <folder>` serves `reddeck_list`, `reddeck_mod`, `reddeck_add`, `reddeck_install_project`, `reddeck_turn`, `reddeck_move`, `reddeck_remove`, `reddeck_pending`, `reddeck_deploy`, `reddeck_undo`, `reddeck_changes`, `reddeck_conflicts`, `reddeck_loadout` and `reddeck_vortex` over stdio. VS Code 1.101 and later picks the server up from the extension for the agents it hosts; **REDdeck: Connect an assistant (MCP)...** copies the `claude mcp add` line for Claude Code. The Mods view follows what an assistant changes.
 
 ## Roadmap
 

@@ -5,6 +5,7 @@
 //   reddeck list [--size]              what is in the library, its size and status (--size: largest first)
 //   reddeck mod <id>                   one mod in full: files, sizes, source, Nexus data, conflicts
 //   reddeck add <file|folder> [--name N] [--option FOLDER]
+//   reddeck install-project <.cpmodproj>  add a REDcode or WolvenKit project's packed output, or refresh it, and turn it on
 //   reddeck on <id> | off <id>         turn a mod on or off
 //   reddeck up <id> | down <id>        change the order (first wins conflicts)
 //   reddeck remove <id>
@@ -23,9 +24,11 @@
 import { createRequire } from "node:module";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const root = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "..");
+// fileURLToPath decodes the URL: a folder with a space ("Cyberpunk 2077") arrives as %20 otherwise.
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const args = process.argv.slice(2);
 const flags = {};
@@ -63,6 +66,7 @@ if (cmd === "mcp") {
       case "list": out(await v.list(s, !!flags.size)); break;
       case "mod": out(v.mod(s, need(rest[0], "a mod id"))); break;
       case "add": out(await v.add(s, need(rest[0], "a file or folder"), flags.name, flags.option)); break;
+      case "install-project": out(v.installProject(s, need(rest[0], "a .cpmodproj file"))); break;
       case "on":
       case "off": out(v.turn(s, need(rest[0], "a mod id"), cmd === "on")); break;
       case "up":

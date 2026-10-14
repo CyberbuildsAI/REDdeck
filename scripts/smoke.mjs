@@ -200,6 +200,29 @@ console.log("changes: ok");
   assert.equal(fs.readFileSync(path.join(libRoot, "library", "test-mod", "archive", "pc", "mod", "TestMod.archive"), "utf8"), "v2");
   core.removeMod(lib, pm);
   console.log("project: ok");
+
+  // installProject, REDcode's Install: adds once, then refreshes the same mod in place, whatever the file times.
+  const projectFile = path.join(proj, "TestMod.cpmodproj");
+  const first = core.installProject(lib, projectFile);
+  assert.equal(first.added, true);
+  assert.equal(first.mod.version, "dev");
+  assert.equal(first.mod.enabled, true);
+  const order = lib.info.order.indexOf(first.mod.id);
+  first.mod.enabled = false;
+  fs.rmSync(path.join(proj, "packed", "r6"), { recursive: true, force: true });
+  write(path.join(proj, "packed", "archive", "pc", "mod", "TestMod.archive"), "v3");
+  const again = core.installProject(lib, projectFile);
+  assert.equal(again.added, false);
+  assert.equal(again.mod.id, first.mod.id, "the same mod, not a new version");
+  assert.equal(again.mod.enabled, true, "turned back on");
+  assert.equal(lib.info.order.indexOf(again.mod.id), order, "keeps its place in the order");
+  assert.deepEqual(again.mod.files, ["archive/pc/mod/TestMod.archive"], "files the project no longer makes are gone");
+  assert.equal(fs.readFileSync(path.join(libRoot, "library", again.mod.id, "archive", "pc", "mod", "TestMod.archive"), "utf8"), "v3");
+  assert.equal(lib.mods.filter((m) => m.source.type === "project").length, 1);
+  const verb = core.verbs.installProject({ lib, libraryRoot: libRoot, game: "" }, projectFile);
+  assert.equal(verb.data.added, false);
+  core.removeMod(lib, again.mod);
+  console.log("install project: ok");
 }
 
 // Sizes: per file, per mod, and the library's totals.

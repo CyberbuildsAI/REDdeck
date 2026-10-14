@@ -9,7 +9,7 @@ import * as vscode from "vscode";
 import { BridgeClient, compareVersions, findBridge, MinBridgeVersion } from "./bridgeClient";
 import { classify } from "./classifier";
 import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, type ArchiveListing } from "./conflicts";
-import { deploy, detectChanges, modStatus, pendingChanges, plan, readManifest, undo, vortexManages, type Change, type Decision, type PendingChange, type Plan } from "./deploy";
+import { deploy, detectChanges, modStatus, pendingChanges, plan, readManifest, undo, vortexManages, type Change, type Decision, type DeployResult, type PendingChange, type Plan } from "./deploy";
 import { ChangesPanel, type ChangesMessage } from "./changesPanel";
 import { dotnet10Root, installBridge, installDotnetRuntime, installedBridge, latestBridgeRelease, removeOlderBridges } from "./bridgeInstall";
 import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
@@ -28,7 +28,7 @@ import { ApiKeysPage, hasWebSocket, signIn } from "./nexusSso";
 import { fetchUser, needsRefresh, OAuthTokens, refreshTokens, signInWithOAuth, tokenUser } from "./nexusOAuth";
 import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
-import { addToProject, classifyProject, findProjectFile, projectName, syncProjects } from "./project";
+import { addToProject, classifyProject, findProjectFile, installProject, projectName, syncProjects } from "./project";
 import { importFromVortex, listVortexMods, vortexStagingCandidates } from "./vortex";
 
 let library: Library | undefined;
@@ -51,7 +51,7 @@ let scanTimer: NodeJS.Timeout | undefined;
 let state: { plan?: Plan; changes: Change[]; archive?: ArchiveConflictSummary; version?: string; bridgeInfo?: string; bridgeUpdate?: string; setup: SetupStep[]; nxmHandler?: string; vortexMods: number } = { changes: [], setup: [], vortexMods: 0 };
 const archiveCache = new Map<string, { mtimeMs: number; resources: Map<string, string> }>();
 
-export function activate(context: vscode.ExtensionContext): void {
+export function activate(context: vscode.ExtensionContext): REDdeckApi {
   extensionRoot = context.extensionPath;
   storageDir = context.globalStorageUri.fsPath;
   extensionVersion = String((context.extension.packageJSON as { version?: string }).version ?? "0.0.0");
@@ -139,7 +139,67 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   reload();
+  return api;
 }
+
+/**
+ * What other extensions get from extensions.getExtension("edgemodders.reddeck").exports. REDcode
+ * uses it to install a packed project as a mod and deploy it, so one tool owns the game folder.
+ * Keep it small and stable: bump apiVersion when a call changes meaning.
+ */
+export interface REDdeckApi {
+  apiVersion: 1;
+  /** The game folder REDdeck deploys to, or "" when it has none. */
+  gamePath(): string;
+  /** The id of the mod that follows this project, if REDdeck has one. */
+  projectMod(projectFile: string): string | undefined;
+  /** Adds the project's packed output, or refreshes the mod that follows it, and turns it on. Does not deploy. */
+  installProject(projectFile: string): { id: string; name: string; files: number; added: boolean };
+  /** Names of the mods, other than `except`, whose changes wait for a deploy. */
+  pendingMods(except?: string): string[];
+  /** Deploys as REDdeck: Deploy does, with its questions and its result message. Undefined when refused or cancelled. */
+  deploy(): Promise<{ linked: number; removed: number; kept: number; skipped: string[]; conflicts: number } | undefined>;
+  /** Turns a mod off; the next deploy removes its files from the game. */
+  turnOff(id: string): void;
+}
+
+function needLibrary(): Library {
+  if (!library) throw new Error("REDdeck has no library loaded; see the REDdeck log.");
+  return library;
+}
+
+const api: REDdeckApi = {
+  apiVersion: 1,
+  gamePath: () => settings().gamePath,
+  projectMod: (projectFile) => library?.mods.find((m) => m.source.type === "project" && m.source.path?.toLowerCase() === projectFile.toLowerCase())?.id,
+  installProject: (projectFile) => {
+    const { mod, added } = installProject(needLibrary(), projectFile);
+    log.appendLine(`${added ? "Added" : "Refreshed"} ${mod.name} from project ${projectFile} for REDcode (${mod.files.length} files, ${mod.kinds.join(", ")})`);
+    refresh();
+    return { id: mod.id, name: mod.name, files: mod.files.length, added };
+  },
+  pendingMods: (except) => {
+    const lib = needLibrary();
+    const { gamePath } = settings();
+    if (!isGameFolder(gamePath)) return [];
+    const ids = new Set(pendingChanges(lib, gamePath, plan(lib, gamePath)).map((c) => c.mod));
+    ids.delete(except ?? "");
+    ids.delete("reddeck");
+    return [...ids].map((id) => lib.mods.find((m) => m.id === id)?.name ?? id);
+  },
+  deploy: async () => {
+    const result = await deployNow();
+    return result && { linked: result.linked, removed: result.removed, kept: result.kept, skipped: result.skipped, conflicts: state.plan?.conflicts.length ?? 0 };
+  },
+  turnOff: (id) => {
+    const lib = needLibrary();
+    const mod = lib.mods.find((m) => m.id === id);
+    if (!mod) throw new Error(`REDdeck has no mod with id ${id}`);
+    mod.enabled = false;
+    saveMod(lib, mod);
+    refresh();
+  },
+};
 
 export function deactivate(): void {
   bridge?.stop();
@@ -1159,6 +1219,11 @@ async function importVortexCommand(): Promise<void> {
 }
 
 async function deployCommand(): Promise<void> {
+  await deployNow();
+}
+
+/** REDdeck: Deploy, for the command and the API: asks about changed files, deploys, reports. Undefined when refused or cancelled. */
+async function deployNow(): Promise<DeployResult | undefined> {
   if (!library) return;
   const { gamePath } = settings();
   if (vortexManages(gamePath)) {
@@ -1209,6 +1274,7 @@ async function deployCommand(): Promise<void> {
   void vscode.window.showInformationMessage(`Deployed: ${result.linked} files ${words}, ${result.removed} removed.${conflictNote}${redmodNote}`, ...(n ? ["Show conflicts"] : [])).then((a) => {
     if (a) void showConflicts();
   });
+  return result;
 }
 
 async function undoCommand(): Promise<void> {

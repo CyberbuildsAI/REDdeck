@@ -5,7 +5,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { classify, type Classification } from "./classifier";
-import { saveMod, sourcePath, type Library, type ModInfo } from "./library";
+import { addMod, saveMod, sourcePath, type Library, type ModInfo } from "./library";
 
 export interface AddToProjectResult {
   /** Project-relative paths written. */
@@ -124,4 +124,39 @@ export function syncProjects(lib: Library): ModInfo[] {
     refreshed.push(mod);
   }
   return refreshed;
+}
+
+export interface InstallProjectResult {
+  mod: ModInfo;
+  /** True when the project was new to the library; false when the mod that follows it was refreshed. */
+  added: boolean;
+}
+
+/**
+ * What REDcode's Install does through REDdeck: the mod that follows this project gets the packed
+ * output now, whatever the file times say, and is turned on; a project REDdeck does not know yet is
+ * added as version "dev". Deploying is a separate step, so the caller can ask about other pending
+ * changes first.
+ */
+export function installProject(lib: Library, projectFile: string): InstallProjectResult {
+  const c = classifyProject(projectFile);
+  if (!c.placements.length) throw new Error(`${projectName(projectFile)} has no packed output yet. Pack the project first (packed/ next to the project file).`);
+  const existing = lib.mods.find((m) => m.source.type === "project" && m.source.path?.toLowerCase() === projectFile.toLowerCase());
+  if (!existing) {
+    const mod = addMod(lib, c.placements, { name: projectName(projectFile), version: "dev", source: { type: "project", path: projectFile } });
+    return { mod, added: true };
+  }
+  const keep = new Set<string>();
+  for (const p of c.placements) {
+    const dest = sourcePath(lib, existing, p.to);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(p.from, dest);
+    keep.add(p.to);
+  }
+  for (const f of existing.files) if (!keep.has(f)) fs.rmSync(sourcePath(lib, existing, f), { force: true });
+  existing.files = [...keep].sort();
+  existing.kinds = c.kinds;
+  existing.enabled = true;
+  saveMod(lib, existing);
+  return { mod: existing, added: false };
 }
