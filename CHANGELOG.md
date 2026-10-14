@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.23.1 (2026-10-14)
+
+- The action icons are a soft grey: they brighten on the row under the mouse, and the one under the pointer turns yellow (red for Remove).
+
 ## 0.23.0 (2026-10-14)
 
 - **Sections of your own.** + Section on the mods page makes a section, shown between Frameworks and Mods, in the page and the Mods view. Put a mod in one with its section button, or drag its row onto the section's header. A section can be renamed, moved up or down and deleted; deleting one sends its mods back to Mods (or Frameworks) and removes nothing. Sections only group the list: the order still decides who wins a conflict. They are kept in library.json (`sections`, `sectionOf`) by mod family, so a new version stays in its section.

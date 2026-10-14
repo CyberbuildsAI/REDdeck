@@ -235,11 +235,12 @@ td.size { text-align: right; white-space: nowrap; } th.size { text-align: right;
 select.ver { font-family: var(--vscode-editor-font-family); font-size: 12px; color: var(--fg); background: var(--vscode-dropdown-background, var(--bg)); border: 1px solid var(--vscode-dropdown-border, var(--line)); padding: 2px 6px; cursor: pointer; }
 select.ver:hover, select.ver:focus { border-color: var(--yellow); outline: none; } select.ver option.get { color: var(--yellow); }
 td.vercell { white-space: nowrap; }
-button.ico { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 22px; padding: 0; border-color: transparent; color: var(--yellow); }
+button.ico { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 22px; padding: 0; border-color: transparent; color: var(--dim); }
 button.ico svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-button.ico:hover { border-color: var(--yellow); } button.ico.danger:hover { color: var(--red); border-color: var(--red); }
+tr:hover button.ico { color: var(--fg); }
+button.ico:hover, tr:hover button.ico:hover { color: var(--yellow); border-color: var(--yellow); } button.ico.danger:hover, tr:hover button.ico.danger:hover { color: var(--red); border-color: var(--red); }
 button.ico.blank { visibility: hidden; }
-button.ico:disabled { color: var(--dim); opacity: .35; cursor: default; border-color: transparent; }
+button.ico:disabled, tr:hover button.ico:disabled { color: var(--dim); opacity: .3; cursor: default; border-color: transparent; }
 .gline { display: flex; align-items: center; gap: 6px; } .gline .glabel { color: var(--cyan); } .gline .dim, .gline .fwnote { letter-spacing: 0; text-transform: none; }
 .gline button.ico { width: 22px; height: 20px; }
 tr.hint td { color: var(--dim); font-style: italic; font-size: 12px; }
