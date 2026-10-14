@@ -48,7 +48,7 @@ Simplicity with a friendly and obvious UI. Rules that follow from it:
 
 ## Releases
 
-- **Publishing (set up 2026-10-14, first publish pending):** push a tag `vX.Y.Z` that matches `package.json`; `.github/workflows/publish.yml` checks the match, runs typecheck, build and smoke, packages `--target win32-x64`, publishes to the VS Code Marketplace (`VSCE_PAT`) and Open VSX (`OVSX_PAT`, skipped while unset) and makes the GitHub release with the CHANGELOG section as notes. Do not also run `gh release create` by hand. Both tokens are Edgemodders organisation secrets; `verify-tokens.yml` (run by hand) checks them. Publisher id `edgemodders` on both. `"preview": true` until the owner says otherwise.
+- **Publishing (first release on both stores: 0.26.0, 2026-10-14):** push a tag `vX.Y.Z` that matches `package.json`; `.github/workflows/publish.yml` checks the match, runs typecheck, build and smoke, packages `--target win32-x64`, publishes to the VS Code Marketplace (`VSCE_PAT`) and Open VSX (`OVSX_PAT`, skipped while unset) and makes the GitHub release with the CHANGELOG section as notes. Do not also run `gh release create` by hand. Both tokens are Edgemodders organisation secrets; `verify-tokens.yml` (run by hand) checks them. Publisher id `edgemodders` on both. `"preview": true` until the owner says otherwise.
 - `ThirdPartyNotices.txt` is written by `esbuild.mjs` on every build from what extension.js and mcp.js bundle, plus 7-Zip for `bin/7za.exe`. Commit it when it changes.
 
 ## Conventions

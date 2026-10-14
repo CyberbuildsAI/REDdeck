@@ -55,7 +55,7 @@ jobs:
             echo "::warning::OVSX_PAT is not set; not published to Open VSX"
             exit 0
           fi
-          npx ovsx publish "dist/reddeck-${VERSION}.vsix" --target win32-x64 --pat "${OVSX_PAT}"
+          npx ovsx publish "dist/reddeck-${VERSION}.vsix" --pat "${OVSX_PAT}"
 
       - name: GitHub release
         env:
