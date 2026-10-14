@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.25.0 (2026-10-14)
+
+- **Add to Project takes archives too.** For a mod's `.archive` file, REDdeck lists the resources inside and asks for all of them or a pick, then REDcode extracts them into the project's `source\archive` at their game paths. Resources the project already has are kept unless you say Replace. Needs REDcode 0.6.1 and REDbridge 0.7.1 or newer, which add `redcode.extractToProject`; without REDcode, archives are skipped as before and the message says why.
+
 ## 0.24.0 (2026-10-14)
 
 - **Sections fold.** Click a section's name (or its arrow) on the mods page to fold it down to its header and click again to open it. Folded sections stay folded across restarts. A search or a filter opens them while it lasts, so nothing is hidden from a search. A folded header still takes dropped rows, and its box still turns the whole section on or off.

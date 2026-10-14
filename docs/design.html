@@ -272,13 +272,13 @@ footer li { margin-bottom: 3px; letter-spacing: 0; text-transform: none; }
     </div>
     <div class="lane in">
       <h4>Around it</h4>
-      <div class="node hot">redcode (optional)<small>"Install packed mod" command, passes its bridge client to reddeck</small></div>
-      <div class="node hot">REDbridge, via redcode (optional)<small>archive.openMod lists resources inside mod archives for real conflicts</small></div>
+      <div class="node hot">REDcode (optional)<small>installs a project through REDdeck's API; redcode.extractToProject puts an archive's resources in a project</small></div>
+      <div class="node hot">REDbridge (optional, fetched by REDdeck)<small>archive.openMod lists resources inside mod archives for real conflicts</small></div>
       <div class="node">tools/redmod/bin/redMod.exe<small>shipped with the game; compiles REDmod packages</small></div>
       <div class="node">Nexus Mods API<small>api.nexusmods.com/v1</small></div>
       <div class="node">reddeck CLI and MCP (later)<small>the same library and deployer, for scripts and assistants</small></div>
     </div>
-    <div class="link">REDDECK NEVER IMPORTS REDCODE OR REDBRIDGE CODE <b>&#8644;</b> IT ASKS FOR THEM AT RUNTIME WITH <b>extensions.getExtension(...).exports</b> AND DEGRADES WITHOUT THEM</div>
+    <div class="link">REDDECK NEVER IMPORTS REDCODE OR REDBRIDGE CODE <b>&#8644;</b> IT CALLS REDCODE BY COMMAND NAME, RUNS REDBRIDGE AS A PROCESS, AND DEGRADES WITHOUT THEM</div>
   </div>
 
   <h3>Standalone, and loaded by REDcode</h3>

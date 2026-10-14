@@ -338,6 +338,63 @@ function updateProjectContext(): void {
   void vscode.commands.executeCommand("setContext", "reddeck.projectOpen", !!currentProject());
 }
 
+/** What redcode.extractToProject returns (REDcode request #1): project-relative paths. */
+interface ExtractResult {
+  written: string[];
+  kept: string[];
+  failed: string[];
+}
+
+/**
+ * Puts resources from one of a mod's .archive files into the open project's source\archive, through
+ * REDcode's redcode.extractToProject. Asks which resources (all, or a pick), and whether to replace
+ * the ones the project already has. Undefined when the user backed out.
+ */
+async function extractArchiveToProject(mod: ModInfo, rel: string, projectLabel: string): Promise<{ written: string[]; summary: string } | undefined> {
+  if (!library) return undefined;
+  const file = sourcePath(library, mod, rel);
+  const archiveName = rel.split("/").pop() ?? rel;
+  let resources: Map<string, string>;
+  try {
+    resources = await archiveResources(file);
+  } catch (err) {
+    return { written: [], summary: `${archiveName} not read: ${err instanceof Error ? err.message : String(err)}` };
+  }
+  const names = [...resources].map(([hash, n]) => n || hash).sort((a, b) => a.localeCompare(b));
+  if (!names.length) return { written: [], summary: `${archiveName} holds no resources` };
+  const how = await vscode.window.showQuickPick(
+    [
+      { label: `All ${names.length} resource${names.length === 1 ? "" : "s"}`, all: true },
+      { label: "Choose resources...", all: false },
+    ],
+    { title: `${archiveName}: put which resources in ${projectLabel}?`, placeHolder: "They go to source\\archive at their game paths, through REDcode" },
+  );
+  if (!how) return undefined;
+  let paths = names;
+  if (!how.all) {
+    const picked = await vscode.window.showQuickPick(
+      names.map((n) => ({ label: n.split("\\").pop() ?? n, description: n })),
+      { title: `${archiveName}: resources for ${projectLabel}`, canPickMany: true, matchOnDescription: true, placeHolder: "Type to filter by name or path" },
+    );
+    if (!picked?.length) return undefined;
+    paths = picked.map((p) => p.description);
+  }
+  const call = (overwrite: boolean, list: string[]) => vscode.commands.executeCommand<ExtractResult>("redcode.extractToProject", { archive: file, paths: list, overwrite });
+  let r = await call(false, paths);
+  if (r.kept.length) {
+    const a = await vscode.window.showWarningMessage(`${r.kept.length} of these ${r.kept.length === 1 ? "is" : "are"} already in ${projectLabel}. Replace ${r.kept.length === 1 ? "it" : "them"} with ${mod.name}'s?`, { modal: true, detail: r.kept.slice(0, 8).join("\n") + (r.kept.length > 8 ? `\n...and ${r.kept.length - 8} more` : "") }, "Replace", "Keep mine");
+    if (a === "Replace") {
+      // REDcode reports kept files as project paths: source\archive\<game path>.
+      const again = await call(true, r.kept.map((k) => k.replace(/^source[\\/]archive[\\/]/i, "")));
+      r = { written: [...r.written, ...again.written], kept: [], failed: [...r.failed, ...again.failed] };
+    }
+  }
+  const bits = [`${r.written.length} resource${r.written.length === 1 ? "" : "s"} from ${archiveName} under source\\archive`];
+  if (r.kept.length) bits.push(`${r.kept.length} kept as yours`);
+  if (r.failed.length) bits.push(`${r.failed.length} failed (see REDcode's log)`);
+  return { written: r.written, summary: bits.join(", ") };
+}
+
 async function addToProjectCommand(node: ModNode | undefined): Promise<void> {
   const mod = modOf(node);
   if (!library || !mod || !node) return;
@@ -369,11 +426,24 @@ async function addToProjectCommand(node: ModNode | undefined): Promise<void> {
   const parts = [n ? `${n} file${n === 1 ? "" : "s"} added to ${name} under source\\resources` : `Nothing added to ${name}`];
   if (result.same.length) parts.push(`${result.same.length} already there`);
   if (result.kept.length) parts.push(`${result.kept.length} kept as yours`);
-  if (result.archives.length) parts.push(`${result.archives.length} .archive file${result.archives.length === 1 ? "" : "s"} skipped: their resources need extracting into source\\archive, which REDcode's Game Assets view does`);
-  log.appendLine(`Add to project (${name}): ${parts.join("; ")}${result.copied.length ? `\n  ${result.copied.join("\n  ")}` : ""}`);
   const commands = await vscode.commands.getCommands(true);
+  const extracted: string[] = [];
+  if (result.archives.length) {
+    if (commands.includes("redcode.extractToProject")) {
+      for (const rel of result.archives) {
+        const r = await extractArchiveToProject(mod, rel, name);
+        if (r) {
+          extracted.push(...r.written);
+          parts.push(r.summary);
+        }
+      }
+    } else {
+      parts.push(`${result.archives.length} .archive file${result.archives.length === 1 ? "" : "s"} skipped: putting an archive's resources in a project needs REDcode`);
+    }
+  }
+  log.appendLine(`Add to project (${name}): ${parts.join("; ")}${[...result.copied, ...extracted].length ? `\n  ${[...result.copied, ...extracted].join("\n  ")}` : ""}`);
   if (commands.includes("redcode.refreshProject")) void vscode.commands.executeCommand("redcode.refreshProject");
-  const single = result.copied.length === 1 ? path.join(path.dirname(project), result.copied[0]) : undefined;
+  const single = result.copied.length === 1 && !extracted.length ? path.join(path.dirname(project), result.copied[0]) : undefined;
   void vscode.window.showInformationMessage(`${parts.join(". ")}.`, ...(single ? ["Open"] : [])).then((a) => {
     if (a === "Open" && single) void vscode.window.showTextDocument(vscode.Uri.file(single));
   });
@@ -539,6 +609,35 @@ function refresh(): void {
   scanTimer = setTimeout(() => void run(() => scanArchives(false)), 400);
 }
 
+/** REDdeck's own REDbridge process, started on first use. */
+async function ensureBridge(): Promise<BridgeClient> {
+  if (bridge?.running) return bridge;
+  if (!bridgeExe) throw new Error("This needs REDbridge. Run REDdeck: Get REDbridge.");
+  bridge = new BridgeClient(bridgeExe, settings().dotnetRoot);
+  bridge.start();
+  const info = await bridge.info();
+  log.appendLine(`REDbridge ${info.version} (WolvenKit ${info.wolvenKit}) at ${bridgeExe}`);
+  state.bridgeInfo = `REDbridge ${info.version} (WolvenKit ${info.wolvenKit})`;
+  if (compareVersions(info.version, MinBridgeVersion) < 0) {
+    bridge.stop();
+    bridge = undefined;
+    bridgeExe = "";
+    throw new Error(`REDbridge ${info.version} is older than ${MinBridgeVersion}, which added archive.openMod. Run npm run update in the REDbridge folder.`);
+  }
+  return bridge;
+}
+
+/** The resources inside a mod archive, hash to game path, read through REDbridge and kept until the file changes. */
+async function archiveResources(file: string): Promise<Map<string, string>> {
+  const st = fs.statSync(file);
+  const cached = archiveCache.get(file);
+  if (cached && cached.mtimeMs === st.mtimeMs) return cached.resources;
+  const r = await (await ensureBridge()).openMod(file);
+  const resources = new Map(r.items.map((i) => [i.hash, i.name]));
+  archiveCache.set(file, { mtimeMs: st.mtimeMs, resources });
+  return resources;
+}
+
 /** Paths a deploy would add, replace or remove: a replaced path counts once. */
 function pendingCount(): number {
   const p = state.plan;
@@ -610,38 +709,12 @@ async function scanArchives(explicit: boolean): Promise<void> {
     updateDetail();
     return;
   }
-  if (!bridge || !bridge.running) {
-    bridge = new BridgeClient(bridgeExe, settings().dotnetRoot);
-    bridge.start();
-    const info = await bridge.info();
-    log.appendLine(`REDbridge ${info.version} (WolvenKit ${info.wolvenKit}) at ${bridgeExe}`);
-    state.bridgeInfo = `REDbridge ${info.version} (WolvenKit ${info.wolvenKit})`;
-    if (compareVersions(info.version, MinBridgeVersion) < 0) {
-      bridge.stop();
-      bridge = undefined;
-      bridgeExe = "";
-      throw new Error(`REDbridge ${info.version} is older than ${MinBridgeVersion}, which added archive.openMod. Run npm run update in the REDbridge folder.`);
-    }
-  }
   const listings: ArchiveListing[] = [];
   for (const { mod, archive } of wanted) {
     const file = sourcePath(library, mod, archive);
-    let st: fs.Stats;
+    if (!fs.existsSync(file)) continue;
     try {
-      st = fs.statSync(file);
-    } catch {
-      continue;
-    }
-    const cached = archiveCache.get(file);
-    if (cached && cached.mtimeMs === st.mtimeMs) {
-      listings.push({ mod: mod.id, archive, resources: cached.resources });
-      continue;
-    }
-    try {
-      const r = await bridge.openMod(file);
-      const resources = new Map(r.items.map((i) => [i.hash, i.name]));
-      archiveCache.set(file, { mtimeMs: st.mtimeMs, resources });
-      listings.push({ mod: mod.id, archive, resources });
+      listings.push({ mod: mod.id, archive, resources: await archiveResources(file) });
     } catch (err) {
       log.appendLine(`Could not read ${file}: ${err instanceof Error ? err.message : String(err)}`);
     }
