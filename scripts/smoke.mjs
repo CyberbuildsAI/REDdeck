@@ -287,6 +287,32 @@ console.log("changes: ok");
   assert.equal(core.baseName("input_loader_v0.2.3"), "input loader");
   core.removeMod(lib, a);
   core.removeMod(lib, b);
+  // A new version of a REDnode package joins its family by the package id, whatever it is called,
+  // takes the old one's place and on-state, and the old one goes off; an older one arrives off.
+  {
+    const pkg = (id, ver) => [{ from: path.join(tmp, `pkg-${ver}.json`), to: `red4ext/plugins/REDnode/apps/${id}/rednode-app.json`, kind: "rednode" }];
+    for (const v of ["0.1.1", "0.2.0", "0.0.9"]) fs.writeFileSync(path.join(tmp, `pkg-${v}.json`), JSON.stringify({ id: "edgebuilder", name: "EDGEbuilder", version: v }));
+    assert.deepEqual(core.rednodeManifest(pkg("edgebuilder", "0.2.0")), { id: "edgebuilder", name: "EDGEbuilder", version: "0.2.0" });
+    const first = core.addMod(lib, pkg("edgebuilder", "0.1.1"), { name: "EDGEbuilder", version: "0.1.1", source: { type: "folder", path: tmp } });
+    assert.deepEqual(core.settleNewVersion(lib, first), {}, "the first version settles nothing");
+    const second = core.addMod(lib, pkg("edgebuilder", "0.2.0"), { name: "edgebuilder-0.2.0", version: "0.2.0", source: { type: "folder", path: tmp } });
+    assert.equal(core.familyKey(second), "rednode:edgebuilder");
+    assert.equal(core.familyKey(second), core.familyKey(first), "one family, though the names differ");
+    const r = core.settleNewVersion(lib, second);
+    assert.equal(r.replaced?.id, first.id);
+    assert.equal(second.enabled, true);
+    assert.equal(lib.mods.find((m) => m.id === first.id).enabled, false, "the old version is off");
+    assert.ok(lib.info.order.indexOf(second.id) < lib.info.order.indexOf(first.id), "the new version takes the old one's place");
+    assert.equal(core.familiesWithTwoOn(lib).length, 0);
+    const older = core.addMod(lib, pkg("edgebuilder", "0.0.9"), { name: "EDGEbuilder", version: "0.0.9", source: { type: "folder", path: tmp } });
+    assert.equal(core.settleNewVersion(lib, older).older?.id, second.id);
+    assert.equal(older.enabled, false, "an older version arrives off");
+    // Two on from before: found, so deploy can ask.
+    first.enabled = true;
+    assert.equal(core.familiesWithTwoOn(lib).length, 1);
+    first.enabled = false;
+    for (const m of [first, second, older]) core.removeMod(lib, m);
+  }
   console.log("families: ok");
 }
 

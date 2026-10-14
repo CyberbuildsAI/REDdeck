@@ -5,7 +5,8 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { classify } from "./classifier";
+import { classify, rednodeManifest } from "./classifier";
+import { settleNewVersion } from "./families";
 import { deploy, detectChanges, modStatus, pendingChanges, plan, readManifest, undo, type Decision } from "./deploy";
 import { extractArchive, findSevenZip } from "./extract";
 import { checkFrameworks, frameworkSummary } from "./frameworks";
@@ -119,8 +120,11 @@ export const verbs = {
         c = classify(pick.folder, modName);
       }
       if (!c.placements.length) throw new Error("nothing in there looks like a Cyberpunk mod file");
-      const mod = addMod(s.lib, c.placements, { name: modName, source: isFile ? { type: "file", path: keepDownload(s.lib, source) } : { type: "folder", path: source } });
-      return { data: { added: { id: mod.id, name: mod.name, version: mod.version, kinds: mod.kinds, files: mod.files.length }, unplaced: c.unplaced }, text: `added ${mod.id} (${mod.files.length} files, ${mod.kinds.join(", ")}); it is on, deploy to put it in the game${c.unplaced.length ? `; not placed: ${c.unplaced.join(", ")}` : ""}` };
+      const manifest = rednodeManifest(c.placements);
+      const mod = addMod(s.lib, c.placements, { name: name ?? manifest?.name ?? modName, version: manifest?.version, source: isFile ? { type: "file", path: keepDownload(s.lib, source) } : { type: "folder", path: source } });
+      const settled = settleNewVersion(s.lib, mod);
+      const note = settled.replaced ? `; a new version of ${settled.replaced.name} ${settled.replaced.version}, which is off now` : settled.older ? `; older than ${settled.older.version}, so it is off` : "";
+      return { data: { added: { id: mod.id, name: mod.name, version: mod.version, kinds: mod.kinds, files: mod.files.length, enabled: mod.enabled }, replaced: settled.replaced?.id, unplaced: c.unplaced }, text: `added ${mod.id} (${mod.files.length} files, ${mod.kinds.join(", ")})${note}; ${mod.enabled ? "it is on, " : ""}deploy to put it in the game${c.unplaced.length ? `; not placed: ${c.unplaced.join(", ")}` : ""}` };
     } finally {
       if (temp) fs.rmSync(temp, { recursive: true, force: true });
     }

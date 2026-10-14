@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.21.1 (2026-10-14)
+
+- A new version takes the old one's place. Adding a mod that is a newer version of one already in the library puts it in the old version's place in the order, gives it the old version's on/off state, and turns the old one off, so two versions never overwrite each other's files. An older version arrives switched off. A toast says which, and the old version stays in the version list for going back. The same happens from the command line and the MCP server.
+- A REDnode package is one mod across versions by its manifest's id, whatever its file is called, and it takes its name and version from its manifest when added.
+- Deploy notices two versions of one mod switched on, from libraries made before this version, and offers to keep the newest.
+- The conflicts page shows one row per pair of mods with the files they share folded inside, and one Choose menu per row, since a choice settles every file of the pair. A line above the table says what the last choice did. When the pair is two versions of the same mod, the menu offers "Use only" each version.
+
 ## 0.21.0 (2026-10-14)
 
 - An API for other extensions, from `extensions.getExtension("edgemodders.reddeck").exports`: `apiVersion`, `gamePath()`, `projectMod(projectFile)`, `installProject(projectFile)`, `pendingMods(except)`, `deploy()` and `turnOff(id)`. REDcode's Install uses it, so REDdeck stays the one tool that writes to the game folder.

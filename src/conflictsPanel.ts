@@ -19,10 +19,16 @@ export interface ConflictsData {
   scanning: boolean;
   /** How many files a deploy would add or remove right now; zero means the game folder is current. */
   pending: number;
+  /** Mod id to its family key and version, to tell two versions of one mod from two mods. */
+  family: Map<string, string>;
+  versions: Map<string, string>;
+  /** What the last choice on this page did, shown until the next one. */
+  note?: string;
 }
 
 export interface ConflictsMessage {
-  action: "letWin" | "toggle" | "details" | "deploy" | "getBridge";
+  /** useOnly: make this version its family's only one on (the others go off). */
+  action: "letWin" | "toggle" | "useOnly" | "details" | "deploy" | "getBridge";
   id: string;
   /** For letWin: the mod the id should be placed above. */
   over?: string;
@@ -60,19 +66,43 @@ function esc(s: string): string {
 function render(d: ConflictsData, csp: string): string {
   const nonce = Math.random().toString(36).slice(2);
   const name = (id: string) => esc(d.names.get(id) ?? id);
-  // One dropdown per row keeps the rows one line tall. Choosing an entry acts at once.
+  const label = (id: string) => {
+    const v = d.versions.get(id);
+    return v ? `${name(id)} <span class="dim">${esc(v)}</span>` : name(id);
+  };
+  // One dropdown per pair of mods: a choice settles every file the pair shares, so it is offered once.
+  // Choosing an entry acts at once; the note above the table then says what it did.
   const menu = (entries: { m: ConflictsMessage; label: string }[]) =>
-    `<select class="resolve"><option value="">Resolve...</option>${entries.map((e) => `<option value='${esc(JSON.stringify(e.m))}'>${e.label}</option>`).join("")}</select>`;
+    `<select class="resolve"><option value="">Choose...</option>${entries.map((e) => `<option value='${esc(JSON.stringify(e.m))}'>${e.label}</option>`).join("")}</select>`;
+  const sameMod = (ids: string[]) => ids.every((id) => d.family.get(id) && d.family.get(id) === d.family.get(ids[0]));
+  const fileList = (paths: string[], what: string) =>
+    `<details><summary>${paths.length} ${what}${paths.length === 1 ? "" : "s"}</summary><ul>${paths
+      .slice(0, 200)
+      .map((p) => `<li class="mono">${esc(p)}</li>`)
+      .join("")}${paths.length > 200 ? `<li class="dim">and ${paths.length - 200} more</li>` : ""}</ul></details>`;
 
-  // By file path: one row per file.
-  const fileRows = d.fileConflicts
-    .map(
-      (c) =>
-        `<tr><td class="mono">${esc(c.path)}</td><td><span class="ok">${name(c.winner)}</span></td><td>${c.losers.map(name).join(", ")}</td><td class="acts">${menu([
-          ...c.losers.map((l) => ({ m: { action: "letWin" as const, id: l, over: c.winner }, label: `Let ${name(l)} win` })),
-          ...[c.winner, ...c.losers].map((m) => ({ m: { action: "toggle" as const, id: m }, label: `Turn off ${name(m)}` })),
-        ])}</td></tr>`,
-    )
+  // By file path: one row per winner and losers, with the files inside.
+  const pairs = new Map<string, { winner: string; losers: string[]; paths: string[] }>();
+  for (const c of d.fileConflicts) {
+    const k = `${c.winner}|${[...c.losers].sort().join(",")}`;
+    const g = pairs.get(k) ?? { winner: c.winner, losers: c.losers, paths: [] };
+    g.paths.push(c.path);
+    pairs.set(k, g);
+  }
+  const fileRows = [...pairs.values()]
+    .sort((a, b) => b.paths.length - a.paths.length)
+    .map((g) => {
+      const ids = [g.winner, ...g.losers];
+      const twoVersions = sameMod(ids);
+      const entries = twoVersions
+        ? ids.map((id) => ({ m: { action: "useOnly" as const, id }, label: `Use only ${name(id)} ${esc(d.versions.get(id) ?? "")}` }))
+        : [
+            ...g.losers.map((l) => ({ m: { action: "letWin" as const, id: l, over: g.winner }, label: `Let ${name(l)} win` })),
+            ...ids.map((m) => ({ m: { action: "toggle" as const, id: m }, label: `Turn off ${name(m)}` })),
+          ];
+      const what = twoVersions ? `<div class="warn">Two versions of the same mod are on</div>` : "";
+      return `<tr><td>${what}${fileList(g.paths, "file")}</td><td><span class="ok">${label(g.winner)}</span></td><td>${g.losers.map(label).join(", ")}</td><td class="acts">${menu(entries)}</td></tr>`;
+    })
     .join("");
 
   // Inside archives: grouped by winner and loser, since two texture mods can share hundreds of resources.
@@ -94,9 +124,16 @@ function render(d: ConflictsData, csp: string): string {
           .slice(0, 200)
           .map((r) => `<li class="mono">${esc(r)}</li>`)
           .join("")}${g.resources.length > 200 ? `<li class="dim">and ${g.resources.length - 200} more</li>` : ""}</ul></details></td><td><span class="ok">${name(g.winner)}</span></td><td>${name(g.loser)}</td><td class="acts">${menu([
-          { m: { action: "letWin", id: g.loser, over: g.winner }, label: `Let ${name(g.loser)} win` },
-          { m: { action: "toggle", id: g.winner }, label: `Turn off ${name(g.winner)}` },
-          { m: { action: "toggle", id: g.loser }, label: `Turn off ${name(g.loser)}` },
+          ...(sameMod([g.winner, g.loser])
+            ? [
+                { m: { action: "useOnly" as const, id: g.winner }, label: `Use only ${name(g.winner)} ${esc(d.versions.get(g.winner) ?? "")}` },
+                { m: { action: "useOnly" as const, id: g.loser }, label: `Use only ${name(g.loser)} ${esc(d.versions.get(g.loser) ?? "")}` },
+              ]
+            : [
+                { m: { action: "letWin" as const, id: g.loser, over: g.winner }, label: `Let ${name(g.loser)} win` },
+                { m: { action: "toggle" as const, id: g.winner }, label: `Turn off ${name(g.winner)}` },
+                { m: { action: "toggle" as const, id: g.loser }, label: `Turn off ${name(g.loser)}` },
+              ]),
         ])}</td></tr>`,
     )
     .join("");
@@ -110,7 +147,7 @@ function render(d: ConflictsData, csp: string): string {
           ? `<table><thead><tr><th>What overlaps</th><th>Wins</th><th>Loses</th><th></th></tr></thead><tbody>${archiveRows}</tbody></table>`
           : `<p class="dim">No resource inside any enabled mod's archives overlaps with another mod.</p>`;
 
-  const total = d.fileConflicts.length + groups.size;
+  const total = pairs.size + groups.size;
   return `<!doctype html><html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${csp}; script-src 'nonce-${nonce}';">
 <style>
@@ -130,13 +167,16 @@ table { border-collapse: collapse; width: 100%; } th, td { text-align: left; pad
 th { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); font-weight: 500; }
 td.acts { width: 1%; }
 .mono { font-family: var(--vscode-editor-font-family); font-size: 12px; } .dim { color: var(--dim); } .ok { color: var(--green); }
+.warn { color: var(--yellow); font-size: 12px; margin-bottom: 2px; }
+p.note { margin: 0 0 14px; padding: 6px 10px; border-left: 3px solid var(--green); color: var(--fg); }
 details summary { cursor: pointer; } ul { margin: 4px 0 8px 18px; padding: 0; } li { list-style: none; }
 </style></head><body>
 <h1>Conflicts <span>${total}</span></h1>
-<p class="lead">Two mods want the same thing. The one higher in the Mods list wins, and that is usually fine: the later mod is often a patch for the earlier one. To change a winner, open the row's Resolve menu: "Let ... win" moves that mod just above the other, or turn one of them off. Then deploy to make it real.</p>
+<p class="lead">Two mods want the same thing. The one higher in the Mods list wins, and that is usually fine: the later mod is often a patch for the earlier one. Each row is one pair of mods and every file they share; its Choose menu settles all of them at once: "Let ... win" moves that mod just above the other, or turn one of them off. When the pair is two versions of the same mod, keep one. Then deploy to make it real.</p>
+${d.note ? `<p class="note">${esc(d.note)}</p>` : ""}
 <div class="bar">${d.pending ? `<button class="deploy" data-msg='${esc(JSON.stringify({ action: "deploy", id: "" }))}'>Deploy now</button><span class="dim">${d.pending} file${d.pending === 1 ? "" : "s"} to change in the game folder</span>` : `<span class="dim">The game folder is up to date with these choices.</span>`}</div>
 <h2>By file path</h2>
-${fileRows ? `<table><thead><tr><th>File</th><th>Wins</th><th>Loses</th><th></th></tr></thead><tbody>${fileRows}</tbody></table>` : `<p class="dim">No two enabled mods deploy the same file path.</p>`}
+${fileRows ? `<table><thead><tr><th>Files</th><th>Wins</th><th>Loses</th><th></th></tr></thead><tbody>${fileRows}</tbody></table>` : `<p class="dim">No two enabled mods deploy the same file path.</p>`}
 <h2>Inside archives${d.bridgeInfo ? ` <span class="via">via ${esc(d.bridgeInfo)}</span>` : ""}</h2>
 ${archiveNote}
 <script nonce="${nonce}">

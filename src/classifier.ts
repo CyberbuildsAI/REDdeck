@@ -100,6 +100,19 @@ function folderName(name: string): string {
   return name.replace(/[<>:"/\\|?*]+/g, "").trim() || "Mod";
 }
 
+/** The name and version a REDnode package gives itself, from the manifest among the placements. */
+export function rednodeManifest(placements: Placement[]): { id: string; name?: string; version?: string } | undefined {
+  const p = placements.find((x) => /^red4ext\/plugins\/REDnode\/apps\/[^/]+\/rednode-app\.json$/i.test(x.to));
+  if (!p) return undefined;
+  try {
+    const m = JSON.parse(fs.readFileSync(p.from, "utf8")) as { id?: unknown; name?: unknown; version?: unknown };
+    if (typeof m.id !== "string") return undefined;
+    return { id: m.id, name: typeof m.name === "string" ? m.name : undefined, version: typeof m.version === "string" ? m.version : undefined };
+  } catch {
+    return undefined;
+  }
+}
+
 /** The package id from a REDnode manifest, or undefined when the file is not one. */
 function rednodeId(manifest: string): string | undefined {
   try {

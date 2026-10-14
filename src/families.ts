@@ -1,7 +1,7 @@
 // Families: the versions of one mod, grouped. The library keeps one entry per downloaded version
 // so a user can go back; the UI shows one row per mod with a version to pick. A family's key is
-// the Nexus mod id when there is one, else the project path, else the name without version
-// tokens.
+// the Nexus mod id when there is one, else a REDnode package's id, else the project path, else the
+// name without version tokens. Only one version of a family is on at a time.
 
 import { placeAbove, saveMod, type Library, type ModInfo } from "./library";
 import { versionNewer } from "./nexus";
@@ -30,8 +30,19 @@ export function baseName(name: string): string {
     .trim();
 }
 
+/** A REDnode package's id, from where its manifest deploys: red4ext/plugins/REDnode/apps/<id>/rednode-app.json. */
+export function rednodePackageId(mod: Pick<ModInfo, "files">): string | undefined {
+  for (const f of mod.files) {
+    const m = /^red4ext\/plugins\/REDnode\/apps\/([^/]+)\/rednode-app\.json$/i.exec(f);
+    if (m) return m[1].toLowerCase();
+  }
+  return undefined;
+}
+
 export function familyKey(mod: ModInfo): string {
   if (mod.source.modId) return `nexus:${mod.source.modId}`;
+  const pkg = rednodePackageId(mod);
+  if (pkg) return `rednode:${pkg}`;
   if (mod.source.type === "project" && mod.source.path) return `project:${mod.source.path.toLowerCase()}`;
   return `name:${baseName(mod.name) || mod.id}`;
 }
@@ -87,6 +98,44 @@ export function activateVersion(lib: Library, chosen: ModInfo): { previous: ModI
     }
   }
   return { previous, on };
+}
+
+/**
+ * Settles a mod just added into its family, so two versions never fight over the same files. When
+ * the family already has a version and the new one is not older, the new one takes the place in the
+ * order and the on/off state of the version that was active, and the others go off. An older
+ * version arrives off, for going back to. Returns what changed, for the message.
+ */
+export function settleNewVersion(lib: Library, mod: ModInfo): { replaced?: ModInfo; older?: ModInfo } {
+  const fam = familyOf(lib, mod);
+  const others = fam.mods.filter((m) => m.id !== mod.id);
+  if (!others.length) return {};
+  const previous = others.find((m) => m.enabled) ?? [...others].sort(newestFirst)[0];
+  if (mod.version && previous.version && versionNewer(previous.version, mod.version)) {
+    if (mod.enabled) {
+      mod.enabled = false;
+      saveMod(lib, mod);
+    }
+    return { older: previous };
+  }
+  const on = others.some((m) => m.enabled);
+  placeAbove(lib, mod, previous);
+  for (const m of others) {
+    if (m.enabled) {
+      m.enabled = false;
+      saveMod(lib, m);
+    }
+  }
+  if (mod.enabled !== on) {
+    mod.enabled = on;
+    saveMod(lib, mod);
+  }
+  return { replaced: previous };
+}
+
+/** Families with more than one version on, from before versions were settled on adding. */
+export function familiesWithTwoOn(lib: Library): Family[] {
+  return families(lib).filter((f) => f.mods.filter((m) => m.enabled).length > 1);
 }
 
 /** An entry for the same Nexus file, or the same version of the same mod, already in the library. */

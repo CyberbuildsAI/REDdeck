@@ -7,14 +7,14 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { BridgeClient, compareVersions, findBridge, MinBridgeVersion } from "./bridgeClient";
-import { classify } from "./classifier";
+import { classify, rednodeManifest } from "./classifier";
 import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, type ArchiveListing } from "./conflicts";
 import { deploy, detectChanges, modStatus, pendingChanges, plan, readManifest, undo, vortexManages, type Change, type Decision, type DeployResult, type PendingChange, type Plan } from "./deploy";
 import { ChangesPanel, type ChangesMessage } from "./changesPanel";
 import { dotnet10Root, installBridge, installDotnetRuntime, installedBridge, latestBridgeRelease, removeOlderBridges } from "./bridgeInstall";
 import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
 import { DetailPanel } from "./detailPanel";
-import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family } from "./families";
+import { activateVersion, families, familyOf, familyUpdate, findSameVersion, type Family, settleNewVersion, familiesWithTwoOn, familyKey } from "./families";
 import { checkFrameworks, frameworkDetail, frameworkSummary, type FrameworkCheck } from "./frameworks";
 import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
 import { forgetSizes, librarySize, modSize } from "./sizes";
@@ -955,11 +955,17 @@ async function changesAction(m: ChangesMessage): Promise<void> {
 let conflictsPanel: ConflictsPanel;
 let scanning = false;
 
+/** What the last choice on the conflicts page did, shown on it until the next one. */
+let conflictsNote: string | undefined;
+
 function conflictsData() {
   return {
     fileConflicts: state.plan?.conflicts ?? [],
     archive: state.archive,
     names: new Map((library?.mods ?? []).map((m) => [m.id, m.name])),
+    family: new Map((library?.mods ?? []).map((m) => [m.id, familyKey(m)])),
+    versions: new Map((library?.mods ?? []).map((m) => [m.id, m.version])),
+    note: conflictsNote,
     bridge: !!bridgeExe,
     bridgeInfo: state.bridgeInfo,
     scanning,
@@ -996,6 +1002,7 @@ async function conflictsAction(m: ConflictsMessage): Promise<void> {
       if (!over) return;
       placeAbove(library, mod, over);
       log.appendLine(`${mod.name} placed above ${over.name}`);
+      conflictsNote = `${mod.name} now wins over ${over.name}, for every file they share. Deploy to make it real.`;
       refresh();
       offerDeploy(`${mod.name} now wins over ${over.name}.`);
       break;
@@ -1004,9 +1011,28 @@ async function conflictsAction(m: ConflictsMessage): Promise<void> {
       mod.enabled = !mod.enabled;
       saveMod(library, mod);
       log.appendLine(`${mod.name}: ${mod.enabled ? "on" : "off"}`);
+      conflictsNote = `${mod.name} is ${mod.enabled ? "on" : "off"} now. Deploy to make it real.`;
       refresh();
       offerDeploy(`${mod.name} is ${mod.enabled ? "on" : "off"}.`);
       break;
+    case "useOnly": {
+      // Two versions of one mod were on: keep this one and turn the rest off.
+      for (const m of familyOf(library, mod).mods) {
+        if (m.id !== mod.id && m.enabled) {
+          m.enabled = false;
+          saveMod(library, m);
+        }
+      }
+      if (!mod.enabled) {
+        mod.enabled = true;
+        saveMod(library, mod);
+      }
+      log.appendLine(`${mod.name} ${mod.version}: the only version on`);
+      conflictsNote = `${mod.name} ${mod.version} is the only version on now. Deploy to make it real.`;
+      refresh();
+      offerDeploy(`${mod.name} ${mod.version} is the only version on.`);
+      break;
+    }
     case "details":
       showDetails(mod);
       break;
@@ -1080,9 +1106,7 @@ async function addFrom(source: string, preset?: { name: string; version: string;
   if (!library) return;
   const isFile = fs.statSync(source).isFile();
   if (isFile && !isArchiveFile(source)) throw new Error(`${path.basename(source)} is not a zip, 7z or rar file.`);
-  const defaultName = cleanName(path.basename(source, isFile ? path.extname(source) : ""));
-  const name = preset?.name ?? (await vscode.window.showInputBox({ prompt: "Name for this mod", value: defaultName, validateInput: (v) => (v.trim() ? undefined : "A name is needed") }));
-  if (!name) return;
+  let name = preset?.name ?? cleanName(path.basename(source, isFile ? path.extname(source) : ""));
 
   let folder = source;
   let temp: string | undefined;
@@ -1104,9 +1128,23 @@ async function addFrom(source: string, preset?: { name: string; version: string;
     if (!c.placements.length) {
       throw new Error(`Nothing in ${path.basename(source)} looks like a Cyberpunk mod file.${c.unplaced.length ? ` Unplaced: ${c.unplaced.slice(0, 5).join(", ")}` : ""}`);
     }
+    // A REDnode package names itself and says its version in its manifest; that beats the file name.
+    const manifest = rednodeManifest(c.placements);
+    if (!preset) {
+      const typed = await vscode.window.showInputBox({ prompt: "Name for this mod", value: manifest?.name ?? name, validateInput: (v) => (v.trim() ? undefined : "A name is needed") });
+      if (!typed) return;
+      name = typed;
+    }
     const sourceInfo: ModSource = preset?.source ?? (isFile ? { type: "file", path: keepDownload(library, source) } : { type: "folder", path: source });
-    const mod = addMod(library, c.placements, { name: name.trim(), version: preset?.version ?? versionFrom(path.basename(source)), source: sourceInfo });
+    const mod = addMod(library, c.placements, { name: name.trim(), version: preset?.version ?? manifest?.version ?? versionFrom(path.basename(source)), source: sourceInfo });
     log.appendLine(`Added ${mod.name} (${mod.files.length} files, ${mod.kinds.join(", ")}) from ${source}`);
+    const settled = settleNewVersion(library, mod);
+    if (settled.replaced) {
+      log.appendLine(`  a new version of ${settled.replaced.name}: takes the place of ${settled.replaced.version || "the earlier one"}, which is off now`);
+      void vscode.window.showInformationMessage(`${mod.name} ${mod.version} is a new version of ${settled.replaced.name} ${settled.replaced.version}. It takes its place${mod.enabled ? " and is on" : ""}; ${settled.replaced.version || "the earlier one"} stays in the library, off. Pick it from the version list to go back.`);
+    } else if (settled.older) {
+      void vscode.window.showInformationMessage(`${mod.name} ${mod.version} is older than ${settled.older.version}, so it was added switched off. Pick it from the version list to use it.`);
+    }
     if (c.unplaced.length) {
       log.appendLine(`  not placed: ${c.unplaced.join(", ")}`);
       void vscode.window.showWarningMessage(`${mod.name} added. ${c.unplaced.length} file${c.unplaced.length === 1 ? "" : "s"} REDdeck did not know where to put ${c.unplaced.length === 1 ? "was" : "were"} left out. See the log.`);
@@ -1233,6 +1271,24 @@ async function deployNow(): Promise<DeployResult | undefined> {
     );
     if (a) await importVortexCommand();
     return;
+  }
+  // Two versions of one mod on would fight over every file; libraries from before 0.21.1 can have that.
+  for (const fam of familiesWithTwoOn(library)) {
+    const on = fam.mods.filter((m) => m.enabled);
+    const keep = on[0]; // families list newest first
+    const others = on.slice(1).map((m) => m.version || m.name).join(", ");
+    const a = await vscode.window.showWarningMessage(
+      `${on.length} versions of ${fam.name} are on (${on.map((m) => m.version || m.name).join(", ")}). They would overwrite each other. Keep ${keep.version || "the newest"} and turn ${others} off?`,
+      { modal: true },
+      `Keep ${keep.version || "the newest"}`,
+    );
+    if (!a) return;
+    for (const m of on.slice(1)) {
+      m.enabled = false;
+      saveMod(library, m);
+    }
+    log.appendLine(`${fam.name}: kept ${keep.version}, turned off ${others}`);
+    refresh();
   }
   const decisions = new Map<string, Decision>();
   for (const c of detectChanges(gamePath).filter((c) => c.kind === "changed")) {
