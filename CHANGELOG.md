@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.25.0 (2026-10-14)
+## 0.25.1 (2026-10-14)
+
+0.25.0 was only ever a test build; its changes are listed here.
 
 - **Add to Project takes archives too.** For a mod's `.archive` file, REDdeck lists the resources inside and asks for all of them or a pick, then REDcode extracts them into the project's `source\archive` at their game paths. Resources the project already has are kept unless you say Replace. Needs REDcode 0.6.1 and REDbridge 0.7.1 or newer, which add `redcode.extractToProject`; without REDcode, archives are skipped as before and the message says why.
 - **Readable on light themes.** REDdeck's pages darken the HUD accents (yellow, cyan, green, red) when VS Code uses a light theme, so status and highlights read on white.
