@@ -9,7 +9,7 @@ import * as vscode from "vscode";
 import { BridgeClient, compareVersions, findBridge, MinBridgeVersion } from "./bridgeClient";
 import { classify, rednodeManifest } from "./classifier";
 import { enabledArchives, findArchiveConflicts, type ArchiveConflictSummary, type ArchiveListing } from "./conflicts";
-import { deploy, detectChanges, modStatus, pendingChanges, plan, readManifest, undo, vortexManages, type Change, type Decision, type DeployResult, type PendingChange, type Plan } from "./deploy";
+import { deploy, detectChanges, modStatus, modsRemoved, modsTouched, writeDeployReport, pendingChanges, plan, readManifest, undo, vortexManages, type Change, type Decision, type DeployResult, type PendingChange, type Plan } from "./deploy";
 import { ChangesPanel, type ChangesMessage } from "./changesPanel";
 import { dotnet10Root, installBridge, installDotnetRuntime, installedBridge, latestBridgeRelease, removeOlderBridges } from "./bridgeInstall";
 import { ConflictsPanel, type ConflictsMessage } from "./conflictsPanel";
@@ -1667,12 +1667,26 @@ async function deployNow(): Promise<DeployResult | undefined> {
     const r = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Preparing REDmod mods" }, () => deployRedmod(library!, gamePath, (l) => log.appendLine(l)));
     redmodNote = r.ran ? ` ${r.packages.length} REDmod mod${r.packages.length === 1 ? "" : "s"} prepared; launch the game with -modded.` : ` REDmod mods not prepared: ${r.output}.`;
   }
+  let report: string | undefined;
+  try {
+    report = writeDeployReport(library, gamePath, result);
+    log.appendLine(`Deploy report: ${report}`);
+  } catch (err) {
+    log.appendLine(`Deploy report not written: ${err instanceof Error ? err.message : String(err)}`);
+  }
   refresh();
-  const words = result.method === "link" ? "linked" : "copied";
   const n = state.plan?.conflicts.length ?? 0;
   const conflictNote = n ? ` ${n} conflict${n === 1 ? "" : "s"}, resolved by order.` : "";
-  void vscode.window.showInformationMessage(`Deployed: ${result.linked} files ${words}, ${result.removed} removed.${conflictNote}${redmodNote}`, ...(n ? ["Show conflicts"] : [])).then((a) => {
-    if (a) void showConflicts();
+  const plural = (k: number, w: string) => `${k} ${w}${k === 1 ? "" : "s"}`;
+  const touched = modsTouched(result).length;
+  const gone = modsRemoved(result).length;
+  const what = result.changes.length
+    ? [result.linked ? `${plural(result.linked, "file")} for ${plural(touched, "mod")}` : "", result.removed ? `${plural(result.removed, "file")} removed${gone ? ` for ${plural(gone, "mod")}` : ""}` : ""].filter(Boolean).join(", ")
+    : "nothing changed";
+  const buttons = [...(report ? ["View"] : []), ...(n ? ["Show conflicts"] : [])];
+  void vscode.window.showInformationMessage(`Deployed: ${what}. ${plural(result.modsInGame, "mod")} in the game now.${conflictNote}${redmodNote}`, ...buttons).then((a) => {
+    if (a === "View" && report) void vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(report)).then(undefined, () => vscode.window.showTextDocument(vscode.Uri.file(report!)));
+    else if (a === "Show conflicts") void showConflicts();
   });
   return result;
 }

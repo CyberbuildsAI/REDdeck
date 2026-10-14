@@ -85,6 +85,9 @@ A game patch is the usual reason a modded game stops starting. REDdeck records t
 
 ## 6. Deploying
 
+After each deploy, the message says how many files went in for how many mods and how many mods are in the game. **View** opens a report of exactly what changed and where; the last 30 reports stay in the library's `deploys` folder.
+
+
 Turning mods on and off changes nothing on disk. The **Deploy** button counts the files waiting, and **Show pending changes** lists every one with the reason: added, replaced by a mod higher in the list, put back from a backup, relinked after a rebuild, removed.
 
 Deploy hardlinks the files of every mod that is on into the game folder, so they take no extra space, and writes `modlist.txt` for the archive load order. If the library sits on another drive, deploy copies instead. It prepares REDmod packages with `redMod.exe` when any are on. Everything it did goes into a manifest in the game folder.

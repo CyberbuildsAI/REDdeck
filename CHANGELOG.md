@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.25.2 (2026-10-14)
+
+- **The deploy message counts mods.** It says how many files went in for how many mods, what was removed, and how many mods are in the game now, so 31 files is clearly "for 6 mods".
+- **A report of every deploy.** **View** on the deploy message opens it: each mod's files added, replaced or removed, with their paths under the game folder, and anything skipped. Reports are kept in the library's `deploys` folder (the last 30). The command line's deploy writes one too and prints where.
+
 ## 0.25.1 (2026-10-14)
 
 0.25.0 was only ever a test build; its changes are listed here.

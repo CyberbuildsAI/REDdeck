@@ -121,6 +121,19 @@ assert.equal(p.method, "link");
 const r = core.deploy(lib, game, new Map());
 assert.equal(r.linked, 7, `linked ${r.linked}: 4 rooted + 1 bare + 1 loose + modlist`);
 assert.equal(r.skipped.length, 0);
+// The deploy report: every change listed, mods counted without REDdeck's own modlist.txt.
+assert.equal(r.changes.length, 7);
+assert.ok(r.changes.every((c) => c.kind === "added"));
+assert.equal(core.modsTouched(r).length, 3, "rooted, bare, loose");
+assert.equal(r.modsInGame, 3);
+{
+  const report = core.writeDeployReport(lib, game, r);
+  const text = fs.readFileSync(report, "utf8");
+  assert.ok(text.includes("7 files put in or replaced for 3 mods"), text.split("\n").slice(0, 6).join("\n"));
+  assert.ok(text.includes("`archive/pc/mod/modlist.txt`"), "paths listed");
+  assert.ok(text.includes("## REDdeck (load order files)"));
+  console.log("deploy report: ok");
+}
 const modlist = fs.readFileSync(path.join(game, "archive", "pc", "mod", "modlist.txt"), "utf8");
 assert.equal(modlist, "Rooted.archive\r\nCoolMod.archive\r\n");
 assert.equal(fs.readFileSync(path.join(game, "archive", "pc", "mod", "CoolMod.archive"), "utf8").endsWith("CoolMod.archive"), true, "Bare's copy, not Conflict's");

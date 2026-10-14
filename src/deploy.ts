@@ -202,6 +202,82 @@ export interface DeployResult {
   backedUp: number;
   method: "link" | "copy";
   skipped: string[];
+  /** Every file this deploy put in, replaced or took out, for the report. */
+  changes: DeployChange[];
+  /** Mods with files in the game after this deploy. */
+  modsInGame: number;
+}
+
+export interface DeployChange {
+  /** Path under the game folder, forward slashes. */
+  path: string;
+  /** Mod id, or "reddeck" for files REDdeck generates. */
+  mod: string;
+  kind: "added" | "replaced" | "removed";
+  /** added: a file of the game's was moved to the backup folder first. removed: that backup went back. */
+  backup?: boolean;
+}
+
+/** Mods (not REDdeck's own files) a deploy put in or replaced files for. */
+export function modsTouched(result: DeployResult): string[] {
+  return [...new Set(result.changes.filter((c) => c.kind !== "removed" && c.mod !== Generated).map((c) => c.mod))];
+}
+
+/** Mods a deploy took files out for. */
+export function modsRemoved(result: DeployResult): string[] {
+  return [...new Set(result.changes.filter((c) => c.kind === "removed" && c.mod !== Generated).map((c) => c.mod))];
+}
+
+export function deployReportsFolder(root: string): string {
+  return path.join(root, "deploys");
+}
+
+/** Reports kept in the library's deploys folder; older ones are deleted. */
+const KeptReports = 30;
+
+/**
+ * A deploy's report as Markdown: what changed, mod by mod, with every path under the game folder.
+ * Written to <library>/deploys/<time>.md; returns its path.
+ */
+export function writeDeployReport(lib: Library, gamePath: string, result: DeployResult, when = new Date()): string {
+  const name = (id: string) => (id === Generated ? "REDdeck (load order files)" : (() => {
+    const m = lib.mods.find((x) => x.id === id);
+    return m ? `${m.name}${m.version ? ` ${m.version}` : ""}` : `${id} (no longer in the library)`;
+  })());
+  const touched = modsTouched(result);
+  const lines = [
+    `# Deploy ${when.toLocaleString()}`,
+    "",
+    `Game: \`${gamePath}\``,
+    `Method: ${result.method === "link" ? "hardlinks" : "copies"}`,
+    `${result.linked} file${result.linked === 1 ? "" : "s"} put in or replaced for ${touched.length} mod${touched.length === 1 ? "" : "s"}, ${result.removed} removed, ${result.kept} already in place. ${result.modsInGame} mod${result.modsInGame === 1 ? "" : "s"} in the game now.`,
+  ];
+  if (result.backedUp) lines.push(`${result.backedUp} file${result.backedUp === 1 ? "" : "s"} of the game's own moved to the backup folder to make room; Undo deploy puts ${result.backedUp === 1 ? "it" : "them"} back.`);
+  if (!result.changes.length) lines.push("", "Nothing changed: everything was already in place.");
+  const byMod = new Map<string, DeployChange[]>();
+  for (const c of result.changes) byMod.set(c.mod, [...(byMod.get(c.mod) ?? []), c]);
+  const label: Record<DeployChange["kind"], string> = { added: "added", replaced: "replaced", removed: "removed" };
+  // Mods by name, REDdeck's own files last.
+  for (const [id, cs] of [...byMod].sort(([a], [b]) => Number(a === Generated) - Number(b === Generated) || name(a).localeCompare(name(b)))) {
+    lines.push("", `## ${name(id)}`, "");
+    for (const c of [...cs].sort((a, b) => a.kind.localeCompare(b.kind) || a.path.localeCompare(b.path))) {
+      const note = c.backup ? (c.kind === "removed" ? " (the game's own file put back)" : " (the game's own file backed up first)") : "";
+      lines.push(`- ${label[c.kind]}: \`${c.path}\`${note}`);
+    }
+  }
+  if (result.skipped.length) {
+    lines.push("", "## Skipped", "", "Changed in the game folder since the last deploy, so left alone:", "");
+    for (const p of result.skipped) lines.push(`- \`${p}\``);
+  }
+  const folder = deployReportsFolder(lib.root);
+  fs.mkdirSync(folder, { recursive: true });
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const stamp = `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}_${pad(when.getHours())}-${pad(when.getMinutes())}-${pad(when.getSeconds())}`;
+  const file = path.join(folder, `${stamp}.md`);
+  fs.writeFileSync(file, lines.join("\n") + "\n");
+  const old = fs.readdirSync(folder).filter((f) => f.endsWith(".md")).sort().reverse().slice(KeptReports);
+  for (const f of old) fs.rmSync(path.join(folder, f), { force: true });
+  return file;
 }
 
 function backupPath(lib: Library, rel: string): string {
@@ -263,7 +339,7 @@ export function deploy(lib: Library, gamePath: string, decisions: Map<string, De
   const p = plan(lib, gamePath);
   const manifest: Manifest = readManifest(gamePath) ?? { version: 1, library: lib.root, gamePath, method: p.method, time: "", files: [], dirs: [] };
   manifest.library = lib.root;
-  const result: DeployResult = { linked: 0, removed: 0, kept: 0, backedUp: 0, method: manifest.method, skipped: [] };
+  const result: DeployResult = { linked: 0, removed: 0, kept: 0, backedUp: 0, method: manifest.method, skipped: [], changes: [], modsInGame: 0 };
   const entries = new Map(manifest.files.map((e) => [key(e.path), e]));
 
   // Honour the user's answers: "keep" imports the changed game file into the library first.
@@ -287,6 +363,7 @@ export function deploy(lib: Library, gamePath: string, decisions: Map<string, De
     if (removeDeployed(lib, gamePath, manifest, entry, decided !== undefined, result.skipped)) {
       entries.delete(key(entry.path));
       result.removed++;
+      result.changes.push({ path: entry.path, mod: entry.mod, kind: "removed", ...(entry.backup ? { backup: true } : {}) });
     }
     manifest.files = [...entries.values()];
     progress?.(++done, total);
@@ -329,10 +406,12 @@ export function deploy(lib: Library, gamePath: string, decisions: Map<string, De
     entries.set(key(d.rel), entry);
     manifest.files = [...entries.values()];
     result.linked++;
+    result.changes.push({ path: d.rel, mod: entry.mod, kind: existing ? "replaced" : "added", ...(backup && !existing ? { backup: true } : {}) });
     progress?.(++done, total);
     if (done % 200 === 0) save();
   }
   result.kept = p.desired.length - result.linked - result.skipped.length;
+  result.modsInGame = new Set(manifest.files.map((e) => e.mod).filter((m) => m !== Generated)).size;
   save();
   return result;
 }

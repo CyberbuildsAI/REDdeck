@@ -7,7 +7,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { classify, rednodeManifest } from "./classifier";
 import { settleNewVersion } from "./families";
-import { deploy, detectChanges, modStatus, pendingChanges, plan, readManifest, undo, type Decision } from "./deploy";
+import { deploy, detectChanges, modStatus, modsTouched, writeDeployReport, pendingChanges, plan, readManifest, undo, type Decision } from "./deploy";
 import { extractArchive, findSevenZip } from "./extract";
 import { checkFrameworks, frameworkSummary } from "./frameworks";
 import { findGame, gameVersion, isGameFolder } from "./game";
@@ -167,8 +167,9 @@ export const verbs = {
     for (const p of restore) decisions.set(p, "restore");
     const result = deploy(s.lib, s.game, decisions, undefined, await gameVersion(s.game));
     const redmod = enabledRedmodPackages(s.lib).length ? await deployRedmod(s.lib, s.game) : undefined;
-    const text = `deployed (${result.method}): ${result.linked} added, ${result.removed} removed, ${result.kept} unchanged${result.skipped.length ? `; skipped (changed in game folder, answer with keep or restore): ${result.skipped.join(", ")}` : ""}${redmod ? `; REDmod: ${redmod.ran ? `${redmod.packages.length} prepared` : redmod.output}` : ""}`;
-    return { data: { ...result, redmod }, text };
+    const report = writeDeployReport(s.lib, s.game, result);
+    const text = `deployed (${result.method}): ${result.linked} added for ${modsTouched(result).length} mod(s), ${result.removed} removed, ${result.kept} unchanged; ${result.modsInGame} mod(s) in the game; report ${report}${result.skipped.length ? `; skipped (changed in game folder, answer with keep or restore): ${result.skipped.join(", ")}` : ""}${redmod ? `; REDmod: ${redmod.ran ? `${redmod.packages.length} prepared` : redmod.output}` : ""}`;
+    return { data: { ...result, redmod, report }, text };
   },
 
   undo(s: Session): Verb {
