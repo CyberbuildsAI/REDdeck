@@ -8,7 +8,7 @@ import * as path from "node:path";
 import { classify, rednodeManifest } from "./classifier";
 import { settleNewVersion } from "./families";
 import { deploy, detectChanges, modStatus, modsTouched, writeDeployReport, pendingChanges, plan, readManifest, undo, type Decision } from "./deploy";
-import { extractArchive, findSevenZip } from "./extract";
+import { findSevenZip, unpackOrCopy } from "./extract";
 import { checkFrameworks, frameworkSummary } from "./frameworks";
 import { findGame, gameVersion, isGameFolder } from "./game";
 import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, removeMod, saveLibrary, saveMod, type Library, type ModInfo } from "./library";
@@ -100,7 +100,7 @@ export const verbs = {
     return { data, text };
   },
 
-  /** Adds a zip, 7z, rar or folder. An archive with options needs the option's label. */
+  /** Adds a zip, 7z, rar, a single mod file or a folder. An archive with options needs the option's label. */
   async add(s: Session, source: string, name?: string, option?: string): Promise<Verb> {
     if (!fs.existsSync(source)) throw new Error(`${source} does not exist`);
     const isFile = fs.statSync(source).isFile();
@@ -110,7 +110,7 @@ export const verbs = {
     try {
       if (isFile) {
         temp = fs.mkdtempSync(path.join(os.tmpdir(), "reddeck-verb-"));
-        await extractArchive(source, temp, s.sevenZa);
+        await unpackOrCopy(source, temp, s.sevenZa);
         folder = temp;
       }
       let c = classify(folder, modName);

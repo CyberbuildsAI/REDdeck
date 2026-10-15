@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.26.1 (2026-10-15)
+
+- **modlist.txt follows the archives you add and remove.** It was written once and then left alone, so an archive added later deployed but was missing from the load order list. Deploy now rewrites it whenever it should say something else; your next deploy fixes an out-of-date one (it shows as one change waiting).
+- **Add mod takes a single mod file**, such as an `.archive`, `.reds` or `.lua`, not only a zip, 7z or rar. REDdeck puts it where its type goes, and asks when it cannot tell. The command line's `add` does the same.
+
 ## 0.26.0 (2026-10-14)
 
 - **Loadouts you switch between.** A loadout is a named set of which mods are on and which version of each (what other managers call a profile). One is always active: the Mods view shows it, turning mods on or off saves into it, and Deploy uses it. Your library's state now becomes the loadout Default. The library, sections and load order are shared.

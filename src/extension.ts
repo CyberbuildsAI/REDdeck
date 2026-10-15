@@ -19,7 +19,7 @@ import { checkFrameworks, frameworkDetail, frameworkSummary, type FrameworkCheck
 import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
 import { addSection, deleteSection, moveInSection, moveSection, placeNextTo, putInSection, renameSection, sectionNameOf, sectionNameProblem, sectionsOf, setSectionOn } from "./sections";
 import { forgetSizes, librarySize, modSize } from "./sizes";
-import { extractArchive, findSevenZip, isArchiveFile } from "./extract";
+import { findSevenZip, unpackOrCopy } from "./extract";
 import { findGame, gameVersion, isGameFolder, steamLibraries } from "./game";
 import { addMod, defaultLibraryPath, downloadsFolder, keepDownload, loadLibrary, modFolder, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { activeLoadout, deleteLoadout, exportLoadout, findLoadout, importLoadout, listLoadouts, loadoutNameProblem, loadoutState, makeActive, newLoadout, readLoadout, renameLoadout, saveLoadout, setInLoadout, syncActiveLoadout } from "./loadouts";
@@ -1401,7 +1401,7 @@ async function addModCommand(): Promise<void> {
   if (!library) return;
   const choice = await vscode.window.showQuickPick(
     [
-      { label: "$(file-zip) A zip, 7z or rar file", detail: "The file you downloaded from Nexus Mods", source: "file" as const },
+      { label: "$(file-zip) A file", detail: "A zip, 7z or rar from Nexus Mods, or a single mod file such as an .archive or .reds", source: "file" as const },
       { label: "$(folder) A folder", detail: "A folder laid out like the game folder, or a loose set of mod files", source: "folder" as const },
       { label: "$(cloud-download) Import from Vortex", detail: "Copy the mods Vortex has for Cyberpunk 2077 into the library", source: "vortex" as const },
       { label: "$(tools) A REDcode or WolvenKit project", detail: "The packed output of a .cpmodproj; re-synced every time you pack again", source: "project" as const },
@@ -1413,7 +1413,7 @@ async function addModCommand(): Promise<void> {
   if (choice.source === "project") return addProjectCommand(undefined);
   const picked = await vscode.window.showOpenDialog(
     choice.source === "file"
-      ? { canSelectFiles: true, canSelectMany: true, openLabel: "Add", filters: { "Mod archives": ["zip", "7z", "rar"] }, title: "Add mod" }
+      ? { canSelectFiles: true, canSelectMany: true, openLabel: "Add", filters: { "Mods": ["zip", "7z", "rar", "archive", "xl", "reds", "lua", "yaml", "yml", "tweak", "dll", "asi"], "All files": ["*"] }, title: "Add mod" }
       : { canSelectFolders: true, canSelectMany: false, openLabel: "Add this folder", title: "Add mod from a folder" },
   );
   if (!picked?.length) return;
@@ -1424,7 +1424,6 @@ async function addModCommand(): Promise<void> {
 async function addFrom(source: string, preset?: { name: string; version: string; source: ModSource }): Promise<void> {
   if (!library) return;
   const isFile = fs.statSync(source).isFile();
-  if (isFile && !isArchiveFile(source)) throw new Error(`${path.basename(source)} is not a zip, 7z or rar file.`);
   let name = preset?.name ?? cleanName(path.basename(source, isFile ? path.extname(source) : ""));
 
   let folder = source;
@@ -1432,7 +1431,7 @@ async function addFrom(source: string, preset?: { name: string; version: string;
   try {
     if (isFile) {
       temp = fs.mkdtempSync(path.join(os.tmpdir(), "reddeck-"));
-      await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Opening ${path.basename(source)}` }, () => extractArchive(source, temp!, sevenZa));
+      await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Opening ${path.basename(source)}` }, () => unpackOrCopy(source, temp!, sevenZa));
       folder = temp;
     }
     let c = classify(folder, name.trim());

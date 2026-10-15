@@ -73,7 +73,7 @@ A game patch is the usual reason a modded game stops starting. REDdeck records t
 
 ## 5. Adding mods
 
-**From a file or folder.** Add mod takes a zip, 7z, rar or a folder. REDdeck works out what kind of mod it is (archive, redscript, CET, RED4ext plugin, TweakXL, REDmod package, REDnode package, a framework) and where its files go, and asks only when it cannot tell, for example when a zip holds several options.
+**From a file or folder.** Add mod takes a zip, 7z, rar, a single mod file (an `.archive`, `.reds`, `.lua` and so on) or a folder. REDdeck works out what kind of mod it is (archive, redscript, CET, RED4ext plugin, TweakXL, REDmod package, REDnode package, a framework) and where its files go, and asks only when it cannot tell, for example when a zip holds several options.
 
 **From Nexus Mods.** With REDdeck handling download links, press **Mod manager download** on any file on the site and it lands in the library. Without that, copy the `nxm://` link and use **Nexus: add from a link**. Premium members can also download straight from an `update` link; free members go through the site, which hands REDdeck a link with a key.
 

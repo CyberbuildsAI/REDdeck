@@ -144,6 +144,15 @@ function stillOurs(entry: ManifestEntry, method: Manifest["method"], gamePath: s
   return id.size === entry.size && Math.abs(id.mtimeMs - entry.mtimeMs) < 2000 ? "ok" : "changed";
 }
 
+/** Whether a file REDdeck generates says something other than it should (or is missing). */
+function generatedDiffers(file: string, content: string): boolean {
+  try {
+    return fs.readFileSync(file, "utf8") !== content;
+  } catch {
+    return true;
+  }
+}
+
 /** What the enabled mods want in the game folder, with conflicts resolved by order. */
 export function plan(lib: Library, gamePath: string): Plan {
   const manifest = readManifest(gamePath);
@@ -177,6 +186,8 @@ export function plan(lib: Library, gamePath: string): Plan {
   const add = [...desired.values()].filter((d) => {
     const e = current.get(key(d.rel));
     if (!e || (d.mod?.id ?? Generated) !== e.mod) return true;
+    // A file REDdeck writes itself (modlist.txt) is due when what it should say has changed.
+    if (d.content !== undefined && generatedDiffers(gameFile(gamePath, d.rel), d.content)) return true;
     if (stillOurs(e, method, gamePath) !== "ok") return true;
     return sourceReplaced(e, method, d);
   });

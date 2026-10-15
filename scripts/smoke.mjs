@@ -134,6 +134,31 @@ assert.equal(r.modsInGame, 3);
   assert.ok(text.includes("## REDdeck (load order files)"));
   console.log("deploy report: ok");
 }
+
+// A single .archive file, added on its own, and modlist.txt following on the next deploy.
+{
+  const loose = path.join(tmp, "loose-add");
+  fs.mkdirSync(loose, { recursive: true });
+  const file = path.join(loose, "SoloMod.archive");
+  fs.writeFileSync(file, "RDAR solo");
+  const unpacked = path.join(tmp, "loose-unpacked");
+  await core.unpackOrCopy(file, unpacked, sevenZa);
+  const c = core.classify(unpacked, "SoloMod");
+  assert.deepEqual(c.placements.map((p) => p.to), ["archive/pc/mod/SoloMod.archive"], "a bare .archive goes to archive/pc/mod");
+  const before = core.deploy(lib, game);
+  const listed = () => fs.readFileSync(path.join(game, ...core.ModListPath.split("/")), "utf8").split("\r\n").filter(Boolean);
+  const was = listed();
+  const solo = core.addMod(lib, c.placements, { name: "SoloMod", source: { type: "file", path: file } });
+  assert.ok(core.plan(lib, game).add.some((d) => d.rel === core.ModListPath), "modlist.txt is due when an archive arrives");
+  core.deploy(lib, game);
+  assert.deepEqual(listed(), [...was, "SoloMod.archive"], "the new archive is in modlist.txt");
+  core.removeMod(lib, solo);
+  core.deploy(lib, game);
+  assert.deepEqual(listed(), was, "and out again when it goes");
+  assert.equal(core.plan(lib, game).add.length, 0, "nothing left to do");
+  assert.ok(before);
+  console.log("single file and modlist: ok");
+}
 const modlist = fs.readFileSync(path.join(game, "archive", "pc", "mod", "modlist.txt"), "utf8");
 assert.equal(modlist, "Rooted.archive\r\nCoolMod.archive\r\n");
 assert.equal(fs.readFileSync(path.join(game, "archive", "pc", "mod", "CoolMod.archive"), "utf8").endsWith("CoolMod.archive"), true, "Bare's copy, not Conflict's");

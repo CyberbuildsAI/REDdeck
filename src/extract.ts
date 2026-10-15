@@ -34,6 +34,16 @@ function findRarTool(): { exe: string; args: (file: string, dest: string) => str
 }
 
 /** Extracts `file` into `dest` (created if needed). Throws with a readable message when it cannot. */
+/**
+ * Gets a file ready to classify in `dest`: a zip, 7z or rar is unpacked, any other file (a loose
+ * .archive, .reds, .lua and so on) is copied in as it is, for the classifier to place by its type.
+ */
+export async function unpackOrCopy(file: string, dest: string, sevenZa: string | undefined): Promise<void> {
+  if (isArchiveFile(file)) return extractArchive(file, dest, sevenZa);
+  fs.mkdirSync(dest, { recursive: true });
+  fs.copyFileSync(file, path.join(dest, path.basename(file)));
+}
+
 export async function extractArchive(file: string, dest: string, sevenZa: string | undefined): Promise<void> {
   fs.mkdirSync(dest, { recursive: true });
   const ext = path.extname(file).toLowerCase();
