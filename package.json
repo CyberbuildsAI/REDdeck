@@ -16,6 +16,10 @@
     "type": "git",
     "url": "https://github.com/Edgemodders/REDdeck"
   },
+  "homepage": "https://edgemodders.github.io/REDdeck/",
+  "bugs": {
+    "url": "https://github.com/Edgemodders/REDdeck/issues"
+  },
   "engines": {
     "vscode": "^1.80.0",
     "node": ">=20"
