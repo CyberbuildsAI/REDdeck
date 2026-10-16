@@ -1,8 +1,12 @@
 # Changelog
 
+## 0.26.5 (2026-10-16)
+
+- **`@edgemodders/reddeck-mcp` is on npm from this version.** 0.26.4's release stopped before npm (the publish step read its folder as a GitHub repository); the extension itself went out as usual. Nothing else changes.
+
 ## 0.26.4 (2026-10-16)
 
-- **REDdeck's tools on npm: `@edgemodders/reddeck-mcp`.** The MCP server and the command line, without VS Code: `npx -y @edgemodders/reddeck-mcp` serves the 14 `reddeck_*` tools over stdio (for Claude Code: `claude mcp add reddeck -- npx -y @edgemodders/reddeck-mcp`), and `reddeck` is the command line. Same library and deployer as the extension, and the same version: every REDdeck release publishes both. Windows only.
+- **REDdeck's tools on npm: `@edgemodders/reddeck-mcp`** (first published with 0.26.5). The MCP server and the command line, without VS Code: `npx -y @edgemodders/reddeck-mcp` serves the 14 `reddeck_*` tools over stdio (for Claude Code: `claude mcp add reddeck -- npx -y @edgemodders/reddeck-mcp`), and `reddeck` is the command line. Same library and deployer as the extension, and the same version: every REDdeck release publishes both. Windows only.
 - `bin/reddeck-mcp.mjs` starts the server on its own, as `reddeck mcp` does.
 
 ## 0.26.3 (2026-10-15)

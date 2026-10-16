@@ -1,6 +1,6 @@
 // Assembles the npm package @edgemodders/reddeck-mcp in dist/npm from the built extension files:
 // the MCP server and the command line, with the bundled 7za.exe. Run after npm run build.
-//   node scripts/npm-package.mjs          then: npm publish dist/npm
+//   node scripts/npm-package.mjs          then: npm publish ./dist/npm (the ./ matters)
 // The version is REDdeck's, so the extension and the tools never drift apart.
 import * as fs from "node:fs";
 import * as path from "node:path";
