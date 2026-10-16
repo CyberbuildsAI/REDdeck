@@ -27,5 +27,7 @@ nav:
     url: /guide.html
   - title: Design
     url: /design.html
+  - title: Tests
+    url: /testing.html
   - title: Dev setup
     url: /dev-setup.html

@@ -6,6 +6,7 @@ REDdeck is a mod manager for Cyberpunk 2077 that runs inside VS Code and REDcode
 |---|---|
 | [Guide](guide.html) | Install, set up, the Mods view and the REDdeck page, adding mods, deploying, conflicts, frameworks and game patches, updates, disk space, loadouts, settings, the command line, troubleshooting |
 | [Design](design.html) | The goal and its rules, how Cyberpunk mods are installed, what Vortex solves, the UI, the library and deployment, conflicts, Nexus, risks and roadmap |
+| [Tests](testing.md) | Every test so far: the automated ones and what they check, the publish runs, and each hand test by the owner with its result and what it led to; tests still waiting |
 | [Dev setup](dev-setup.md) | Every tool and step needed to build REDdeck on a new machine |
 
 ## Roadmap status
