@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.26.4 (2026-10-16)
+
+- **REDdeck's tools on npm: `@edgemodders/reddeck-mcp`.** The MCP server and the command line, without VS Code: `npx -y @edgemodders/reddeck-mcp` serves the 14 `reddeck_*` tools over stdio (for Claude Code: `claude mcp add reddeck -- npx -y @edgemodders/reddeck-mcp`), and `reddeck` is the command line. Same library and deployer as the extension, and the same version: every REDdeck release publishes both. Windows only.
+- `bin/reddeck-mcp.mjs` starts the server on its own, as `reddeck mcp` does.
+
 ## 0.26.3 (2026-10-15)
 
 - **Deploy and Undo deploy check that the game is closed.** Cyberpunk 2077 keeps mod files open while it runs, so Windows refused to replace or delete them and a deploy stopped partway with an EPERM error. REDdeck now says the game is running and waits for "The game is closed now"; the command line refuses with the same reason.

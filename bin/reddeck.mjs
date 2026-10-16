@@ -14,7 +14,7 @@
 //   reddeck changes                    files changed in the game folder since the deploy
 //   reddeck pending                    what the next deploy adds, replaces, puts back or removes, and why
 //   reddeck conflicts                  conflicts by file path (archive conflicts need the extension)
-//   reddeck loadout save <name> | load <file> | list
+//   reddeck loadout save <name> | load <name or file> | list
 //   reddeck vortex list | import
 //   reddeck mcp                        serve the same verbs as MCP tools over stdio
 //

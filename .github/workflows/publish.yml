@@ -1,7 +1,8 @@
 # Publishes a release when a version tag is pushed: git tag v0.25.0 && git push origin v0.25.0
 # Checks the tag against package.json, builds, tests, packages for Windows x64, then publishes to
-# the VS Code Marketplace (VSCE_PAT) and Open VSX (OVSX_PAT, skipped while that secret is not set)
-# and attaches the .vsix to a GitHub release. Both tokens are Edgemodders organisation secrets.
+# the VS Code Marketplace (VSCE_PAT) and Open VSX (OVSX_PAT, skipped while that secret is not set),
+# publishes the MCP server and CLI to npm as @edgemodders/reddeck-mcp at the same version (NPM_TOKEN),
+# and attaches the .vsix to a GitHub release. The tokens are Edgemodders organisation secrets.
 name: Publish
 
 on:
@@ -10,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   publish:
@@ -24,6 +26,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          registry-url: https://registry.npmjs.org
 
       - name: The tag matches package.json
         run: |
@@ -56,6 +59,17 @@ jobs:
             exit 0
           fi
           npx ovsx publish "dist/reddeck-${VERSION}.vsix" --pat "${OVSX_PAT}"
+
+      - name: npm (@edgemodders/reddeck-mcp)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "::warning::NPM_TOKEN is not set; the MCP package is not published"
+            exit 0
+          fi
+          node scripts/npm-package.mjs
+          npm publish dist/npm --provenance --access public
 
       - name: GitHub release
         env:

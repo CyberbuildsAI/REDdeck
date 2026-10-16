@@ -49,6 +49,7 @@ Simplicity with a friendly and obvious UI. Rules that follow from it:
 ## Releases
 
 - **Publishing (first release on both stores: 0.26.0, 2026-10-14):** push a tag `vX.Y.Z` that matches `package.json`; `.github/workflows/publish.yml` checks the match, runs typecheck, build and smoke, packages `--target win32-x64`, publishes to the VS Code Marketplace (`VSCE_PAT`) and Open VSX (`OVSX_PAT`, skipped while unset) and makes the GitHub release with the CHANGELOG section as notes. Do not also run `gh release create` by hand. Both tokens are Edgemodders organisation secrets; `verify-tokens.yml` (run by hand) checks them. Publisher id `edgemodders` on both. `"preview": true` until the owner says otherwise.
+- **npm (0.26.4):** `@edgemodders/reddeck-mcp` is published by the same workflow at REDdeck's version (`NPM_TOKEN`, an Edgemodders organisation secret, provenance on). `scripts/npm-package.mjs` copies `dist/mcp.js`, `dist/core.js`, `bin/reddeck.mjs`, `bin/reddeck-mcp.mjs`, `bin/7za.exe`, notices, LICENSE and `docs/npm.md` (its README) into `dist/npm`; bins `reddeck-mcp` and `reddeck`, `os: win32`. Keep `docs/npm.md`'s tool table in step with `src/mcp.ts`.
 - `ThirdPartyNotices.txt` is written by `esbuild.mjs` on every build from what extension.js and mcp.js bundle, plus 7-Zip for `bin/7za.exe`. Commit it when it changes.
 
 ## Conventions

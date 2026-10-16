@@ -186,6 +186,8 @@ node bin/reddeck.mjs vortex list | import
 
 `--library <folder>` and `--game <folder>` override the folders. The command line finds the game the same way the extension does.
 
+**Without VS Code:** the MCP server and the command line are also on npm as `@edgemodders/reddeck-mcp`. `npx -y @edgemodders/reddeck-mcp` starts the server (for Claude Code: `claude mcp add reddeck -- npx -y @edgemodders/reddeck-mcp`), and `npx -p @edgemodders/reddeck-mcp reddeck list` runs the command line. It uses the same library as the extension.
+
 **An assistant can do all of this for you.** REDdeck is an MCP server too, with the same verbs as tools: list and inspect mods, add, turn on or off, reorder, remove, show what a deploy would do, deploy, undo, conflicts, loadouts and Vortex import. Ask "which of my mods are off?" or "deploy my mods and tell me what changed".
 
 - **Agents inside VS Code** (1.101 and later) see REDdeck's tools as soon as the extension is installed. Nothing to set up.

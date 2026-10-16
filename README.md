@@ -83,6 +83,8 @@ node bin/reddeck.mjs conflicts --json          # every command prints JSON with 
 
 `--library` and `--game` override the folders. The library's JSON files are the only state, so an assistant can read them directly and use the command line to act.
 
+On npm as [`@edgemodders/reddeck-mcp`](https://www.npmjs.com/package/@edgemodders/reddeck-mcp): `npx -y @edgemodders/reddeck-mcp` (server) and `reddeck` (CLI), published with every release at the extension's version; `scripts/npm-package.mjs` assembles it from the build, the README is `docs/npm.md`.
+
 The same verbs are MCP tools: `node dist/mcp.js --library <folder> --game <folder>` serves `reddeck_list`, `reddeck_mod`, `reddeck_add`, `reddeck_install_project`, `reddeck_turn`, `reddeck_move`, `reddeck_remove`, `reddeck_pending`, `reddeck_deploy`, `reddeck_undo`, `reddeck_changes`, `reddeck_conflicts`, `reddeck_loadout` and `reddeck_vortex` over stdio. VS Code 1.101 and later picks the server up from the extension for the agents it hosts; **REDdeck: Connect an assistant (MCP)...** copies the `claude mcp add` line for Claude Code. The Mods view follows what an assistant changes.
 
 ## Roadmap
