@@ -12,10 +12,10 @@ Last updated 2026-10-16. Dates before then come from the session records; anythi
 
 | Test | Kind | Last run | Result |
 |---|---|---|---|
-| [Type check and build](#type-check-and-build) | Automated, every release | 2026-10-16 (0.26.5) | Pass |
-| [Smoke test](#smoke-test) | Automated, every release | 2026-10-16 (0.26.5) | Pass |
+| [Type check and build](#type-check-and-build) | Automated, every release | 2026-10-16 (0.26.6) | Pass |
+| [Smoke test](#smoke-test) | Automated, every release | 2026-10-16 (0.26.6) | Pass |
 | [UI test](#ui-test-in-a-real-vs-code) | Automated, by hand only (not in CI) | 2026-10-14 (0.26.0) | Pass |
-| [Publish workflow](#publish-workflow) | Automated, on a tag | 2026-10-16 (v0.26.5) | Pass |
+| [Publish workflow](#publish-workflow) | Automated, on a tag | 2026-10-16 (v0.26.6) | Pass |
 | [npm package install](#npm-package-install) | By hand | 2026-10-16 (0.26.5) | Pass |
 | [Hand tests by the owner](#hand-tests-by-the-owner) | By hand, real game | 2026-10-16 | 23 runs, see the table |
 | [Waiting](#waiting-for-a-hand-test) | By hand | | 9 open |
@@ -79,13 +79,14 @@ Downloads a VS Code build into `.vscode-test/` once (about 350 MB), then runs `s
 
 ### Publish workflow
 
-Push a tag `vX.Y.Z` matching `package.json`. `.github/workflows/publish.yml` checks the match, runs typecheck, build and smoke, packages for win32-x64, publishes to the VS Code Marketplace and Open VSX, publishes `@edgemodders/reddeck-mcp` to npm (skipped if that version exists), and makes the GitHub release. `verify-tokens.yml`, run by hand, checks the store tokens.
+Push a tag `vX.Y.Z` matching `package.json`. `.github/workflows/publish.yml` checks the match, runs typecheck, build and smoke, packages for win32-x64, builds the Nexus zip, publishes to the VS Code Marketplace and Open VSX, publishes `@edgemodders/reddeck-mcp` to npm (skipped if that version exists), and makes the GitHub release. `verify-tokens.yml`, run by hand, checks the store tokens.
 
 | Run | Result |
 |---|---|
 | v0.26.0 (10-14), v0.26.1 (10-15), v0.26.2, v0.26.3 (10-16) | Pass |
 | v0.26.4 (10-16) | **Failed at npm**: `npm publish dist/npm` was read as a GitHub repo; it needs `./dist/npm`. The extension reached both stores; the GitHub release was made by hand |
 | v0.26.5 (10-16) | Pass, npm included |
+| v0.26.6 (10-16) | Pass, the first with the Nexus zip (`REDdeck-0.26.6-nexus.zip` on the release) |
 | verify-tokens (10-14) | Pass on the last of four runs (one failure, cause not recorded) |
 
 ### npm package install
