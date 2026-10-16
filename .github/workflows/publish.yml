@@ -2,7 +2,8 @@
 # Checks the tag against package.json, builds, tests, packages for Windows x64, then publishes to
 # the VS Code Marketplace (VSCE_PAT) and Open VSX (OVSX_PAT, skipped while that secret is not set),
 # publishes the MCP server and CLI to npm as @edgemodders/reddeck-mcp at the same version (NPM_TOKEN),
-# and attaches the .vsix to a GitHub release. The tokens are Edgemodders organisation secrets.
+# and attaches the .vsix and the Nexus Mods zip (scripts/nexus-zip.mjs, uploaded to Nexus by hand) to a
+# GitHub release. The tokens are Edgemodders organisation secrets.
 name: Publish
 
 on:
@@ -45,6 +46,9 @@ jobs:
       - name: Package
         run: npx vsce package --no-dependencies --target win32-x64 --readme-path docs/marketplace.md --out "dist/reddeck-${VERSION}.vsix"
 
+      - name: Nexus zip
+        run: node scripts/nexus-zip.mjs
+
       - name: VS Code Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
@@ -83,7 +87,8 @@ jobs:
         run: |
           notes=$(node -e "const s=require('fs').readFileSync('CHANGELOG.md','utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' '));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}")
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            echo "Release ${GITHUB_REF_NAME} already exists"
+            echo "Release ${GITHUB_REF_NAME} already exists; adding the Nexus zip if it is missing"
+            gh release upload "${GITHUB_REF_NAME}" "dist/REDdeck-${VERSION}-nexus.zip" --clobber
             exit 0
           fi
-          gh release create "${GITHUB_REF_NAME}" "dist/reddeck-${VERSION}.vsix" --title "REDdeck ${VERSION}" --notes "${notes}"
+          gh release create "${GITHUB_REF_NAME}" "dist/reddeck-${VERSION}.vsix" "dist/REDdeck-${VERSION}-nexus.zip" --title "REDdeck ${VERSION}" --notes "${notes}"
