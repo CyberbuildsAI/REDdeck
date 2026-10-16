@@ -137,6 +137,29 @@ export function listVortexMods(gamePath: string, staging?: string): VortexMod[] 
   return mods;
 }
 
+/**
+ * Names people know some mods by, keyed by Nexus mod id, for mods whose download file is named
+ * otherwise (Cyber Engine Tweaks ships as "CET 1.37.1 - Scripting fixes"). Vortex keeps its display
+ * names in its own database, which REDdeck does not read; the staging folder name carries the id.
+ */
+export const KnownModNames: Record<number, string> = {
+  107: "Cyber Engine Tweaks",
+  1511: "redscript",
+  2380: "RED4ext",
+  4197: "TweakXL",
+  4198: "ArchiveXL",
+  7780: "Codeware",
+  3518: "Native Settings UI",
+  4885: "Mod Settings",
+  4575: "Input Loader",
+  2987: "Virtual Atelier",
+};
+
+/** A Vortex mod's name for lists and search: the known name for its Nexus id, else its own. */
+export function vortexDisplayName(m: VortexMod): string {
+  return (m.modId && KnownModNames[m.modId]) || m.name;
+}
+
 export interface ImportResult {
   added: ModInfo[];
   skipped: { name: string; reason: string }[];
@@ -160,7 +183,7 @@ export function importFromVortex(lib: Library, mods: VortexMod[]): ImportResult 
       continue;
     }
     const mod = addMod(lib, c.placements, {
-      name: v.name,
+      name: vortexDisplayName(v),
       version: v.version,
       enabled: v.deployed,
       source: { type: "vortex", path: v.folder, modId: v.modId },

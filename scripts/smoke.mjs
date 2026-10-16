@@ -890,6 +890,9 @@ console.log("undo: ok");
   assert.equal(core.listVortexMods(fakeGame)[0].deployed, true);
   assert.equal(core.findVortexStaging(fakeGame, path.join(tmp, "nowhere")), staging, "a wrong setting falls through to the others");
   assert.ok(core.vortexStagingCandidates(fakeGame).some((p) => /Vortex Mods[\\/]cyberpunk2077$/.test(p)), "Vortex's other-drive suggestion is searched");
+  // A mod known by another name than its download (Cyber Engine Tweaks ships as "CET ... - Scripting fixes").
+  assert.equal(core.vortexDisplayName({ name: "CET 1.37.1 - Scripting fixes", modId: 107 }), "Cyber Engine Tweaks");
+  assert.equal(core.vortexDisplayName({ name: "Flavorful", modId: 13575 }), "Flavorful", "unknown ids keep their own name");
   console.log("vortex staging: ok");
 }
 

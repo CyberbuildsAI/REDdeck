@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.26.2 (2026-10-15)
+
+- **Import from Vortex finds mods by the names you know.** REDdeck named Vortex mods after their download file, so Cyber Engine Tweaks showed as "CET 1.37.1 - Scripting fixes" and a search for its name found nothing. Common framework mods now show their usual name (Cyber Engine Tweaks, redscript, RED4ext, ArchiveXL, TweakXL, Codeware and others, by Nexus mod id), and the search also matches the download's own name, the version and the Nexus id. Mods imported this way get the usual name in the library too.
+
 ## 0.26.1 (2026-10-15)
 
 - **modlist.txt follows the archives you add and remove.** It was written once and then left alone, so an archive added later deployed but was missing from the load order list. Deploy now rewrites it whenever it should say something else; your next deploy fixes an out-of-date one (it shows as one change waiting).

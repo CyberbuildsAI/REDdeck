@@ -30,7 +30,7 @@ import { fetchUser, needsRefresh, OAuthTokens, refreshTokens, signInWithOAuth, t
 import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { addToProject, classifyProject, findProjectFile, installProject, projectName, syncProjects } from "./project";
-import { importFromVortex, listVortexMods, vortexStagingCandidates } from "./vortex";
+import { importFromVortex, listVortexMods, vortexDisplayName, vortexStagingCandidates } from "./vortex";
 
 let library: Library | undefined;
 let view: ModsView;
@@ -1683,9 +1683,16 @@ async function importVortexCommand(): Promise<void> {
   }
   const already = mods.length - fresh.length;
   const picked = await vscode.window.showQuickPick(
-    fresh.map((m) => ({ label: m.name, description: m.version, detail: `${m.files} files${m.deployed ? ", deployed by Vortex (will be on)" : " (will be off)"}`, mod: m })),
+    // The search reads the name, the version and the detail line, which holds the download's own name and the Nexus id.
+    fresh.map((m) => {
+      const shown = vortexDisplayName(m);
+      const facts = [shown !== m.name ? m.name : "", m.modId ? `Nexus ${m.modId}` : "", `${m.files} files`, m.deployed ? "deployed by Vortex (will be on)" : "will be off"].filter(Boolean);
+      return { label: shown, description: m.version, detail: facts.join(" · "), mod: m };
+    }),
     {
       canPickMany: true,
+      matchOnDescription: true,
+      matchOnDetail: true,
       title: "Import from Vortex",
       placeHolder: `Tick the mods to import (the box at the top ticks all). Vortex is not changed.${already ? ` ${already} already imported, not listed.` : ""}`,
     },
