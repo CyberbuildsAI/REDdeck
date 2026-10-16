@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.26.3 (2026-10-15)
+
+- **Deploy and Undo deploy check that the game is closed.** Cyberpunk 2077 keeps mod files open while it runs, so Windows refused to replace or delete them and a deploy stopped partway with an EPERM error. REDdeck now says the game is running and waits for "The game is closed now"; the command line refuses with the same reason.
+- **A file in use is explained.** If a file in the game folder is still locked during a deploy (another program holding it), the message names the file, says to close what has it open, and that what was done so far is kept.
+
 ## 0.26.2 (2026-10-15)
 
 - **Import from Vortex finds mods by the names you know.** REDdeck named Vortex mods after their download file, so Cyber Engine Tweaks showed as "CET 1.37.1 - Scripting fixes" and a search for its name found nothing. Common framework mods now show their usual name (Cyber Engine Tweaks, redscript, RED4ext, ArchiveXL, TweakXL, Codeware and others, by Nexus mod id), and the search also matches the download's own name, the version and the Nexus id. Mods imported this way get the usual name in the library too.

@@ -10,7 +10,7 @@ import { settleNewVersion } from "./families";
 import { deploy, detectChanges, modStatus, modsTouched, writeDeployReport, pendingChanges, plan, readManifest, undo, type Decision } from "./deploy";
 import { findSevenZip, unpackOrCopy } from "./extract";
 import { checkFrameworks, frameworkSummary } from "./frameworks";
-import { findGame, gameVersion, isGameFolder } from "./game";
+import { findGame, gameRunning, gameVersion, isGameFolder } from "./game";
 import { addMod, defaultLibraryPath, keepDownload, loadLibrary, modFolder, moveMod, removeMod, saveLibrary, saveMod, type Library, type ModInfo } from "./library";
 import { activeLoadout, importLoadout, listLoadouts, makeActive, saveLoadout } from "./loadouts";
 import { installProject } from "./project";
@@ -162,6 +162,7 @@ export const verbs = {
   /** Deploys. A file changed outside REDdeck is skipped unless named in keep (import it) or restore (overwrite it). */
   async deploy(s: Session, keep: string[] = [], restore: string[] = []): Promise<Verb> {
     gameReady(s);
+    if (gameRunning()) throw new Error("Cyberpunk 2077 is running; it keeps mod files open. Quit the game, then deploy");
     const decisions = new Map<string, Decision>();
     for (const p of keep) decisions.set(p, "keep");
     for (const p of restore) decisions.set(p, "restore");
@@ -174,6 +175,7 @@ export const verbs = {
 
   undo(s: Session): Verb {
     gameReady(s);
+    if (gameRunning()) throw new Error("Cyberpunk 2077 is running; it keeps mod files open. Quit the game, then undo");
     const result = undo(s.lib, s.game);
     return { data: result, text: `undo: ${result.removed} removed${result.skipped.length ? `; left alone: ${result.skipped.join(", ")}` : ""}` };
   },

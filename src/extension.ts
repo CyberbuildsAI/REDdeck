@@ -20,7 +20,7 @@ import { ModsPage, type PageMessage, type PageRow } from "./modsPage";
 import { addSection, deleteSection, moveInSection, moveSection, placeNextTo, putInSection, renameSection, sectionNameOf, sectionNameProblem, sectionsOf, setSectionOn } from "./sections";
 import { forgetSizes, librarySize, modSize } from "./sizes";
 import { findSevenZip, unpackOrCopy } from "./extract";
-import { findGame, gameVersion, isGameFolder, steamLibraries } from "./game";
+import { findGame, gameRunning, gameVersion, isGameFolder, steamLibraries } from "./game";
 import { addMod, defaultLibraryPath, downloadsFolder, keepDownload, loadLibrary, modFolder, placeAbove, removeMod, saveMod, sourcePath, type Library, type ModInfo, type ModSource } from "./library";
 import { activeLoadout, deleteLoadout, exportLoadout, findLoadout, importLoadout, listLoadouts, loadoutNameProblem, loadoutState, makeActive, newLoadout, readLoadout, renameLoadout, saveLoadout, setInLoadout, syncActiveLoadout } from "./loadouts";
 import { ModsView, type ModNode, type SetupStep } from "./modsView";
@@ -1737,9 +1737,30 @@ async function deployCommand(): Promise<void> {
 }
 
 /** REDdeck: Deploy, for the command and the API: asks about changed files, deploys, reports. Undefined when refused or cancelled. */
+/**
+ * Before anything changes the game folder: the running game keeps mod files open, and Windows then
+ * refuses to replace or delete them partway through. Returns false when the user leaves it for now.
+ */
+async function gameClosed(what: string): Promise<boolean> {
+  while (gameRunning()) {
+    const a = await vscode.window.showWarningMessage(`Cyberpunk 2077 is running. It keeps mod files open, so ${what} would fail partway. Quit the game first.`, { modal: true }, "The game is closed now");
+    if (a !== "The game is closed now") return false;
+  }
+  return true;
+}
+
+/** A file Windows would not let go of (in use): said plainly, with what to do. Other errors pass through. */
+function lockedFileError(err: unknown): Error {
+  const e = err as NodeJS.ErrnoException;
+  if (e?.code !== "EPERM" && e?.code !== "EBUSY" && e?.code !== "EACCES") return err as Error;
+  const file = (e.path ?? "").replace(/^\\\\\?\\/, "");
+  return new Error(`${file ? path.basename(file) : "A file"} in the game folder is in use, so Windows would not change it. Close the game (or the program that has it open) and deploy again. What this deploy finished is kept; the rest is still waiting.${file ? ` (${file})` : ""}`);
+}
+
 async function deployNow(): Promise<DeployResult | undefined> {
   if (!library) return;
   const { gamePath } = settings();
+  if (!(await gameClosed("deploying"))) return;
   if (vortexManages(gamePath)) {
     const a = await vscode.window.showWarningMessage(
       "Vortex manages this game folder, and two managers cannot share one. In Vortex, choose Mods > Purge, then deploy here. Until then REDdeck only reads.",
@@ -1781,7 +1802,8 @@ async function deployNow(): Promise<DeployResult | undefined> {
   }
   const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Deploying", cancellable: false }, async (progress) => {
     let last = 0;
-    return deploy(
+    try {
+      return deploy(
       library!,
       gamePath,
       decisions,
@@ -1792,6 +1814,10 @@ async function deployNow(): Promise<DeployResult | undefined> {
       },
       state.version,
     );
+    } catch (err) {
+      refresh();
+      throw lockedFileError(err);
+    }
   });
   log.appendLine(`Deployed (${result.method}): ${result.linked} added, ${result.removed} removed, ${result.kept} unchanged, ${result.backedUp} backed up${result.skipped.length ? `, skipped ${result.skipped.join(", ")}` : ""}`);
   let redmodNote = "";
@@ -1826,6 +1852,7 @@ async function deployNow(): Promise<DeployResult | undefined> {
 async function undoCommand(): Promise<void> {
   if (!library) return;
   const { gamePath } = settings();
+  if (!(await gameClosed("undoing the deploy"))) return;
   const manifest = readManifest(gamePath);
   if (!manifest) {
     void vscode.window.showInformationMessage("Nothing is deployed.");

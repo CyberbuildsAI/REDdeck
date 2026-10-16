@@ -11,6 +11,20 @@ export function gameExe(gamePath: string): string {
   return path.join(gamePath, "bin", "x64", "Cyberpunk2077.exe");
 }
 
+/**
+ * Whether Cyberpunk 2077 is running. The game keeps mod files open, so Windows refuses to replace
+ * or delete them until it quits (a deploy then fails with EPERM). Any copy of the game counts.
+ */
+export function gameRunning(): boolean {
+  if (process.platform !== "win32") return false;
+  try {
+    const out = execFileSync("tasklist", ["/FI", "IMAGENAME eq Cyberpunk2077.exe", "/NH", "/FO", "CSV"], { encoding: "utf8", windowsHide: true, timeout: 5000 });
+    return /cyberpunk2077\.exe/i.test(out);
+  } catch {
+    return false;
+  }
+}
+
 export function isGameFolder(gamePath: string): boolean {
   return !!gamePath && fs.existsSync(gameExe(gamePath));
 }
