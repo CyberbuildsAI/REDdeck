@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.26.6 (2026-10-16)
+
+- **A Nexus Mods download.** Each release now also has `REDdeck-<version>-nexus.zip`: the extension's .vsix, a README with the install steps, and the licenses, for REDdeck's page on Nexus Mods. The extension itself does not change.
+
 ## 0.26.5 (2026-10-16)
 
 - **`@edgemodders/reddeck-mcp` is on npm from this version.** 0.26.4's release stopped before npm (the publish step read its folder as a GitHub repository); the extension itself went out as usual. Nothing else changes.
