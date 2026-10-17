@@ -9,10 +9,9 @@
 [quote][size=4][b][color=#fcee0a]STATUS: PREVIEW[/color][/b][/size]
 REDdeck is young and Windows only. Deploy, undo, the library and loadouts are in daily use; Nexus downloads and REDmod deploy have had less real-world use so far.
 [b]This is not a game mod.[/b] It is an extension for VS Code, so install it there (steps below), not with Vortex. The quickest way is straight from the [url=https://marketplace.visualstudio.com/items?itemName=edgemodders.reddeck]VS Code Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/reddeck]Open VSX[/url]; the file here is the same extension.[/quote]
-
 [line]
 
-[color=#19f3ff][i][Screenshot 1: the REDdeck page, the wide table of mods with sections, status and the Deploy button.][/i][/color]
+[img]https://staticdelivery.nexusmods.com/mods/3333/images/35366/35366-1792193568-1980816742.png[/img]
 
 [size=5][b][color=#fcee0a]What REDdeck is[/color][/b][/size]
 
@@ -24,7 +23,6 @@ REDdeck is built by [url=https://edgemodders.ai/]EDGEmodders[/url], a modding co
 [*][b][color=#19f3ff]Deploy[/color][/b] links the mods that are on into the game with hardlinks (no extra disk space), writes the archive load order, and records what it did. [b]Undo deploy[/b] removes exactly that and nothing else.[/*]
 [*][b][color=#19f3ff]Remove[/color][/b] a mod from your library.[/*]
 [/list]
-
 [size=5][b][color=#fcee0a]Highlights[/color][/b][/size]
 
 [size=4][b][color=#19f3ff]Set up in a few clicks[/color][/b][/size]
@@ -36,7 +34,7 @@ Sign in once. The [b]Mod manager download[/b] button on Nexus pages sends files 
 [size=4][b][color=#19f3ff]Conflicts you can see[/color][/b][/size]
 When two mods change the same file, list order decides who wins, and REDdeck shows you which. With REDbridge it also looks inside mod archives, where most conflicts hide. [b]Get REDbridge[/b] is one button: it downloads REDbridge, and the .NET 10 runtime it needs if you have none, into your user folder, no admin rights needed.
 
-[color=#19f3ff][i][Screenshot 2: a mod's details, with its files and a conflict inside an archive.][/i][/color]
+[color=#19f3ff][i][img]https://staticdelivery.nexusmods.com/mods/3333/images/35366/35366-1792193610-605289977.png[/img][/i][/color]
 
 [size=4][b][color=#19f3ff]Loadouts[/color][/b][/size]
 A loadout is a named set of which mods are on, and which version of each. Keep one for a clean playthrough, one for testing, one for screenshots, and switch between them. Export one and share it.
@@ -53,7 +51,8 @@ Your mods live in a library outside the game folder. REDdeck notices when someth
 [size=4][b][color=#19f3ff]For AI assistants, and the command line[/color][/b][/size]
 REDdeck's tools are on npm as [url=https://www.npmjs.com/package/@edgemodders/reddeck-mcp]@edgemodders/reddeck-mcp[/url]: an MCP server for Claude Code and other assistants (list, add, deploy, find conflicts), and a [b]reddeck[/b] command line, both using the same library and deployer as the extension.
 
-[color=#19f3ff][i][Screenshot 3: the Mods view in the sidebar beside the REDdeck page, in the REDnode HUD theme.][/i][/color]
+Browse into files inside mods directly inside REDdeck and view them.
+[color=#19f3ff][i][img]https://staticdelivery.nexusmods.com/mods/3333/images/35366/35366-1792193747-1732825803.png[/img][/i][/color]
 
 [size=5][b][color=#fcee0a]Requirements[/color][/b][/size]
 
@@ -64,7 +63,6 @@ REDdeck's tools are on npm as [url=https://www.npmjs.com/package/@edgemodders/re
 [*]Optional: REDbridge, for conflicts inside archives. REDdeck gets it for you.[/*]
 [*]Optional: a Nexus Mods account, for downloads and update checks.[/*]
 [/list]
-
 [size=5][b][color=#fcee0a]Install[/color][/b][/size]
 
 [b]From a store (recommended, updates itself):[/b] in VS Code, open the Extensions view (Ctrl+Shift+X), search for [b]REDdeck[/b] and click Install. Or open its [url=https://marketplace.visualstudio.com/items?itemName=edgemodders.reddeck]Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/reddeck]Open VSX[/url] page.
@@ -75,7 +73,6 @@ REDdeck's tools are on npm as [url=https://www.npmjs.com/package/@edgemodders/re
 [*]In VS Code, open the Extensions view (Ctrl+Shift+X), click [b]...[/b] at its top, choose [b]Install from VSIX...[/b] and pick [i]reddeck-<version>.vsix[/i].[/*]
 [*]Click the REDdeck icon in the activity bar and follow [b]Set up[/b].[/*]
 [/list]
-
 Do not install it with Vortex: it is not a game mod, and Vortex would put it in the game folder.
 
 [size=5][b][color=#fcee0a]The EDGE platform[/color][/b][/size]
@@ -88,7 +85,6 @@ REDdeck is one of the EDGE tools. Each works on its own and together:
 [*][b][url=https://github.com/Edgemodders/REDbridge]REDbridge[/url][/b]: runs WolvenKit's libraries for the other tools.[/*]
 [*][b][url=https://github.com/Edgemodders/EDGEkit]EDGEkit[/url][/b]: one editor with every EDGE tool built in.[/*]
 [/list]
-
 [size=5][b][color=#fcee0a]Questions[/color][/b][/size]
 
 [b]Why is a mod manager inside VS Code?[/b]
@@ -118,7 +114,6 @@ Yes, and open source under the MIT license. The code is on [url=https://github.c
 [*]Open VSX: [url=https://open-vsx.org/extension/edgemodders/reddeck]edgemodders/reddeck[/url][/*]
 [*]Community Discord: [url=https://discord.gg/63qP3Erw43]discord.gg/63qP3Erw43[/url][/*]
 [/list]
-
 [size=5][b][color=#fcee0a]Credits[/color][/b][/size]
 
 [list]
@@ -127,5 +122,4 @@ Yes, and open source under the MIT license. The code is on [url=https://github.c
 [*][b]Nexus Mods[/b], for the site and its API.[/*]
 [*]The Cyberpunk 2077 modding community, and the mod managers that came before.[/*]
 [/list]
-
 [size=2]REDdeck is not affiliated with CD PROJEKT RED, Nexus Mods or Microsoft. Cyberpunk 2077 is a trademark of CD PROJEKT. Visual Studio Code is a trademark of Microsoft.[/size]
