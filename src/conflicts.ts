@@ -1,5 +1,5 @@
 // Archive conflicts: two enabled mods whose .archive files both contain the same resource. The game
-// resolves them by archive load order, which REDdeck sets through modlist.txt (list order, first
+// resolves them by archive load order, which EDGEdeck sets through modlist.txt (list order, first
 // wins). The file lists come from REDbridge; this module only intersects them.
 
 import type { Library, ModInfo } from "./library";

@@ -4,9 +4,11 @@ title: Tests
 
 # <span class="y">Tests</span>
 
-Every test run on REDdeck so far: how to run it again, what to expect, and what it showed. The automated tests run on every release; the hand tests are the owner's, on the laptop and on the owner's PC (game on `E:`). New tests are added here when they are first run.
+Every test run on EDGEdeck so far: how to run it again, what to expect, and what it showed. The automated tests run on every release; the hand tests are the owner's, on the laptop and on the owner's PC (game on `E:`). New tests are added here when they are first run.
 
-Last updated 2026-10-16. Dates before then come from the session records; anything not confirmed there is marked unverified.
+Releases up to 0.26.6 were published as REDdeck; this page uses the new name throughout.
+
+Last updated 2026-10-17. Dates before then come from the session records; anything not confirmed there is marked unverified.
 
 ## At a glance
 
@@ -49,7 +51,7 @@ npm run smoke
 | Projects | Find the `.cpmodproj`, its packed files, re-sync; `installProject` adds as version dev, then refreshes in place and keeps its slot |
 | Families and order | Versions newest first, update, switch version, a new version takes the old one's place, two on in a family found; place above; sections (add, order, move, rename, delete, the section box) |
 | Loadouts | Version 1 save and load; Default from the current state, sync writes once, new, edit without touching mods, Make active both ways, the active one cannot be deleted, rename, export, import, delete |
-| CLI and MCP | `reddeck list --json`, off and on, conflicts, loadouts, deploy, changes, mod; the MCP server over stdio through the SDK's client (list, turn off reaches the files, pending, a bad id is an error, the tool count) |
+| CLI and MCP | `edgedeck list --json`, off and on, conflicts, loadouts, deploy, changes, mod; the MCP server over stdio through the SDK's client (list, turn off reaches the files, pending, a bad id is an error, the tool count) |
 | Off and Undo | Files and created folders leave; Undo puts a backed-up foreign file back and keeps the user's own files |
 | Game | Archive conflict maths; REDmod's enabled list; finding the game through Steam libraries, GOG and Epic; the game version from a real install if present |
 | REDbridge | A build next to the checkout is new enough and `archive.openMod` lists a sample (skipped if absent); the latest GitHub release has a `win-x64.zip` (skipped offline); `dotnet10Root` |
@@ -71,29 +73,29 @@ Downloads a VS Code build into `.vscode-test/` once (about 350 MB), then runs `s
 
 | Check | Expected |
 |---|---|
-| Activation | `edgemodders.reddeck` activates |
+| Activation | `edgemodders.edgedeck` activates |
 | Commands | All 32 registered |
 | Library | Created on refresh |
 | Deploy | A hand-made mod deploys without a dialog: the archive in the game, a manifest, `modlist.txt` reading `UiTest.archive` |
-| Views | Check conflicts opens Conflicts, Show changes opens Pending changes, Open page opens REDdeck, Details opens |
+| Views | Check conflicts opens Conflicts, Show changes opens Pending changes, Open page opens EDGEdeck, Details opens |
 
 ### Publish workflow
 
-Push a tag `vX.Y.Z` matching `package.json`. `.github/workflows/publish.yml` checks the match, runs typecheck, build and smoke, packages for win32-x64, builds the Nexus zip, publishes to the VS Code Marketplace and Open VSX, publishes `@edgemodders/reddeck-mcp` to npm (skipped if that version exists), and makes the GitHub release. `verify-tokens.yml`, run by hand, checks the store tokens.
+Push a tag `vX.Y.Z` matching `package.json`. `.github/workflows/publish.yml` checks the match, runs typecheck, build and smoke, packages for win32-x64, builds the Nexus zip, publishes to the VS Code Marketplace and Open VSX, publishes `@edgemodders/edgedeck-mcp` to npm (skipped if that version exists), and makes the GitHub release. `verify-tokens.yml`, run by hand, checks the store tokens.
 
 | Run | Result |
 |---|---|
 | v0.26.0 (10-14), v0.26.1 (10-15), v0.26.2, v0.26.3 (10-16) | Pass |
 | v0.26.4 (10-16) | **Failed at npm**: `npm publish dist/npm` was read as a GitHub repo; it needs `./dist/npm`. The extension reached both stores; the GitHub release was made by hand |
 | v0.26.5 (10-16) | Pass, npm included |
-| v0.26.6 (10-16) | Pass, the first with the Nexus zip (`REDdeck-0.26.6-nexus.zip` on the release) |
+| v0.26.6 (10-16) | Pass, the first with the Nexus zip (`EDGEdeck-0.26.6-nexus.zip` on the release) |
 | verify-tokens (10-14) | Pass on the last of four runs (one failure, cause not recorded) |
 
 ### npm package install
 
-By hand, not scripted. Install the published `@edgemodders/reddeck-mcp` into an empty folder, start `reddeck-mcp --library <scratch>` through an MCP client, and run `reddeck list --json --library <scratch>`.
+By hand, not scripted. Install the published `@edgemodders/edgedeck-mcp` into an empty folder, start `edgedeck-mcp --library <scratch>` through an MCP client, and run `edgedeck list --json --library <scratch>`.
 
-Run 2026-10-16 on 0.26.5: **pass**. The server answered with 14 `reddeck_*` tools and a `reddeck_list` call; the CLI ran.
+Run 2026-10-16 on 0.26.5: **pass**. The server answered with 14 `edgedeck_*` tools and a `edgedeck_list` call; the CLI ran.
 
 ## Hand tests by the owner
 
@@ -107,11 +109,11 @@ Run 2026-10-16 on 0.26.5: **pass**. The server answered with 14 `reddeck_*` tool
 | 10-12 | 0.9.2 | Laptop | Update from a live Nexus download | Downloaded several times, a row each. **0.10.0**: one row per mod with a version dropdown |
 | 10-12 | 0.10.0 | Laptop | Switch back to an older Codeware | "Looks good", but Deploy said 18 changes. **0.10.1** counts paths: 9 |
 | 10-13 | 0.11.0, 0.12.0 | PC | VSIX install, Get REDbridge | "Seemed to complete successfully" (REDbridge 0.4.0). Telling whether it ran led to the footer status (**0.13.1**) |
-| 10-13 | 0.12.0 to 0.13.2 | PC | Finding a Steam game on `E:` | Not found. **0.13.0** reads Steam's library list, GOG and Epic; **0.13.2** logs what was checked. After clearing `reddeck.gamePath` and reloading, found through Steam |
+| 10-13 | 0.12.0 to 0.13.2 | PC | Finding a Steam game on `E:` | Not found. **0.13.0** reads Steam's library list, GOG and Epic; **0.13.2** logs what was checked. After clearing `edgedeck.gamePath` and reloading, found through Steam |
 | 10-13 | 0.14.0 (unverified which) | PC | The build sent just before | "All looks good" |
 | 10-13 | 0.17.x | PC | F5 from source | The build task failed after a pull: dependencies missing. `npm install` fixed it |
 | 10-14 | 0.20.0 | PC | **REDnode package kind**: EDGEbuilder added and deployed, after all Vortex mods were purged | Worked: `red4ext\plugins\REDnode\apps\edgebuilder\rednode-app.json` in place |
-| 10-14 | 0.20.0 | PC | Import from Vortex | "No Vortex mods were found": staging was on `E:`. **0.20.1** reads Vortex's stagingPath and other drives, and asks. RED4ext, redscript and Codeware were then re-added through REDdeck, and EDGEbuilder B1 passed in game that night |
+| 10-14 | 0.20.0 | PC | Import from Vortex | "No Vortex mods were found": staging was on `E:`. **0.20.1** reads Vortex's stagingPath and other drives, and asks. RED4ext, redscript and Codeware were then re-added through EDGEdeck, and EDGEbuilder B1 passed in game that night |
 | 10-14 | 0.21.0 | PC | Conflicts with EDGEbuilder 0.2.0 beside 0.1.1 | Every picker said "Resolve...": two versions both on, not one family. **0.21.1**: a new version takes the old one's place, one row per mod pair, Use only |
 | 10-14 | 0.23.0 | PC | Sections, the section box, icon actions, resizable columns | "Looks good"; the yellow icons "too loud": grey with hover in **0.23.1** |
 | 10-14 | 0.24.0 | PC | Folding sections | "Works great." |
@@ -121,17 +123,17 @@ Run 2026-10-16 on 0.26.5: **pass**. The server answered with 14 `reddeck_*` tool
 | 10-15 | 0.26.0 | PC | Adding a single `.archive`, then deploy | A single file could not be added, and `modlist.txt` was not updated. **0.26.1** fixes both; the fix not yet reported (below) |
 | 10-16 | 0.26.1 | PC | Import from Vortex, search "Cyber Engine Tweaks" | Not found: named after its download. **0.26.2**: known names by Nexus id, a wider search. Not yet reported back (below) |
 | 10-16 | 0.26.2 | PC | Turn a mod off, add an `.archive`, deploy | `EPERM` on the archive: the game was running. **0.26.3** waits for the game to close, the CLI refuses, a locked file gets a plain message |
-| 10-16 | 0.26.3 or later | PC | Deploying EDGEbuilder 0.3.2 and 0.3.3 for its tests | Deployed; EDGEbuilder's retest passed. Nothing REDdeck-specific reported |
+| 10-16 | 0.26.3 or later | PC | Deploying EDGEbuilder 0.3.2 and 0.3.3 for its tests | Deployed; EDGEbuilder's retest passed. Nothing EDGEdeck-specific reported |
 
 ## Waiting for a hand test
 
 | # | Test | Since | Steps |
 |---|---|---|---|
 | 1 | **Loadouts** | 0.26.0 | Copy Default and turn a few mods off in the copy on the page: the sidebar does not change. Make active, Deploy: the report lists those mods' files as removed. Switch back from the title bar and deploy again |
-| 2 | **Add to Project with an archive** | 0.25.0; needs REDcode 0.6.1+ with REDbridge 0.7.1 and an open `.cpmodproj` | Right-click an `.archive` in a mod, Add to Project, "All N resources": a message counts what went under `source\archive`, the files show in the Project view. Again with "Choose resources...", two or three ticked: only those. A third time: already there; Keep mine leaves them, Replace rewrites. On a whole mod with loose files and an archive: loose to `source\resources`, archive resources to `source\archive`, one message. Send REDdeck's and REDcode's logs if anything fails |
+| 2 | **Add to Project with an archive** | 0.25.0; needs REDcode 0.6.1+ with REDbridge 0.7.1 and an open `.cpmodproj` | Right-click an `.archive` in a mod, Add to Project, "All N resources": a message counts what went under `source\archive`, the files show in the Project view. Again with "Choose resources...", two or three ticked: only those. A third time: already there; Keep mine leaves them, Replace rewrites. On a whole mod with loose files and an archive: loose to `source\resources`, archive resources to `source\archive`, one message. Send EDGEdeck's and REDcode's logs if anything fails |
 | 3 | Add to Project with loose files | 0.18.0 | No report found (unverified) |
 | 4 | **`modlist.txt` and single files** | 0.26.1 | After updating, one change waits; Deploy. `modlist.txt` lists both archives, and View shows it replaced. Add mod, a bare `.archive`, deploy: it is in `modlist.txt` |
-| 5 | **The running game** | 0.26.3 | Deploy with the game open: REDdeck waits for "The game is closed now". `reddeck deploy` refuses |
+| 5 | **The running game** | 0.26.3 | Deploy with the game open: EDGEdeck waits for "The game is closed now". `edgedeck deploy` refuses |
 | 6 | CET's known name | 0.26.2 | In Import from Vortex, search "Cyber Engine Tweaks", "CET" or "107": found |
 | 7 | Nexus nxm links | 0.7 | A real "Mod manager download" link and the handler registration. OAuth sign-in waits for Nexus's client id; only the fake-server smoke test covers it |
 | 8 | REDmod deploy | M1 | Never seen working: no REDmod package in the test sets |

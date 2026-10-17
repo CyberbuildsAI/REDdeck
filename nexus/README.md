@@ -1,6 +1,6 @@
-# REDdeck on Nexus Mods
+# EDGEdeck on Nexus Mods
 
-The source of REDdeck's Nexus Mods page lives here, so updates are edits in the repo, not in Nexus's text box.
+The source of EDGEdeck's Nexus Mods page lives here, so updates are edits in the repo, not in Nexus's text box.
 
 | File | What it is |
 |---|---|
@@ -11,8 +11,8 @@ The source of REDdeck's Nexus Mods page lives here, so updates are edits in the 
 
 | Field | Value |
 |---|---|
-| Mod name | REDdeck |
-| Version | REDdeck's version, from `package.json` (for example 0.26.5) |
+| Mod name | EDGEdeck |
+| Version | EDGEdeck's version, from `package.json` (for example 0.26.5) |
 | Category | Utilities (check the list for Cyberpunk 2077 when creating the page) |
 | Brief overview | A simple mod manager for Cyberpunk 2077 inside VS Code: add, on or off, deploy, remove. Hardlink deploys you can undo, conflicts inside archives, Nexus sign-in and updates, loadouts, Vortex import. A VS Code extension, not a game mod. (255 characters at most; this is 234) |
 | Author | Edgemodders |
@@ -26,25 +26,25 @@ The description has screenshot placeholders in cyan italics (`[Screenshot N: ...
 
 ## The download
 
-One main file: `REDdeck-<version>-nexus.zip`, with:
+One main file: `EDGEdeck-<version>-nexus.zip`, with:
 
 | File | What it is |
 |---|---|
-| `reddeck-<version>.vsix` | The extension, the same file the Marketplace and Open VSX have |
+| `edgedeck-<version>.vsix` | The extension, the same file the Marketplace and Open VSX have |
 | `README.txt` | How to install it: Install from VSIX in VS Code, or `code --install-extension` |
-| `LICENSE.txt`, `ThirdPartyNotices.txt` | REDdeck's license and 7-Zip's |
+| `LICENSE.txt`, `ThirdPartyNotices.txt` | EDGEdeck's license and 7-Zip's |
 
 **When uploading, turn off the Mod Manager Download button** for this file (Nexus's file form has the option). It is a VS Code extension: Vortex would deploy it into the game folder, where it does nothing.
 
 File description on Nexus:
 
-> REDdeck &lt;version&gt;, the VS Code extension. Extract, then in VS Code: Extensions view, ..., Install from VSIX. Or install it from the Marketplace or Open VSX, where it updates itself.
+> EDGEdeck &lt;version&gt;, the VS Code extension. Extract, then in VS Code: Extensions view, ..., Install from VSIX. Or install it from the Marketplace or Open VSX, where it updates itself.
 
 ### Building it
 
 The publish workflow (`.github/workflows/publish.yml`) builds it with every release and attaches it to the GitHub release, beside the `.vsix`. A release is one step, as before: bump the version, push, then push the tag `vX.Y.Z`. Download the zip from the release and upload it to Nexus.
 
-By hand, after `npm run package`: `node scripts/nexus-zip.mjs` writes `dist/REDdeck-<version>-nexus.zip`.
+By hand, after `npm run package`: `node scripts/nexus-zip.mjs` writes `dist/EDGEdeck-<version>-nexus.zip`.
 
 ## Updating the page
 

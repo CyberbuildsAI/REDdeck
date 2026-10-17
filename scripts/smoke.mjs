@@ -1,5 +1,5 @@
 // Exercises the core end to end against a fake game folder in a temp directory: classify sample
-// mod layouts, add them to a library, deploy (hardlinks), detect a change made outside REDdeck,
+// mod layouts, add them to a library, deploy (hardlinks), detect a change made outside EDGEdeck,
 // undo, and import from a Vortex staging folder if one exists on this machine (read-only).
 //   node scripts/smoke.mjs            after npm run build
 import assert from "node:assert/strict";
@@ -15,7 +15,7 @@ const root = path.resolve(import.meta.dirname, "..");
 const sevenZa = core.findSevenZip(root);
 assert.ok(sevenZa, "7za.exe not found; run npm run build");
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "reddeck-smoke-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "edgedeck-smoke-"));
 const game = path.join(tmp, "game");
 const libRoot = path.join(tmp, "lib");
 const src = path.join(tmp, "src");
@@ -121,7 +121,7 @@ assert.equal(p.method, "link");
 const r = core.deploy(lib, game, new Map());
 assert.equal(r.linked, 7, `linked ${r.linked}: 4 rooted + 1 bare + 1 loose + modlist`);
 assert.equal(r.skipped.length, 0);
-// The deploy report: every change listed, mods counted without REDdeck's own modlist.txt.
+// The deploy report: every change listed, mods counted without EDGEdeck's own modlist.txt.
 assert.equal(r.changes.length, 7);
 assert.ok(r.changes.every((c) => c.kind === "added"));
 assert.equal(core.modsTouched(r).length, 3, "rooted, bare, loose");
@@ -131,7 +131,7 @@ assert.equal(r.modsInGame, 3);
   const text = fs.readFileSync(report, "utf8");
   assert.ok(text.includes("7 files put in or replaced for 3 mods"), text.split("\n").slice(0, 6).join("\n"));
   assert.ok(text.includes("`archive/pc/mod/modlist.txt`"), "paths listed");
-  assert.ok(text.includes("## REDdeck (load order files)"));
+  assert.ok(text.includes("## EDGEdeck (load order files)"));
   console.log("deploy report: ok");
 }
 
@@ -181,7 +181,7 @@ core.deploy(lib, game);
 assert.equal(fs.readFileSync(path.join(game, "archive", "pc", "mod", "CoolMod.archive"), "utf8"), "other content");
 console.log("reorder: ok");
 
-// A change made outside REDdeck: replace a deployed file with a different one.
+// A change made outside EDGEdeck: replace a deployed file with a different one.
 const changedFile = path.join(game, "r6", "scripts", "Loose", "Loose.reds");
 fs.rmSync(changedFile);
 fs.writeFileSync(changedFile, "edited by hand");
@@ -491,7 +491,7 @@ console.log("changes: ok");
 
 // The command line over the same library.
 {
-  const cli = (...a) => execFileSync(process.execPath, [path.join(root, "bin", "reddeck.mjs"), "--library", libRoot, "--game", game, ...a], { encoding: "utf8" }).trim();
+  const cli = (...a) => execFileSync(process.execPath, [path.join(root, "bin", "edgedeck.mjs"), "--library", libRoot, "--game", game, ...a], { encoding: "utf8" }).trim();
   const listed = JSON.parse(cli("list", "--json"));
   assert.equal(listed.mods.length, lib.mods.length);
   assert.ok(cli("off", "bare").includes("bare: off"));
@@ -515,17 +515,17 @@ console.log("changes: ok");
   const client = new Client({ name: "smoke", version: "0" });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [path.join(root, "dist", "mcp.js"), "--library", libRoot, "--game", game], stderr: "pipe" }));
   const names = (await client.listTools()).tools.map((t) => t.name).sort();
-  for (const n of ["reddeck_add", "reddeck_changes", "reddeck_conflicts", "reddeck_deploy", "reddeck_list", "reddeck_loadout", "reddeck_mod", "reddeck_move", "reddeck_pending", "reddeck_remove", "reddeck_turn", "reddeck_undo", "reddeck_vortex"]) assert.ok(names.includes(n), `tool ${n} missing from ${names.join(", ")}`);
+  for (const n of ["edgedeck_add", "edgedeck_changes", "edgedeck_conflicts", "edgedeck_deploy", "edgedeck_list", "edgedeck_loadout", "edgedeck_mod", "edgedeck_move", "edgedeck_pending", "edgedeck_remove", "edgedeck_turn", "edgedeck_undo", "edgedeck_vortex"]) assert.ok(names.includes(n), `tool ${n} missing from ${names.join(", ")}`);
   const text = (r) => r.content.map((c) => c.text).join("");
-  const listed = await client.callTool({ name: "reddeck_list", arguments: {} });
+  const listed = await client.callTool({ name: "edgedeck_list", arguments: {} });
   assert.ok(!listed.isError && text(listed).includes("bare"), text(listed));
-  const off = await client.callTool({ name: "reddeck_turn", arguments: { id: "bare", on: false } });
+  const off = await client.callTool({ name: "edgedeck_turn", arguments: { id: "bare", on: false } });
   assert.ok(text(off).includes("bare: off"));
   assert.equal(core.loadLibrary(libRoot, game).mods.find((m) => m.id === "bare").enabled, false, "the change reached the library files");
-  await client.callTool({ name: "reddeck_turn", arguments: { id: "bare", on: true } });
-  const pending = await client.callTool({ name: "reddeck_pending", arguments: {} });
+  await client.callTool({ name: "edgedeck_turn", arguments: { id: "bare", on: true } });
+  const pending = await client.callTool({ name: "edgedeck_pending", arguments: {} });
   assert.ok(!pending.isError);
-  const bad = await client.callTool({ name: "reddeck_mod", arguments: { id: "no-such-mod" } });
+  const bad = await client.callTool({ name: "edgedeck_mod", arguments: { id: "no-such-mod" } });
   assert.ok(bad.isError && text(bad).includes("no mod with id"));
   await client.close();
   console.log(`mcp: ok (${names.length} tools)`);
@@ -537,7 +537,7 @@ core.saveMod(lib, rooted);
 r2 = core.deploy(lib, game);
 assert.equal(r2.removed, 4);
 assert.ok(!fs.existsSync(path.join(game, "archive", "pc", "mod", "Rooted.archive")));
-assert.ok(!fs.existsSync(path.join(game, "r6", "tweaks", "Rooted")), "folder REDdeck created is gone");
+assert.ok(!fs.existsSync(path.join(game, "r6", "tweaks", "Rooted")), "folder EDGEdeck created is gone");
 console.log("off: ok");
 
 // A foreign file in the way is backed up and restored on undo.
@@ -660,7 +660,7 @@ console.log("undo: ok");
     return s;
   };
   const opened = [];
-  const pending = core.signIn({ application: "reddeck-test", open: (u) => opened.push(u), connect: fakeSocket, timeoutMs: 5000 });
+  const pending = core.signIn({ application: "edgedeck-test", open: (u) => opened.push(u), connect: fakeSocket, timeoutMs: 5000 });
   const tick = () => new Promise((r) => setTimeout(r, 5));
   sockets[0].emit("open");
   assert.deepEqual(sockets[0].sent[0], { id: sockets[0].sent[0].id, token: null, protocol: 2 });
@@ -668,7 +668,7 @@ console.log("undo: ok");
   sockets[0].emit("message", { data: JSON.stringify({ success: true, data: { connection_token: "tok" }, error: null }) });
   await tick();
   assert.equal(opened.length, 1);
-  assert.ok(opened[0].includes(`sso?id=${sockets[0].sent[0].id}&application=reddeck-test`));
+  assert.ok(opened[0].includes(`sso?id=${sockets[0].sent[0].id}&application=edgedeck-test`));
   sockets[0].emit("close");
   await new Promise((r) => setTimeout(r, 1100));
   assert.equal(sockets.length, 2, "reconnects after a drop");
@@ -712,7 +712,7 @@ console.log("undo: ok");
         const form = Object.fromEntries(new URLSearchParams(body));
         tokenCalls.push(form);
         if (form.grant_type === "authorization_code") {
-          if (form.code !== "CODE1" || !form.code_verifier || form.client_id !== "reddeck_test") return json(400, { error: "invalid_grant", error_description: "bad code" });
+          if (form.code !== "CODE1" || !form.code_verifier || form.client_id !== "edgedeck_test") return json(400, { error: "invalid_grant", error_description: "bad code" });
           return json(200, { access_token: jwt("alice", ["premium"]), token_type: "Bearer", expires_in: 3600, refresh_token: "R1", scope: "openid" });
         }
         if (form.grant_type === "refresh_token") {
@@ -733,13 +733,13 @@ console.log("undo: ok");
   await new Promise((r) => fake.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${fake.address().port}`;
   const opened = [];
-  const pending = core.signInWithOAuth({ clientId: "reddeck_test", base: `${base}/oauth`, open: (u) => opened.push(u), timeoutMs: 5000 });
+  const pending = core.signInWithOAuth({ clientId: "edgedeck_test", base: `${base}/oauth`, open: (u) => opened.push(u), timeoutMs: 5000 });
   while (!opened.length) await new Promise((r) => setTimeout(r, 5));
   const auth = new URL(opened[0]);
   const q = auth.searchParams;
   assert.equal(auth.origin + auth.pathname, `${base}/oauth/authorize`);
   assert.equal(q.get("response_type"), "code");
-  assert.equal(q.get("client_id"), "reddeck_test");
+  assert.equal(q.get("client_id"), "edgedeck_test");
   assert.equal(q.get("code_challenge_method"), "S256");
   assert.equal(q.get("scope"), "openid profile email");
   assert.match(q.get("redirect_uri"), /^http:\/\/127\.0\.0\.1:\d+$/);
@@ -761,7 +761,7 @@ console.log("undo: ok");
   assert.equal(core.tokenUser("not-a-jwt"), undefined);
   // Nexus refuses.
   const opened2 = [];
-  const refused = core.signInWithOAuth({ clientId: "reddeck_test", base: `${base}/oauth`, open: (u) => opened2.push(u), timeoutMs: 5000 });
+  const refused = core.signInWithOAuth({ clientId: "edgedeck_test", base: `${base}/oauth`, open: (u) => opened2.push(u), timeoutMs: 5000 });
   while (!opened2.length) await new Promise((r) => setTimeout(r, 5));
   const q2 = new URL(opened2[0]).searchParams;
   const refusedCheck = assert.rejects(refused, /The user said no/);
@@ -770,16 +770,16 @@ console.log("undo: ok");
   // Cancelled: the port is released.
   const ac = new AbortController();
   const opened3 = [];
-  const cancelled = core.signInWithOAuth({ clientId: "reddeck_test", base: `${base}/oauth`, open: (u) => opened3.push(u), signal: ac.signal, timeoutMs: 5000 });
+  const cancelled = core.signInWithOAuth({ clientId: "edgedeck_test", base: `${base}/oauth`, open: (u) => opened3.push(u), signal: ac.signal, timeoutMs: 5000 });
   while (!opened3.length) await new Promise((r) => setTimeout(r, 5));
   const cancelledCheck = assert.rejects(cancelled, /cancelled/);
   ac.abort();
   await cancelledCheck;
   await assert.rejects(fetch(new URL(opened3[0]).searchParams.get("redirect_uri")), "the listener is gone");
   // Refresh, and when a refresh is due.
-  const t2 = await core.refreshTokens({ clientId: "reddeck_test", refreshToken: "R1", base: `${base}/oauth` });
+  const t2 = await core.refreshTokens({ clientId: "edgedeck_test", refreshToken: "R1", base: `${base}/oauth` });
   assert.equal(t2.refreshToken, "R2");
-  await assert.rejects(core.refreshTokens({ clientId: "reddeck_test", refreshToken: "R1", base: `${base}/oauth` }), /invalid_grant/);
+  await assert.rejects(core.refreshTokens({ clientId: "edgedeck_test", refreshToken: "R1", base: `${base}/oauth` }), /invalid_grant/);
   assert.equal(core.needsRefresh({ ...t2, expiresAt: Date.now() + 30_000 }), true);
   assert.equal(core.needsRefresh(t2), false);
   // The REST client with a token: Bearer header, one renewal on 401.
@@ -814,8 +814,8 @@ console.log("undo: ok");
   ], file_updates: [] });
   assert.equal(newest.file_id, 2);
   assert.equal(core.modPageUrl(7780), "https://www.nexusmods.com/cyberpunk2077/mods/7780");
-  assert.match(core.forwarderCommand(), /vscode:\/\/edgemodders\.reddeck\/nxm\?url=/);
-  assert.equal(core.describeHandler(core.forwarderCommand()), "REDdeck");
+  assert.match(core.forwarderCommand(), /vscode:\/\/edgemodders\.edgedeck\/nxm\?url=/);
+  assert.equal(core.describeHandler(core.forwarderCommand()), "EDGEdeck");
   assert.equal(core.describeHandler('"C:\\Vortex\\Vortex.exe" -d "%1"'), "Vortex");
   const handler = await core.currentNxmHandler();
   console.log(`nexus: ok (nxm links on this machine: ${core.describeHandler(handler)})`);

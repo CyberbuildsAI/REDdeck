@@ -1,4 +1,4 @@
-REDdeck includes third-party software. Their notices follow.
+EDGEdeck includes third-party software. Their notices follow.
 
 ------------------------------------------------------------------------------
 

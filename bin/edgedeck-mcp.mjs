@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// REDdeck's MCP server on its own, for assistants and plugins: the same server as `reddeck mcp` and
+// EDGEdeck's MCP server on its own, for assistants and plugins: the same server as `edgedeck mcp` and
 // the one the extension registers in VS Code, over stdio.
 //
-//   reddeck-mcp [--library <folder>] [--game <folder>]
+//   edgedeck-mcp [--library <folder>] [--game <folder>]
 //
-// The library defaults to %USERPROFILE%\REDdeck and the game is found through Steam, GOG or Epic.
+// The library defaults to %USERPROFILE%\EDGEdeck and the game is found through Steam, GOG or Epic.
 import { createRequire } from "node:module";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";

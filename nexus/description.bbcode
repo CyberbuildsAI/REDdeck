@@ -1,24 +1,24 @@
-[center][img]https://raw.githubusercontent.com/Edgemodders/REDdeck/main/docs/assets/brand/banner.png[/img][/center]
+[center][img]https://raw.githubusercontent.com/Edgemodders/EDGEdeck/main/docs/assets/brand/banner.png[/img][/center]
 
 [center][size=5][b][color=#fcee0a]A simple mod manager for Cyberpunk 2077. One list of mods, four verbs, no jargon.[/color][/b][/size][/center]
 
-[center][size=3]REDdeck lives inside VS Code (or VSCodium, or EDGEkit). Add a mod, turn it on or off, deploy, remove. It works out where each mod's files go, shows conflicts even inside archives, signs in to Nexus Mods for downloads and updates, and undoes exactly what it did.[/size][/center]
+[center][size=3]EDGEdeck lives inside VS Code (or VSCodium, or EDGEkit). Add a mod, turn it on or off, deploy, remove. It works out where each mod's files go, shows conflicts even inside archives, signs in to Nexus Mods for downloads and updates, and undoes exactly what it did.[/size][/center]
 
 [line]
 
 [quote][size=4][b][color=#fcee0a]STATUS: PREVIEW[/color][/b][/size]
-REDdeck is young and Windows only. Deploy, undo, the library and loadouts are in daily use; Nexus downloads and REDmod deploy have had less real-world use so far.
-[b]This is not a game mod.[/b] It is an extension for VS Code, so install it there (steps below), not with Vortex. The quickest way is straight from the [url=https://marketplace.visualstudio.com/items?itemName=edgemodders.reddeck]VS Code Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/reddeck]Open VSX[/url]; the file here is the same extension.[/quote]
+EDGEdeck is young and Windows only. Deploy, undo, the library and loadouts are in daily use; Nexus downloads and REDmod deploy have had less real-world use so far.
+[b]This is not a game mod.[/b] It is an extension for VS Code, so install it there (steps below), not with Vortex. The quickest way is straight from the [url=https://marketplace.visualstudio.com/items?itemName=edgemodders.edgedeck]VS Code Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/edgedeck]Open VSX[/url]; the file here is the same extension.[/quote]
 [line]
 
 [img]https://staticdelivery.nexusmods.com/mods/3333/images/35366/35366-1792193568-1980816742.png[/img]
 
-[size=5][b][color=#fcee0a]What REDdeck is[/color][/b][/size]
+[size=5][b][color=#fcee0a]What EDGEdeck is[/color][/b][/size]
 
-REDdeck is built by [url=https://edgemodders.ai/]EDGEmodders[/url], a modding community whose idea is simple: [b]anyone can mod[/b]. Most mod managers grew big over the years. REDdeck starts from the four things you actually do, and says what it is doing in plain words.
+EDGEdeck is built by [url=https://edgemodders.ai/]EDGEmodders[/url], a modding community whose idea is simple: [b]anyone can mod[/b]. Most mod managers grew big over the years. EDGEdeck starts from the four things you actually do, and says what it is doing in plain words.
 
 [list]
-[*][b][color=#19f3ff]Add[/color][/b] a zip, 7z or rar from Nexus Mods, a single mod file, or a folder. REDdeck works out what kind of mod it is (archive, redscript, CET, RED4ext plugin, TweakXL, REDmod, REDnode package, a framework) and where its files go, and asks only when it cannot tell.[/*]
+[*][b][color=#19f3ff]Add[/color][/b] a zip, 7z or rar from Nexus Mods, a single mod file, or a folder. EDGEdeck works out what kind of mod it is (archive, redscript, CET, RED4ext plugin, TweakXL, REDmod, REDnode package, a framework) and where its files go, and asks only when it cannot tell.[/*]
 [*][b][color=#19f3ff]On or off[/color][/b]: turn a mod on or off. Nothing touches the game until you deploy.[/*]
 [*][b][color=#19f3ff]Deploy[/color][/b] links the mods that are on into the game with hardlinks (no extra disk space), writes the archive load order, and records what it did. [b]Undo deploy[/b] removes exactly that and nothing else.[/*]
 [*][b][color=#19f3ff]Remove[/color][/b] a mod from your library.[/*]
@@ -29,10 +29,10 @@ REDdeck is built by [url=https://edgemodders.ai/]EDGEmodders[/url], a modding co
 A [b]Set up[/b] group walks a new install through the game folder, REDbridge, Nexus and Vortex, one button each.
 
 [size=4][b][color=#19f3ff]Nexus Mods built in[/color][/b][/size]
-Sign in once. The [b]Mod manager download[/b] button on Nexus pages sends files straight to REDdeck, and REDdeck checks once a day for newer versions of your mods: click, confirm, and the update takes the old one's place.
+Sign in once. The [b]Mod manager download[/b] button on Nexus pages sends files straight to EDGEdeck, and EDGEdeck checks once a day for newer versions of your mods: click, confirm, and the update takes the old one's place.
 
 [size=4][b][color=#19f3ff]Conflicts you can see[/color][/b][/size]
-When two mods change the same file, list order decides who wins, and REDdeck shows you which. With REDbridge it also looks inside mod archives, where most conflicts hide. [b]Get REDbridge[/b] is one button: it downloads REDbridge, and the .NET 10 runtime it needs if you have none, into your user folder, no admin rights needed.
+When two mods change the same file, list order decides who wins, and EDGEdeck shows you which. With REDbridge it also looks inside mod archives, where most conflicts hide. [b]Get REDbridge[/b] is one button: it downloads REDbridge, and the .NET 10 runtime it needs if you have none, into your user folder, no admin rights needed.
 
 [color=#19f3ff][i][img]https://staticdelivery.nexusmods.com/mods/3333/images/35366/35366-1792193610-605289977.png[/img][/i][/color]
 
@@ -46,12 +46,12 @@ Group mods in sections of your own, fold them, filter by status, search by name 
 [b]Import from Vortex[/b] brings in the mods Vortex has for the game, under the names you know. Your Vortex setup is left as it was.
 
 [size=4][b][color=#19f3ff]Safe by design[/color][/b][/size]
-Your mods live in a library outside the game folder. REDdeck notices when something else changed a file it deployed and asks one question. It waits for the game to close before it deploys. Every deploy writes a report: each mod's files added, replaced or removed.
+Your mods live in a library outside the game folder. EDGEdeck notices when something else changed a file it deployed and asks one question. It waits for the game to close before it deploys. Every deploy writes a report: each mod's files added, replaced or removed.
 
 [size=4][b][color=#19f3ff]For AI assistants, and the command line[/color][/b][/size]
-REDdeck's tools are on npm as [url=https://www.npmjs.com/package/@edgemodders/reddeck-mcp]@edgemodders/reddeck-mcp[/url]: an MCP server for Claude Code and other assistants (list, add, deploy, find conflicts), and a [b]reddeck[/b] command line, both using the same library and deployer as the extension.
+EDGEdeck's tools are on npm as [url=https://www.npmjs.com/package/@edgemodders/edgedeck-mcp]@edgemodders/edgedeck-mcp[/url]: an MCP server for Claude Code and other assistants (list, add, deploy, find conflicts), and a [b]edgedeck[/b] command line, both using the same library and deployer as the extension.
 
-Browse into files inside mods directly inside REDdeck and view them.
+Browse into files inside mods directly inside EDGEdeck and view them.
 [color=#19f3ff][i][img]https://staticdelivery.nexusmods.com/mods/3333/images/35366/35366-1792193747-1732825803.png[/img][/i][/color]
 
 [size=5][b][color=#fcee0a]Requirements[/color][/b][/size]
@@ -60,28 +60,28 @@ Browse into files inside mods directly inside REDdeck and view them.
 [*]Windows 10 or 11, 64-bit.[/*]
 [*][url=https://code.visualstudio.com/]VS Code[/url] 1.80 or later, [url=https://vscodium.com/]VSCodium[/url], or EDGEkit.[/*]
 [*]Cyberpunk 2077 on PC (Steam, GOG or Epic).[/*]
-[*]Optional: REDbridge, for conflicts inside archives. REDdeck gets it for you.[/*]
+[*]Optional: REDbridge, for conflicts inside archives. EDGEdeck gets it for you.[/*]
 [*]Optional: a Nexus Mods account, for downloads and update checks.[/*]
 [/list]
 [size=5][b][color=#fcee0a]Install[/color][/b][/size]
 
-[b]From a store (recommended, updates itself):[/b] in VS Code, open the Extensions view (Ctrl+Shift+X), search for [b]REDdeck[/b] and click Install. Or open its [url=https://marketplace.visualstudio.com/items?itemName=edgemodders.reddeck]Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/reddeck]Open VSX[/url] page.
+[b]From a store (recommended, updates itself):[/b] in VS Code, open the Extensions view (Ctrl+Shift+X), search for [b]EDGEdeck[/b] and click Install. Or open its [url=https://marketplace.visualstudio.com/items?itemName=edgemodders.edgedeck]Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/edgedeck]Open VSX[/url] page.
 
 [b]From the file here:[/b]
 [list]
 [*]Download the main file with [b]Manual download[/b] and extract it anywhere.[/*]
-[*]In VS Code, open the Extensions view (Ctrl+Shift+X), click [b]...[/b] at its top, choose [b]Install from VSIX...[/b] and pick [i]reddeck-<version>.vsix[/i].[/*]
-[*]Click the REDdeck icon in the activity bar and follow [b]Set up[/b].[/*]
+[*]In VS Code, open the Extensions view (Ctrl+Shift+X), click [b]...[/b] at its top, choose [b]Install from VSIX...[/b] and pick [i]edgedeck-<version>.vsix[/i].[/*]
+[*]Click the EDGEdeck icon in the activity bar and follow [b]Set up[/b].[/*]
 [/list]
 Do not install it with Vortex: it is not a game mod, and Vortex would put it in the game folder.
 
 [size=5][b][color=#fcee0a]The EDGE platform[/color][/b][/size]
 
-REDdeck is one of the EDGE tools. Each works on its own and together:
+EDGEdeck is one of the EDGE tools. Each works on its own and together:
 
 [list]
-[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35356]REDcode[/url][/b]: a Cyberpunk modding workspace in VS Code. Its Install button deploys through REDdeck.[/*]
-[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35355]REDnode[/url][/b]: mods in JavaScript, web pages over the game, and REDagent, an AI assistant in the game. REDdeck knows REDnode packages and puts them in the right place.[/*]
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35356]REDcode[/url][/b]: a Cyberpunk modding workspace in VS Code. Its Install button deploys through EDGEdeck.[/*]
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35355]REDnode[/url][/b]: mods in JavaScript, web pages over the game, and REDagent, an AI assistant in the game. EDGEdeck knows REDnode packages and puts them in the right place.[/*]
 [*][b][url=https://github.com/Edgemodders/REDbridge]REDbridge[/url][/b]: runs WolvenKit's libraries for the other tools.[/*]
 [*][b][url=https://github.com/Edgemodders/EDGEkit]EDGEkit[/url][/b]: one editor with every EDGE tool built in.[/*]
 [/list]
@@ -91,16 +91,16 @@ REDdeck is one of the EDGE tools. Each works on its own and together:
 Because that is where modders already work, next to REDcode and an AI assistant. If you only play, it still works as a plain mod manager: you never need to open a code file.
 
 [b]Can I use it beside Vortex?[/b]
-Yes, but let one of them deploy to the game at a time. REDdeck can import Vortex's mods; Vortex takes the Nexus download links back whenever it starts, and REDdeck offers to take them again.
+Yes, but let one of them deploy to the game at a time. EDGEdeck can import Vortex's mods; Vortex takes the Nexus download links back whenever it starts, and EDGEdeck offers to take them again.
 
 [b]Do I need Nexus Premium?[/b]
-No. Free members download through the site's Mod manager download button, which hands the file to REDdeck. Premium members can also update straight from REDdeck.
+No. Free members download through the site's Mod manager download button, which hands the file to EDGEdeck. Premium members can also update straight from EDGEdeck.
 
 [b]What does deploy change in my game folder?[/b]
 Only the mods' files, as hardlinks or copies, and modlist.txt. A manifest records every file, so Undo deploy removes exactly those.
 
 [b]Is it free?[/b]
-Yes, and open source under the MIT license. The code is on [url=https://github.com/Edgemodders/REDdeck]GitHub[/url].
+Yes, and open source under the MIT license. The code is on [url=https://github.com/Edgemodders/EDGEdeck]GitHub[/url].
 
 [line]
 
@@ -108,18 +108,18 @@ Yes, and open source under the MIT license. The code is on [url=https://github.c
 
 [list]
 [*]EDGEmodders: [url=https://edgemodders.ai/]edgemodders.ai[/url][/*]
-[*]Guide and docs: [url=https://edgemodders.github.io/REDdeck/]edgemodders.github.io/REDdeck[/url][/*]
-[*]Source and issues: [url=https://github.com/Edgemodders/REDdeck]github.com/Edgemodders/REDdeck[/url][/*]
-[*]VS Code Marketplace: [url=https://marketplace.visualstudio.com/items?itemName=edgemodders.reddeck]edgemodders.reddeck[/url][/*]
-[*]Open VSX: [url=https://open-vsx.org/extension/edgemodders/reddeck]edgemodders/reddeck[/url][/*]
+[*]Guide and docs: [url=https://edgemodders.github.io/EDGEdeck/]edgemodders.github.io/EDGEdeck[/url][/*]
+[*]Source and issues: [url=https://github.com/Edgemodders/EDGEdeck]github.com/Edgemodders/EDGEdeck[/url][/*]
+[*]VS Code Marketplace: [url=https://marketplace.visualstudio.com/items?itemName=edgemodders.edgedeck]edgemodders.edgedeck[/url][/*]
+[*]Open VSX: [url=https://open-vsx.org/extension/edgemodders/edgedeck]edgemodders/edgedeck[/url][/*]
 [*]Community Discord: [url=https://discord.gg/63qP3Erw43]discord.gg/63qP3Erw43[/url][/*]
 [/list]
 [size=5][b][color=#fcee0a]Credits[/color][/b][/size]
 
 [list]
-[*][b]7-Zip[/b] by Igor Pavlov (GNU LGPL): REDdeck ships its 7za.exe to open 7z and rar files.[/*]
+[*][b]7-Zip[/b] by Igor Pavlov (GNU LGPL): EDGEdeck ships its 7za.exe to open 7z and rar files.[/*]
 [*][b]WolvenKit[/b] and its team, whose libraries REDbridge runs to look inside archives.[/*]
 [*][b]Nexus Mods[/b], for the site and its API.[/*]
 [*]The Cyberpunk 2077 modding community, and the mod managers that came before.[/*]
 [/list]
-[size=2]REDdeck is not affiliated with CD PROJEKT RED, Nexus Mods or Microsoft. Cyberpunk 2077 is a trademark of CD PROJEKT. Visual Studio Code is a trademark of Microsoft.[/size]
+[size=2]EDGEdeck is not affiliated with CD PROJEKT RED, Nexus Mods or Microsoft. Cyberpunk 2077 is a trademark of CD PROJEKT. Visual Studio Code is a trademark of Microsoft.[/size]

@@ -1,5 +1,5 @@
 // REDmod packages (the game's own mod format under mods/) need the game's redMod.exe to compile
-// them into r6/cache/modded before a launch with -modded. REDdeck runs it after a deploy when any
+// them into r6/cache/modded before a launch with -modded. EDGEdeck runs it after a deploy when any
 // enabled mod is a REDmod package, in list order.
 
 import { execFile } from "node:child_process";

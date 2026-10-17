@@ -1,8 +1,8 @@
 {
-  "name": "reddeck",
-  "displayName": "REDdeck",
+  "name": "edgedeck",
+  "displayName": "EDGEdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.26.6",
+  "version": "0.27.0",
   "publisher": "edgemodders",
   "preview": true,
   "pricing": "Free",
@@ -14,11 +14,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Edgemodders/REDdeck"
+    "url": "https://github.com/Edgemodders/EDGEdeck"
   },
-  "homepage": "https://edgemodders.github.io/REDdeck/",
+  "homepage": "https://edgemodders.github.io/EDGEdeck/",
   "bugs": {
-    "url": "https://github.com/Edgemodders/REDdeck/issues"
+    "url": "https://github.com/Edgemodders/EDGEdeck/issues"
   },
   "engines": {
     "vscode": "^1.80.0",
@@ -42,514 +42,514 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "reddeck",
-          "title": "REDdeck",
+          "id": "edgedeck",
+          "title": "EDGEdeck",
           "icon": "images/activity.svg"
         }
       ]
     },
     "views": {
-      "reddeck": [
+      "edgedeck": [
         {
-          "id": "reddeck.mods",
+          "id": "edgedeck.mods",
           "name": "Mods"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "reddeck.mods",
-        "contents": "No mods yet.\nAdd a zip from Nexus Mods or a mod folder, turn it on, and deploy. Nothing touches the game until you deploy.\n[Add mod](command:reddeck.addMod)",
-        "when": "reddeck.empty"
+        "view": "edgedeck.mods",
+        "contents": "No mods yet.\nAdd a zip from Nexus Mods or a mod folder, turn it on, and deploy. Nothing touches the game until you deploy.\n[Add mod](command:edgedeck.addMod)",
+        "when": "edgedeck.empty"
       },
       {
-        "view": "reddeck.mods",
-        "contents": "The game was not found through Steam, GOG or Epic.\n[Find the game folder](command:reddeck.pickGame)",
-        "when": "reddeck.empty && reddeck.setup.game"
+        "view": "edgedeck.mods",
+        "contents": "The game was not found through Steam, GOG or Epic.\n[Find the game folder](command:edgedeck.pickGame)",
+        "when": "edgedeck.empty && edgedeck.setup.game"
       },
       {
-        "view": "reddeck.mods",
-        "contents": "Vortex has mods for this game. REDdeck can take copies of them; Vortex is left alone.\n[Import from Vortex](command:reddeck.importVortex)",
-        "when": "reddeck.empty && reddeck.setup.vortex"
+        "view": "edgedeck.mods",
+        "contents": "Vortex has mods for this game. EDGEdeck can take copies of them; Vortex is left alone.\n[Import from Vortex](command:edgedeck.importVortex)",
+        "when": "edgedeck.empty && edgedeck.setup.vortex"
       },
       {
-        "view": "reddeck.mods",
-        "contents": "Sign in to Nexus Mods for updates and downloads from the site.\n[Sign in to Nexus](command:reddeck.nexusSignIn)",
-        "when": "reddeck.empty && reddeck.setup.nexus"
+        "view": "edgedeck.mods",
+        "contents": "Sign in to Nexus Mods for updates and downloads from the site.\n[Sign in to Nexus](command:edgedeck.nexusSignIn)",
+        "when": "edgedeck.empty && edgedeck.setup.nexus"
       },
       {
-        "view": "reddeck.mods",
-        "contents": "REDbridge sees conflicts inside archives. It is a 70 MB download that REDdeck installs for you.\n[Get REDbridge](command:reddeck.getBridge)",
-        "when": "reddeck.empty && reddeck.setup.bridge"
+        "view": "edgedeck.mods",
+        "contents": "REDbridge sees conflicts inside archives. It is a 70 MB download that EDGEdeck installs for you.\n[Get REDbridge](command:edgedeck.getBridge)",
+        "when": "edgedeck.empty && edgedeck.setup.bridge"
       }
     ],
     "commands": [
       {
-        "command": "reddeck.suggestTheme",
+        "command": "edgedeck.suggestTheme",
         "title": "Suggest the HUD theme",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.openPage",
-        "title": "Open REDdeck",
-        "category": "REDdeck",
+        "command": "edgedeck.openPage",
+        "title": "Open EDGEdeck",
+        "category": "EDGEdeck",
         "icon": "$(table)"
       },
       {
-        "command": "reddeck.addMod",
+        "command": "edgedeck.addMod",
         "title": "Add mod",
-        "category": "REDdeck",
+        "category": "EDGEdeck",
         "icon": "$(add)"
       },
       {
-        "command": "reddeck.details",
+        "command": "edgedeck.details",
         "title": "Details",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.addProject",
+        "command": "edgedeck.addProject",
         "title": "Add from REDcode project",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.checkConflicts",
+        "command": "edgedeck.checkConflicts",
         "title": "Show conflicts",
-        "category": "REDdeck",
+        "category": "EDGEdeck",
         "icon": "$(warning)"
       },
       {
-        "command": "reddeck.importVortex",
+        "command": "edgedeck.importVortex",
         "title": "Import from Vortex",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.deploy",
+        "command": "edgedeck.deploy",
         "title": "Deploy",
-        "category": "REDdeck",
+        "category": "EDGEdeck",
         "icon": "$(rocket)"
       },
       {
-        "command": "reddeck.undo",
+        "command": "edgedeck.undo",
         "title": "Undo deploy",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.remove",
+        "command": "edgedeck.remove",
         "title": "Remove",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.moveUp",
+        "command": "edgedeck.moveUp",
         "title": "Move up (wins conflicts)",
-        "category": "REDdeck",
+        "category": "EDGEdeck",
         "icon": "$(arrow-up)"
       },
       {
-        "command": "reddeck.moveDown",
+        "command": "edgedeck.moveDown",
         "title": "Move down",
-        "category": "REDdeck",
+        "category": "EDGEdeck",
         "icon": "$(arrow-down)"
       },
       {
-        "command": "reddeck.openInExplorer",
+        "command": "edgedeck.openInExplorer",
         "title": "Reveal in File Explorer",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.revealInGame",
+        "command": "edgedeck.revealInGame",
         "title": "Reveal in Game Folder",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.openLibrary",
+        "command": "edgedeck.openLibrary",
         "title": "Open library folder",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.refresh",
+        "command": "edgedeck.refresh",
         "title": "Refresh",
-        "category": "REDdeck",
+        "category": "EDGEdeck",
         "icon": "$(refresh)"
       },
       {
-        "command": "reddeck.showLog",
+        "command": "edgedeck.showLog",
         "title": "Show log",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.nexusSignIn",
+        "command": "edgedeck.nexusSignIn",
         "title": "Nexus: sign in",
-        "category": "REDdeck",
+        "category": "EDGEdeck",
         "icon": "$(sign-in)"
       },
       {
-        "command": "reddeck.nexusSignOut",
+        "command": "edgedeck.nexusSignOut",
         "title": "Nexus: sign out",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.nexusSetKey",
+        "command": "edgedeck.nexusSetKey",
         "title": "Nexus: set API key (paste, instead of signing in)",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.nexusOpen",
+        "command": "edgedeck.nexusOpen",
         "title": "Open on Nexus Mods",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.checkUpdates",
+        "command": "edgedeck.checkUpdates",
         "title": "Nexus: check for updates",
-        "category": "REDdeck",
+        "category": "EDGEdeck",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "reddeck.nexusAddLink",
+        "command": "edgedeck.nexusAddLink",
         "title": "Nexus: add from a link",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.nexusHandleLinks",
+        "command": "edgedeck.nexusHandleLinks",
         "title": "Nexus: handle download links (nxm)",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.nexusReleaseLinks",
+        "command": "edgedeck.nexusReleaseLinks",
         "title": "Nexus: stop handling download links",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.saveLoadout",
+        "command": "edgedeck.saveLoadout",
         "title": "Save as new loadout...",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.loadLoadout",
+        "command": "edgedeck.loadLoadout",
         "title": "Switch loadout...",
-        "category": "REDdeck",
+        "category": "EDGEdeck",
         "icon": "$(versions)"
       },
       {
-        "command": "reddeck.exportLoadout",
+        "command": "edgedeck.exportLoadout",
         "title": "Export the active loadout...",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.importLoadout",
+        "command": "edgedeck.importLoadout",
         "title": "Import a loadout...",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.switchVersion",
+        "command": "edgedeck.switchVersion",
         "title": "Switch version...",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.showChanges",
+        "command": "edgedeck.showChanges",
         "title": "Show pending changes",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.getBridge",
+        "command": "edgedeck.getBridge",
         "title": "Get REDbridge",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.pickGame",
+        "command": "edgedeck.pickGame",
         "title": "Pick the game folder...",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.setup",
-        "title": "REDdeck: Set up...",
-        "category": "REDdeck"
+        "command": "edgedeck.setup",
+        "title": "EDGEdeck: Set up...",
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.hideSetupStep",
+        "command": "edgedeck.hideSetupStep",
         "title": "Not now",
         "icon": "$(close)"
       },
       {
-        "command": "reddeck.mcpSetup",
-        "title": "REDdeck: Connect an assistant (MCP)...",
-        "category": "REDdeck"
+        "command": "edgedeck.mcpSetup",
+        "title": "EDGEdeck: Connect an assistant (MCP)...",
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.updateBridge",
+        "command": "edgedeck.updateBridge",
         "title": "Update REDbridge",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       },
       {
-        "command": "reddeck.addToProject",
+        "command": "edgedeck.addToProject",
         "title": "Add to Project",
-        "category": "REDdeck"
+        "category": "EDGEdeck"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "reddeck.openPage",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.openPage",
+          "when": "view == edgedeck.mods",
           "group": "navigation@0"
         },
         {
-          "command": "reddeck.addMod",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.addMod",
+          "when": "view == edgedeck.mods",
           "group": "navigation@1"
         },
         {
-          "command": "reddeck.deploy",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.deploy",
+          "when": "view == edgedeck.mods",
           "group": "navigation@2"
         },
         {
-          "command": "reddeck.refresh",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.refresh",
+          "when": "view == edgedeck.mods",
           "group": "navigation@4"
         },
         {
-          "command": "reddeck.checkUpdates",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.checkUpdates",
+          "when": "view == edgedeck.mods",
           "group": "navigation@3"
         },
         {
-          "command": "reddeck.checkConflicts",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.checkConflicts",
+          "when": "view == edgedeck.mods",
           "group": "1_more@0"
         },
         {
-          "command": "reddeck.showChanges",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.showChanges",
+          "when": "view == edgedeck.mods",
           "group": "1_more@0"
         },
         {
-          "command": "reddeck.importVortex",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.importVortex",
+          "when": "view == edgedeck.mods",
           "group": "1_more@1"
         },
         {
-          "command": "reddeck.undo",
-          "when": "view == reddeck.mods && reddeck.deployed",
+          "command": "edgedeck.undo",
+          "when": "view == edgedeck.mods && edgedeck.deployed",
           "group": "1_more@2"
         },
         {
-          "command": "reddeck.openLibrary",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.openLibrary",
+          "when": "view == edgedeck.mods",
           "group": "2_folders@1"
         },
         {
-          "command": "reddeck.showLog",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.showLog",
+          "when": "view == edgedeck.mods",
           "group": "2_folders@2"
         },
         {
-          "command": "reddeck.nexusSignIn",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.nexusSignIn",
+          "when": "view == edgedeck.mods",
           "group": "1_more@0"
         },
         {
-          "command": "reddeck.nexusAddLink",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.nexusAddLink",
+          "when": "view == edgedeck.mods",
           "group": "1_more@3"
         },
         {
-          "command": "reddeck.addProject",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.addProject",
+          "when": "view == edgedeck.mods",
           "group": "1_more@4"
         },
         {
-          "command": "reddeck.saveLoadout",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.saveLoadout",
+          "when": "view == edgedeck.mods",
           "group": "3_loadouts@1"
         },
         {
-          "command": "reddeck.exportLoadout",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.exportLoadout",
+          "when": "view == edgedeck.mods",
           "group": "3_loadouts@3"
         },
         {
-          "command": "reddeck.importLoadout",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.importLoadout",
+          "when": "view == edgedeck.mods",
           "group": "3_loadouts@4"
         },
         {
-          "command": "reddeck.loadLoadout",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.loadLoadout",
+          "when": "view == edgedeck.mods",
           "group": "3_loadouts@0"
         },
         {
-          "command": "reddeck.getBridge",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.getBridge",
+          "when": "view == edgedeck.mods",
           "group": "2_folders@0"
         },
         {
-          "command": "reddeck.pickGame",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.pickGame",
+          "when": "view == edgedeck.mods",
           "group": "2_folders@3"
         },
         {
-          "command": "reddeck.loadLoadout",
-          "when": "view == reddeck.mods",
+          "command": "edgedeck.loadLoadout",
+          "when": "view == edgedeck.mods",
           "group": "navigation@3"
         }
       ],
       "view/item/context": [
         {
-          "command": "reddeck.hideSetupStep",
-          "when": "view == reddeck.mods && viewItem == setup",
+          "command": "edgedeck.hideSetupStep",
+          "when": "view == edgedeck.mods && viewItem == setup",
           "group": "inline"
         },
         {
-          "command": "reddeck.moveUp",
-          "when": "view == reddeck.mods && viewItem == mod",
+          "command": "edgedeck.moveUp",
+          "when": "view == edgedeck.mods && viewItem == mod",
           "group": "inline@1"
         },
         {
-          "command": "reddeck.moveDown",
-          "when": "view == reddeck.mods && viewItem == mod",
+          "command": "edgedeck.moveDown",
+          "when": "view == edgedeck.mods && viewItem == mod",
           "group": "inline@2"
         },
         {
-          "command": "reddeck.details",
-          "when": "view == reddeck.mods && viewItem == mod",
+          "command": "edgedeck.details",
+          "when": "view == edgedeck.mods && viewItem == mod",
           "group": "0_details@1"
         },
         {
-          "command": "reddeck.nexusOpen",
-          "when": "view == reddeck.mods && viewItem == mod",
+          "command": "edgedeck.nexusOpen",
+          "when": "view == edgedeck.mods && viewItem == mod",
           "group": "1_open@0"
         },
         {
-          "command": "reddeck.openInExplorer",
-          "when": "view == reddeck.mods && viewItem == mod",
+          "command": "edgedeck.openInExplorer",
+          "when": "view == edgedeck.mods && viewItem == mod",
           "group": "1_open@1"
         },
         {
-          "command": "reddeck.revealInGame",
-          "when": "view == reddeck.mods && viewItem =~ /^(mod|folder|file)$/",
+          "command": "edgedeck.revealInGame",
+          "when": "view == edgedeck.mods && viewItem =~ /^(mod|folder|file)$/",
           "group": "1_open@1"
         },
         {
-          "command": "reddeck.remove",
-          "when": "view == reddeck.mods && viewItem == mod",
+          "command": "edgedeck.remove",
+          "when": "view == edgedeck.mods && viewItem == mod",
           "group": "9_remove@1"
         },
         {
-          "command": "reddeck.switchVersion",
-          "when": "view == reddeck.mods && viewItem == mod",
+          "command": "edgedeck.switchVersion",
+          "when": "view == edgedeck.mods && viewItem == mod",
           "group": "inline@9"
         },
         {
-          "command": "reddeck.addToProject",
-          "when": "view == reddeck.mods && viewItem == mod && reddeck.projectOpen",
+          "command": "edgedeck.addToProject",
+          "when": "view == edgedeck.mods && viewItem == mod && edgedeck.projectOpen",
           "group": "1_open@2"
         },
         {
-          "command": "reddeck.addToProject",
-          "when": "view == reddeck.mods && viewItem == folder && reddeck.projectOpen",
+          "command": "edgedeck.addToProject",
+          "when": "view == edgedeck.mods && viewItem == folder && edgedeck.projectOpen",
           "group": "1_open@2"
         },
         {
-          "command": "reddeck.addToProject",
-          "when": "view == reddeck.mods && viewItem == file && reddeck.projectOpen",
+          "command": "edgedeck.addToProject",
+          "when": "view == edgedeck.mods && viewItem == file && edgedeck.projectOpen",
           "group": "1_open@2"
         }
       ],
       "commandPalette": [
         {
-          "command": "reddeck.remove",
+          "command": "edgedeck.remove",
           "when": "false"
         },
         {
-          "command": "reddeck.moveUp",
+          "command": "edgedeck.moveUp",
           "when": "false"
         },
         {
-          "command": "reddeck.moveDown",
+          "command": "edgedeck.moveDown",
           "when": "false"
         },
         {
-          "command": "reddeck.openInExplorer",
+          "command": "edgedeck.openInExplorer",
           "when": "false"
         },
         {
-          "command": "reddeck.revealInGame",
+          "command": "edgedeck.revealInGame",
           "when": "false"
         },
         {
-          "command": "reddeck.details",
+          "command": "edgedeck.details",
           "when": "false"
         },
         {
-          "command": "reddeck.nexusOpen",
+          "command": "edgedeck.nexusOpen",
           "when": "false"
         },
         {
-          "command": "reddeck.hideSetupStep",
+          "command": "edgedeck.hideSetupStep",
           "when": "false"
         },
         {
-          "command": "reddeck.addToProject",
+          "command": "edgedeck.addToProject",
           "when": "false"
         }
       ],
       "explorer/context": [
         {
-          "command": "reddeck.addProject",
+          "command": "edgedeck.addProject",
           "when": "resourceExtname == .cpmodproj",
-          "group": "reddeck@1"
+          "group": "edgedeck@1"
         }
       ]
     },
     "configuration": {
-      "title": "REDdeck",
+      "title": "EDGEdeck",
       "properties": {
-        "reddeck.gamePath": {
+        "edgedeck.gamePath": {
           "type": "string",
           "default": "",
-          "description": "The Cyberpunk 2077 install folder (the one containing bin, archive and r6). Leave it empty to find the game through Steam, GOG or Epic on every start; the status bar and the REDdeck page footer show the folder in use. Set it only for a game those cannot see. The command REDdeck: Pick the game folder sets it for you."
+          "description": "The Cyberpunk 2077 install folder (the one containing bin, archive and r6). Leave it empty to find the game through Steam, GOG or Epic on every start; the status bar and the EDGEdeck page footer show the folder in use. Set it only for a game those cannot see. The command EDGEdeck: Pick the game folder sets it for you."
         },
-        "reddeck.libraryPath": {
+        "edgedeck.libraryPath": {
           "type": "string",
           "default": "",
-          "description": "Where REDdeck keeps your mods. Empty means %USERPROFILE%\\REDdeck. Put it on the same drive as the game so deploy can use hardlinks instead of copies."
+          "description": "Where EDGEdeck keeps your mods. Empty means %USERPROFILE%\\EDGEdeck. Put it on the same drive as the game so deploy can use hardlinks instead of copies."
         },
-        "reddeck.bridgePath": {
+        "edgedeck.bridgePath": {
           "type": "string",
           "default": "",
-          "description": "Path to REDbridge.exe or its folder. Empty means the copy REDdeck fetched with Get REDbridge, else a REDbridge checkout next to this one, else REDbridge on PATH. With it, REDdeck shows conflicts between resources inside mod archives."
+          "description": "Path to REDbridge.exe or its folder. Empty means the copy EDGEdeck fetched with Get REDbridge, else a REDbridge checkout next to this one, else REDbridge on PATH. With it, EDGEdeck shows conflicts between resources inside mod archives."
         },
-        "reddeck.dotnetRoot": {
+        "edgedeck.dotnetRoot": {
           "type": "string",
           "default": "",
           "description": "DOTNET_ROOT for the REDbridge process only. Empty means the per-user .NET 10 runtime in %LOCALAPPDATA%\\Microsoft\\dotnet when there is one, else whatever the machine has. Never set DOTNET_ROOT as a user environment variable: every .NET program then looks only there."
         },
-        "reddeck.nexusCheckUpdatesOnStart": {
+        "edgedeck.nexusCheckUpdatesOnStart": {
           "type": "boolean",
           "default": true,
-          "description": "Ask Nexus Mods once a day whether the mods with a Nexus id have a newer file. Needs you signed in (REDdeck: Nexus: sign in)."
+          "description": "Ask Nexus Mods once a day whether the mods with a Nexus id have a newer file. Needs you signed in (EDGEdeck: Nexus: sign in)."
         },
-        "reddeck.nexusClientId": {
+        "edgedeck.nexusClientId": {
           "type": "string",
           "default": "",
-          "description": "The OAuth client id Nexus Mods assigned to REDdeck. With it, Nexus: sign in opens the Nexus sign-in page in your browser and comes back on its own; the sign-in renews itself. Empty means the application slug below, or the API Access page and a pasted key."
+          "description": "The OAuth client id Nexus Mods assigned to EDGEdeck. With it, Nexus: sign in opens the Nexus sign-in page in your browser and comes back on its own; the sign-in renews itself. Empty means the application slug below, or the API Access page and a pasted key."
         },
-        "reddeck.nexusApplication": {
+        "edgedeck.nexusApplication": {
           "type": "string",
           "default": "",
-          "description": "The application slug Nexus Mods registered for REDdeck's older single sign-on. Used when there is no client id. Empty means sign-in opens the API Access page and asks you to paste the key."
+          "description": "The application slug Nexus Mods registered for EDGEdeck's older single sign-on. Used when there is no client id. Empty means sign-in opens the API Access page and asks you to paste the key."
         },
-        "reddeck.vortexStagingPath": {
+        "edgedeck.vortexStagingPath": {
           "type": "string",
           "default": "",
-          "description": "Where Vortex keeps its Cyberpunk 2077 mods (Vortex: Settings > Mods > Mod Staging Folder), for Import from Vortex. Empty means REDdeck looks in Vortex's deployment manifest, Vortex's default folder in AppData, and \"Vortex Mods\\cyberpunk2077\" on each drive, and asks when none has mods."
+          "description": "Where Vortex keeps its Cyberpunk 2077 mods (Vortex: Settings > Mods > Mod Staging Folder), for Import from Vortex. Empty means EDGEdeck looks in Vortex's deployment manifest, Vortex's default folder in AppData, and \"Vortex Mods\\cyberpunk2077\" on each drive, and asks when none has mods."
         }
       }
     },
     "colors": [
       {
-        "id": "reddeck.accent",
-        "description": "Accent for REDdeck icons and the status bar item.",
+        "id": "edgedeck.accent",
+        "description": "Accent for EDGEdeck icons and the status bar item.",
         "defaults": {
           "dark": "#fcee0a",
           "light": "#8a7a00",
@@ -560,8 +560,8 @@
     ],
     "mcpServerDefinitionProviders": [
       {
-        "id": "reddeck.mcp",
-        "label": "REDdeck"
+        "id": "edgedeck.mcp",
+        "label": "EDGEdeck"
       }
     ]
   },
@@ -589,6 +589,6 @@
     "typescript": "~5.9.3"
   },
   "bin": {
-    "reddeck": "bin/reddeck.mjs"
+    "edgedeck": "bin/edgedeck.mjs"
   }
 }

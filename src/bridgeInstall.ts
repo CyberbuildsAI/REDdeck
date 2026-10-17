@@ -1,6 +1,6 @@
 // Getting REDbridge without knowing where it goes: the latest release from GitHub, unzipped into
-// REDdeck's own storage folder, and the .NET 10 runtime per user when the machine has none.
-// REDbridge is GPL-3.0 and lives in its own repository; REDdeck only downloads it.
+// EDGEdeck's own storage folder, and the .NET 10 runtime per user when the machine has none.
+// REDbridge is GPL-3.0 and lives in its own repository; EDGEdeck only downloads it.
 
 import { execFile } from "node:child_process";
 import * as fs from "node:fs";
@@ -23,7 +23,7 @@ export interface BridgeRelease {
 
 /** The newest release with a Windows x64 zip. */
 export async function latestBridgeRelease(): Promise<BridgeRelease> {
-  const res = await fetch(`https://api.github.com/repos/${BridgeRepo}/releases/latest`, { headers: { Accept: "application/vnd.github+json", "User-Agent": "REDdeck" } });
+  const res = await fetch(`https://api.github.com/repos/${BridgeRepo}/releases/latest`, { headers: { Accept: "application/vnd.github+json", "User-Agent": "EDGEdeck" } });
   if (!res.ok) throw new Error(`GitHub answered ${res.status} for the latest REDbridge release.`);
   const rel = (await res.json()) as { tag_name: string; html_url: string; assets: { name: string; browser_download_url: string; size: number }[] };
   const asset = rel.assets.find((a) => /win-x64\.zip$/i.test(a.name));
@@ -54,7 +54,7 @@ export function dotnet10Root(): string | undefined {
 /** Installs the .NET 10 runtime for the current user with Microsoft's script; no admin needed. */
 export async function installDotnetRuntime(log: (line: string) => void): Promise<string> {
   const root = perUserDotnetRoot();
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "reddeck-dotnet-"));
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "edgedeck-dotnet-"));
   const script = path.join(temp, "dotnet-install.ps1");
   try {
     await download(DotnetInstallScript, script);
@@ -72,7 +72,7 @@ export async function installDotnetRuntime(log: (line: string) => void): Promise
   return root;
 }
 
-/** The newest REDbridge.exe under REDdeck's storage folder, if any. */
+/** The newest REDbridge.exe under EDGEdeck's storage folder, if any. */
 export function installedBridge(storageDir: string): string | undefined {
   const dir = path.join(storageDir, "bridge");
   try {
@@ -115,7 +115,7 @@ export async function installBridge(release: BridgeRelease, storageDir: string, 
   const target = path.join(storageDir, "bridge", release.tag);
   const exe = path.join(target, "REDbridge.exe");
   if (fs.existsSync(exe)) return exe;
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "reddeck-bridge-"));
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "edgedeck-bridge-"));
   const zip = path.join(temp, release.assetName);
   try {
     log(`Downloading ${release.assetName} (${Math.round(release.size / 1048576)} MB) from ${release.page}`);

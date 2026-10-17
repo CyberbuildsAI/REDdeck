@@ -114,7 +114,7 @@ export class ModsPage {
 
   show(data: PageData): void {
     if (!this.panel) {
-      this.panel = vscode.window.createWebviewPanel("reddeck.page", "REDdeck", { viewColumn: vscode.ViewColumn.Active, preserveFocus: false }, { enableScripts: true, retainContextWhenHidden: true });
+      this.panel = vscode.window.createWebviewPanel("edgedeck.page", "EDGEdeck", { viewColumn: vscode.ViewColumn.Active, preserveFocus: false }, { enableScripts: true, retainContextWhenHidden: true });
       this.panel.onDidDispose(() => (this.panel = undefined));
       this.panel.webview.onDidReceiveMessage((m: PageMessage) => this.onMessage(m));
     }
@@ -298,7 +298,7 @@ input[type=checkbox] { accent-color: var(--yellow); width: 15px; height: 15px; c
 .note { border: 1px solid var(--yellow); color: var(--yellow); padding: 8px 12px; margin-bottom: 12px; }
 </style></head><body>
 <div class="top">
-  <h1>RED<span>deck</span><small>${esc(d.game)}</small></h1>
+  <h1>EDGE<span>deck</span><small>${esc(d.game)}</small></h1>
   <span class="spacer"></span>
   <button data-msg='${msg({ action: "add" })}'>+ Add mod</button>
   <button data-msg='${msg({ action: d.signedIn ? "updates" : "signIn" })}' title="${d.signedIn ? "Ask Nexus for newer files" : "Sign in to Nexus Mods"}">${d.signedIn ? "Check updates" : "Nexus sign in"}</button>
@@ -307,7 +307,7 @@ input[type=checkbox] { accent-color: var(--yellow); width: 15px; height: 15px; c
   ${d.pending ? `<a class="changes" data-msg='${msg({ action: "changes" })}' title="Every file the next deploy touches, and why">${d.pending} change${d.pending === 1 ? "" : "s"}</a>` : ""}
   <button class="deploy ${d.pending ? "" : "idle"}" data-msg='${msg({ action: "deploy" })}'>${d.pending ? "Deploy" : "Deployed"}</button>
 </div>
-${d.vortex ? `<div class="note">Vortex manages this game folder. Purge in Vortex before deploying with REDdeck.</div>` : ""}
+${d.vortex ? `<div class="note">Vortex manages this game folder. Purge in Vortex before deploying with EDGEdeck.</div>` : ""}
 ${d.setup.length ? `<div class="setup"><span>Set up:</span>${d.setup.map((s) => `<button data-msg='${msg({ action: "setup", id: s.id })}' title="${esc(s.detail)}">${esc(s.label)}</button>`).join("")}</div>` : ""}
 <div class="loadouts">
   <span class="ltitle">Loadout</span>
@@ -341,7 +341,7 @@ ${d.rows.length ? `<table class="mods"><thead><tr><th class="chk"></th><th>Mod</
   <span>Library: <a data-msg='${msg({ action: "library" })}'>${esc(d.library)}</a> (${d.method === "link" ? "same drive as the game: hardlinks" : "other drive: copies"})</span>
   <span>Last deploy: ${d.lastDeploy ? esc(d.lastDeploy) : "never"}</span>
   <span title="Deployed files are hardlinks and take no extra space on the same drive">Disk: ${fmt(d.sizes.mods)} in mods, <a data-msg='${msg({ action: "downloads" })}' title="The original zips, kept so a mod can be added again. Safe to delete.">${fmt(d.sizes.downloads)} in kept downloads</a>${d.sizes.backups ? `, ${fmt(d.sizes.backups)} in deploy backups` : ""}</span>
-  <span>${d.bridge ? `<span class="okdot"></span>${esc(d.bridge)}${d.bridgeUpdate ? ` · <a data-msg='${msg({ action: "getBridge" })}' title="Download it into REDdeck's folder; the old one is removed">${esc(d.bridgeUpdate)} available</a>` : ""}` : `No REDbridge: <a data-msg='${msg({ action: "getBridge" })}'>Get REDbridge</a> for conflicts inside archives`}</span>
+  <span>${d.bridge ? `<span class="okdot"></span>${esc(d.bridge)}${d.bridgeUpdate ? ` · <a data-msg='${msg({ action: "getBridge" })}' title="Download it into EDGEdeck's folder; the old one is removed">${esc(d.bridgeUpdate)} available</a>` : ""}` : `No REDbridge: <a data-msg='${msg({ action: "getBridge" })}'>Get REDbridge</a> for conflicts inside archives`}</span>
 </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();

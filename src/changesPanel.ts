@@ -1,6 +1,6 @@
 // The changes panel: every file a deploy would add, replace, put back, relink or remove, with
 // the reason. For inspecting a deployment before pressing the button, or chasing a file problem.
-// Opened from a mod's status on the REDdeck page (filtered to that mod), from the change count
+// Opened from a mod's status on the EDGEdeck page (filtered to that mod), from the change count
 // next to Deploy, or from the Show pending changes command.
 
 import * as vscode from "vscode";
@@ -31,7 +31,7 @@ export class ChangesPanel {
 
   show(data: ChangesData): void {
     if (!this.panel) {
-      this.panel = vscode.window.createWebviewPanel("reddeck.changes", "Pending changes", { viewColumn: vscode.ViewColumn.Active, preserveFocus: false }, { enableScripts: true });
+      this.panel = vscode.window.createWebviewPanel("edgedeck.changes", "Pending changes", { viewColumn: vscode.ViewColumn.Active, preserveFocus: false }, { enableScripts: true });
       this.panel.onDidDispose(() => (this.panel = undefined));
       this.panel.webview.onDidReceiveMessage((m: ChangesMessage) => this.onMessage(m));
     }

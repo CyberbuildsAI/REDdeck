@@ -52,7 +52,7 @@ function find(s: Session, id: string): ModInfo {
 }
 
 function gameReady(s: Session): void {
-  if (!isGameFolder(s.game)) throw new Error(`${s.game} does not look like the Cyberpunk 2077 folder (no bin\\x64\\Cyberpunk2077.exe). Pass --game or set it in REDdeck.`);
+  if (!isGameFolder(s.game)) throw new Error(`${s.game} does not look like the Cyberpunk 2077 folder (no bin\\x64\\Cyberpunk2077.exe). Pass --game or set it in EDGEdeck.`);
 }
 
 export const verbs = {
@@ -109,7 +109,7 @@ export const verbs = {
     let temp: string | undefined;
     try {
       if (isFile) {
-        temp = fs.mkdtempSync(path.join(os.tmpdir(), "reddeck-verb-"));
+        temp = fs.mkdtempSync(path.join(os.tmpdir(), "edgedeck-verb-"));
         await unpackOrCopy(source, temp, s.sevenZa);
         folder = temp;
       }
@@ -159,7 +159,7 @@ export const verbs = {
     return { data: { removed: mod.id }, text: `removed ${mod.id} from the library; its deployed files leave on the next deploy` };
   },
 
-  /** Deploys. A file changed outside REDdeck is skipped unless named in keep (import it) or restore (overwrite it). */
+  /** Deploys. A file changed outside EDGEdeck is skipped unless named in keep (import it) or restore (overwrite it). */
   async deploy(s: Session, keep: string[] = [], restore: string[] = []): Promise<Verb> {
     gameReady(s);
     if (gameRunning()) throw new Error("Cyberpunk 2077 is running; it keeps mod files open. Quit the game, then deploy");

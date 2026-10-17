@@ -1,6 +1,6 @@
 // nxm:// links: what the "Mod manager download" button on Nexus opens. VS Code cannot register a
-// protocol for an extension, so REDdeck registers a small PowerShell forwarder under the current
-// user's classes that opens vscode://edgemodders.reddeck/nxm?url=<link>, which the extension's
+// protocol for an extension, so EDGEdeck registers a small PowerShell forwarder under the current
+// user's classes that opens vscode://edgemodders.edgedeck/nxm?url=<link>, which the extension's
 // URI handler receives. Registration is explicit, and so is giving the links back.
 
 import { execFile } from "node:child_process";
@@ -9,7 +9,7 @@ import { promisify } from "node:util";
 const run = promisify(execFile);
 
 export const UriScheme = "vscode";
-export const UriAuthority = "edgemodders.reddeck";
+export const UriAuthority = "edgemodders.edgedeck";
 
 export interface NxmLink {
   game: string;
@@ -51,7 +51,7 @@ export function forwarderCommand(): string {
 
 const Key = "HKCU\\Software\\Classes\\nxm";
 
-/** Registers REDdeck as the handler for nxm links for this user. Returns what handled them before, if known. */
+/** Registers EDGEdeck as the handler for nxm links for this user. Returns what handled them before, if known. */
 export async function registerNxmHandler(): Promise<string | undefined> {
   const before = await currentNxmHandler();
   await run("reg", ["add", Key, "/ve", "/d", "URL:Nexus Mods link", "/f"], { windowsHide: true });
@@ -60,7 +60,7 @@ export async function registerNxmHandler(): Promise<string | undefined> {
   return before;
 }
 
-/** Removes REDdeck's registration. Vortex re-registers itself when it starts, if the user wants it back. */
+/** Removes EDGEdeck's registration. Vortex re-registers itself when it starts, if the user wants it back. */
 export async function unregisterNxmHandler(): Promise<void> {
   if ((await currentNxmHandler())?.includes(UriAuthority)) {
     await run("reg", ["delete", Key, "/f"], { windowsHide: true });
@@ -80,7 +80,7 @@ export async function currentNxmHandler(): Promise<string | undefined> {
 
 export function describeHandler(command: string | undefined): string {
   if (!command) return "nobody";
-  if (command.includes(UriAuthority)) return "REDdeck";
+  if (command.includes(UriAuthority)) return "EDGEdeck";
   if (/vortex/i.test(command)) return "Vortex";
   if (/modorganizer|nxmhandler/i.test(command)) return "Mod Organizer";
   return command.slice(0, 60);

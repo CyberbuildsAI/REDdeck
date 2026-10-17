@@ -3,10 +3,10 @@
 # design.html is a standalone page and is served as-is.
 # Built and deployed by .github/workflows/pages.yml.
 
-title: REDdeck
+title: EDGEdeck
 url: https://edgemodders.github.io
-baseurl: /REDdeck
-repo: https://github.com/Edgemodders/REDdeck
+baseurl: /EDGEdeck
+repo: https://github.com/Edgemodders/EDGEdeck
 
 markdown: kramdown
 kramdown:

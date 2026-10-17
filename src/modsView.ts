@@ -9,7 +9,7 @@ import { modFolder, type Library, type ModInfo } from "./library";
 import { sectionsOf } from "./sections";
 import { formatBytes, modSize } from "./sizes";
 
-/** One thing REDdeck needs or can use that is not in place yet; the row is a button for it. */
+/** One thing EDGEdeck needs or can use that is not in place yet; the row is a button for it. */
 export interface SetupStep {
   id: "game" | "bridge" | "nexus" | "links" | "vortex";
   label: string;
@@ -76,7 +76,7 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
       const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.Expanded);
       item.description = `${node.steps.length} to do`;
       item.contextValue = "setupGroup";
-      item.tooltip = "Things REDdeck needs or can use. Click a row to do it; the x hides a row you do not want.";
+      item.tooltip = "Things EDGEdeck needs or can use. Click a row to do it; the x hides a row you do not want.";
       return item;
     }
     if (node.type === "setup") {
@@ -84,7 +84,7 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
       item.id = `setup/${node.step.id}`;
       item.description = node.step.detail;
       item.tooltip = node.step.detail;
-      item.iconPath = new vscode.ThemeIcon(SetupIcons[node.step.id], new vscode.ThemeColor("reddeck.accent"));
+      item.iconPath = new vscode.ThemeIcon(SetupIcons[node.step.id], new vscode.ThemeColor("edgedeck.accent"));
       item.contextValue = "setup";
       item.command = { command: node.step.command, title: node.step.label };
       return item;
@@ -156,10 +156,10 @@ export class ModsView implements vscode.TreeDataProvider<ModNode> {
       ].filter(Boolean).join("  \n"),
     );
     item.contextValue = "mod";
-    item.command = { command: "reddeck.details", title: "Details", arguments: [node] };
+    item.command = { command: "edgedeck.details", title: "Details", arguments: [node] };
     item.checkboxState = mod.enabled ? vscode.TreeItemCheckboxState.Checked : vscode.TreeItemCheckboxState.Unchecked;
     const icon = status.includes("conflict") ? "warning" : status.includes("changed") ? "edit" : "package";
-    const color = status.includes("conflict") || status.includes("changed") ? "editorWarning.foreground" : mod.enabled ? "reddeck.accent" : "disabledForeground";
+    const color = status.includes("conflict") || status.includes("changed") ? "editorWarning.foreground" : mod.enabled ? "edgedeck.accent" : "disabledForeground";
     item.iconPath = new vscode.ThemeIcon(icon, new vscode.ThemeColor(color));
     return item;
   }
