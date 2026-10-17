@@ -79,6 +79,11 @@
       },
       {
         "view": "edgedeck.mods",
+        "contents": "Nexus Mods' Mod manager download buttons go to another program now. EDGEdeck can take them over.\n[Handle download links](command:edgedeck.nexusHandleLinks)",
+        "when": "edgedeck.empty && edgedeck.setup.links"
+      },
+      {
+        "view": "edgedeck.mods",
         "contents": "REDbridge sees conflicts inside archives. It is a 70 MB download that EDGEdeck installs for you.\n[Get REDbridge](command:edgedeck.getBridge)",
         "when": "edgedeck.empty && edgedeck.setup.bridge"
       }
