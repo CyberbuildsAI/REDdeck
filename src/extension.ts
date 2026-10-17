@@ -27,7 +27,7 @@ import { ModsView, type ModNode, type SetupStep } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
 import { ApiKeysPage, hasWebSocket, signIn } from "./nexusSso";
 import { fetchUser, needsRefresh, OAuthTokens, refreshTokens, signInWithOAuth, tokenUser } from "./nexusOAuth";
-import { currentNxmHandler, describeHandler, forwarderCommand, parseNxm, registerNxmHandler, unregisterNxmHandler, UriAuthority } from "./nxm";
+import { currentNxmHandler, describeHandler, forwarderCommand, nxmReadError, parseNxm, registerNxmHandler, unregisterNxmHandler, UriAuthority } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { addToProject, classifyProject, findProjectFile, installProject, projectName, syncProjects } from "./project";
 import { importFromVortex, listVortexMods, vortexDisplayName, vortexStagingCandidates } from "./vortex";
@@ -59,6 +59,7 @@ export function activate(context: vscode.ExtensionContext): EDGEdeckApi {
   secrets = context.secrets;
   globalState = context.globalState;
   log = vscode.window.createOutputChannel("EDGEdeck");
+  log.appendLine(`EDGEdeck ${extensionVersion} starting`);
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 40);
   status.command = "edgedeck.deploy";
   status.show();
@@ -233,7 +234,14 @@ async function allSetupSteps(): Promise<(SetupStep & { done: boolean })[]> {
 
 /** Recomputes the steps to show; `full` re-reads the nxm handler from the registry. */
 async function refreshSetup(full = false): Promise<void> {
-  if (full) state.nxmHandler = await currentNxmHandler();
+  if (full) {
+    // Read first, then store: refresh() replaces `state` while the read waits, and
+    // `state.nxmHandler = await ...` would write into the object it replaced.
+    const handler = await currentNxmHandler();
+    state.nxmHandler = handler;
+    const current = handler === forwarderCommand() ? ", current" : handler?.includes(UriAuthority) ? ", from an older build" : "";
+    log.appendLine(`Nexus download links go to: ${describeHandler(handler)}${current}${nxmReadError ? ` (${nxmReadError.trim()})` : ""}`);
+  }
   // Our own registration from an older build: write the current forwarder over it.
   if (full && state.nxmHandler?.includes(UriAuthority) && state.nxmHandler !== forwarderCommand()) {
     try {

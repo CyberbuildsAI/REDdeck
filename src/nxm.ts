@@ -71,13 +71,19 @@ export async function unregisterNxmHandler(): Promise<void> {
   }
 }
 
+/** Why the last currentNxmHandler() found nothing, for the log. */
+export let nxmReadError = "";
+
 /** The command currently registered for nxm links, or undefined. */
 export async function currentNxmHandler(): Promise<string | undefined> {
+  nxmReadError = "";
   try {
     const { stdout } = await run("reg", ["query", `${Key}\\shell\\open\\command`, "/ve"], { windowsHide: true });
     const m = /REG_SZ\s+(.+)$/m.exec(stdout);
+    if (!m) nxmReadError = `no value in: ${JSON.stringify(stdout).slice(0, 200)}`;
     return m?.[1].trim();
-  } catch {
+  } catch (err) {
+    nxmReadError = (err as Error).message;
     return undefined;
   }
 }

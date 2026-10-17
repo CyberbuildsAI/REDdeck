@@ -1,13 +1,15 @@
 # Changelog
 
-## 0.27.1 (2026-10-17)
+## 0.27.2 (2026-10-17)
 
 - **REDdeck is now EDGEdeck**, part of the EDGE platform: a mod manager that will not stay tied to one engine. It is a new extension, `edgemodders.edgedeck`, so it installs next to REDdeck rather than updating it, and nothing carries over: before switching, turn every mod off and deploy in REDdeck, then uninstall it.
 - Every name follows: the commands and settings are `edgedeck.*`, the library folder is `%USERPROFILE%\EDGEdeck`, the game folder's manifest is `edgedeck.deployment.json`, the MCP tools are `edgedeck_*`, and the command line is `edgedeck`. On npm it is `@edgemodders/edgedeck-mcp`.
 - New icon and banner. The repository is now [Edgemodders/EDGEdeck](https://github.com/Edgemodders/EDGEdeck) and the docs are at https://edgemodders.github.io/EDGEdeck/.
 - **Nexus download links work.** The forwarder that the registry runs for an nxm link passed the link to PowerShell as code, where the `&` between its parameters is an error, so a "Mod manager download" button flashed a console window and did nothing. The link is now quoted, EDGEdeck rewrites an older registration of its own when it starts, and the log notes each link it receives.
 - An empty Mods view has a **Handle download links** button after sign-in; the step was only in the Set up group of a non-empty list.
-- 0.27.0 was a test build only, never published. Entries below this one are REDdeck's.
+- The log starts with the version, and says at each start where Nexus download links go.
+- **Who handles Nexus links was never known at start.** The registry was read, but the answer was stored in a state object that the first refresh had already replaced, so the Set up step and the handler update worked from nothing. Found because 0.27.1's handler update never ran on the owner's PC.
+- 0.27.0 and 0.27.1 were test builds only, never published. Entries below this one are REDdeck's.
 
 ## 0.26.6 (2026-10-16)
 
