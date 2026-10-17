@@ -2,7 +2,7 @@
   "name": "edgedeck",
   "displayName": "EDGEdeck",
   "description": "A simple mod manager for Cyberpunk 2077: one list, add, on/off, deploy, remove.",
-  "version": "0.27.0",
+  "version": "0.27.1",
   "publisher": "edgemodders",
   "preview": true,
   "pricing": "Free",
