@@ -3,7 +3,7 @@
 // undo, and import from a Vortex staging folder if one exists on this machine (read-only).
 //   node scripts/smoke.mjs            after npm run build
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -815,6 +815,14 @@ console.log("undo: ok");
   assert.equal(newest.file_id, 2);
   assert.equal(core.modPageUrl(7780), "https://www.nexusmods.com/cyberpunk2077/mods/7780");
   assert.match(core.forwarderCommand(), /vscode:\/\/edgemodders\.edgedeck\/nxm\?url=/);
+  // The forwarder as Windows runs it (the registry's command line, %1 replaced), printing instead of
+  // opening: a real link has & between its parameters, which PowerShell code cannot hold bare.
+  {
+    const link = "nxm://cyberpunk2077/mods/107/files/1234?key=a-b_c&expires=1760000000&user_id=42";
+    const line = core.forwarderCommand().replace("%1", link).replace("Start-Process", "Write-Output");
+    const out = spawnSync("powershell.exe", [line.slice("powershell.exe ".length)], { windowsVerbatimArguments: true, encoding: "utf8" });
+    assert.equal(out.stdout.trim(), `vscode://edgemodders.edgedeck/nxm?url=${encodeURIComponent(link)}`, out.stderr);
+  }
   assert.equal(core.describeHandler(core.forwarderCommand()), "EDGEdeck");
   assert.equal(core.describeHandler('"C:\\Vortex\\Vortex.exe" -d "%1"'), "Vortex");
   const handler = await core.currentNxmHandler();

@@ -27,7 +27,7 @@ import { ModsView, type ModNode, type SetupStep } from "./modsView";
 import { download, md5Of, modPageUrl, newestFile, NexusClient, versionNewer } from "./nexus";
 import { ApiKeysPage, hasWebSocket, signIn } from "./nexusSso";
 import { fetchUser, needsRefresh, OAuthTokens, refreshTokens, signInWithOAuth, tokenUser } from "./nexusOAuth";
-import { currentNxmHandler, describeHandler, parseNxm, registerNxmHandler, unregisterNxmHandler } from "./nxm";
+import { currentNxmHandler, describeHandler, forwarderCommand, parseNxm, registerNxmHandler, unregisterNxmHandler, UriAuthority } from "./nxm";
 import { deployRedmod, enabledRedmodPackages } from "./redmod";
 import { addToProject, classifyProject, findProjectFile, installProject, projectName, syncProjects } from "./project";
 import { importFromVortex, listVortexMods, vortexDisplayName, vortexStagingCandidates } from "./vortex";
@@ -234,6 +234,16 @@ async function allSetupSteps(): Promise<(SetupStep & { done: boolean })[]> {
 /** Recomputes the steps to show; `full` re-reads the nxm handler from the registry. */
 async function refreshSetup(full = false): Promise<void> {
   if (full) state.nxmHandler = await currentNxmHandler();
+  // Our own registration from an older build: write the current forwarder over it.
+  if (full && state.nxmHandler?.includes(UriAuthority) && state.nxmHandler !== forwarderCommand()) {
+    try {
+      await registerNxmHandler();
+      state.nxmHandler = forwarderCommand();
+      log.appendLine("Nexus download links: updated EDGEdeck's handler to the current forwarder");
+    } catch (err) {
+      log.appendLine(`Nexus download links: could not update the handler: ${(err as Error).message}`);
+    }
+  }
   const hidden = new Set(globalState.get<string[]>(SetupHiddenKey, []));
   const all = await allSetupSteps();
   state.setup = all.filter((s) => !s.done && !hidden.has(s.id));
@@ -2165,6 +2175,7 @@ async function handleUri(uri: vscode.Uri): Promise<void> {
   if (uri.path !== "/nxm") return;
   const url = new URLSearchParams(uri.query).get("url");
   if (!url) throw new Error("The link EDGEdeck received had no nxm URL in it.");
+  log.appendLine(`Nexus link received: ${url.replace(/key=[^&]*/, "key=...")}`);
   await addFromLink(url);
 }
 

@@ -43,10 +43,14 @@ export function parseNxm(link: string): NxmLink {
   };
 }
 
-/** The command the registry runs for an nxm link: forward it to VS Code, percent-encoded. */
+/**
+ * The command the registry runs for an nxm link: forward it to VS Code, percent-encoded. The link
+ * goes in single quotes inside the PowerShell code: -Command joins its arguments into code, and
+ * the & between a link's query parameters is a parse error there. Nexus links have no quotes.
+ */
 export function forwarderCommand(): string {
-  const ps = `Start-Process ('${UriScheme}://${UriAuthority}/nxm?url=' + [uri]::EscapeDataString($args[0]))`;
-  return `powershell.exe -NoProfile -WindowStyle Hidden -Command "& { ${ps} }" "%1"`;
+  const ps = `Start-Process ('${UriScheme}://${UriAuthority}/nxm?url=' + [uri]::EscapeDataString('%1'))`;
+  return `powershell.exe -NoProfile -WindowStyle Hidden -Command "${ps}"`;
 }
 
 const Key = "HKCU\\Software\\Classes\\nxm";

@@ -55,7 +55,7 @@ npm run smoke
 | Off and Undo | Files and created folders leave; Undo puts a backed-up foreign file back and keeps the user's own files |
 | Game | Archive conflict maths; REDmod's enabled list; finding the game through Steam libraries, GOG and Epic; the game version from a real install if present |
 | REDbridge | A build next to the checkout is new enough and `archive.openMod` lists a sample (skipped if absent); the latest GitHub release has a `win-x64.zip` (skipped offline); `dotnet10Root` |
-| Nexus | Single sign-on against a fake socket; OAuth with PKCE against a fake HTTP Nexus (state, code exchange, refusal, cancel, refresh, the user from the token, a 401 renewed once); nxm parsing, versions, newest file, the link handler |
+| Nexus | Single sign-on against a fake socket; OAuth with PKCE against a fake HTTP Nexus (state, code exchange, refusal, cancel, refresh, the user from the token, a 401 renewed once); nxm parsing, versions, newest file, the link handler; the registered forwarder run as Windows runs it, with a link that has `&` between its parameters |
 | Add to Project | Loose files under `source/resources`, archives reported, a repeat counted as same, a changed file kept unless Replace |
 | Frameworks | Game version against the manifest, the summary line |
 | Vortex | Staging folders (user's choice first, the manifest's stagingPath, other drives), display names (CET by Nexus id 107); the live Vortex library if installed, imported read-only into the temp library |
@@ -124,6 +124,8 @@ Run 2026-10-16 on 0.26.5: **pass**. The server answered with 14 `edgedeck_*` too
 | 10-16 | 0.26.1 | PC | Import from Vortex, search "Cyber Engine Tweaks" | Not found: named after its download. **0.26.2**: known names by Nexus id, a wider search. Not yet reported back (below) |
 | 10-16 | 0.26.2 | PC | Turn a mod off, add an `.archive`, deploy | `EPERM` on the archive: the game was running. **0.26.3** waits for the game to close, the CLI refuses, a locked file gets a plain message |
 | 10-16 | 0.26.3 or later | PC | Deploying EDGEbuilder 0.3.2 and 0.3.3 for its tests | Deployed; EDGEbuilder's retest passed. Nothing EDGEdeck-specific reported |
+| 10-17 | 0.27.0 test build | PC | The switch to EDGEdeck: every mod off and deployed in REDdeck, REDdeck uninstalled, EDGEdeck installed from the .vsix and set up from nothing, mods added again and deployed | Worked. The empty Mods view had no Handle download links button (the step showed only in the Set up group of a non-empty list): **0.27.0** adds it to the welcome view |
+| 10-17 | 0.27.0 test build | PC | A "Mod manager download" button on Nexus, after Handle download links | A console window flashed, then nothing. The registered PowerShell forwarder took the link as code, and the `&` between its parameters is a parse error there; this was so since nxm links came in (0.7). **0.27.0** quotes the link, rewrites an older EDGEdeck registration by itself, and logs each link it receives; the smoke test now runs the forwarder |
 
 ## Waiting for a hand test
 
@@ -135,6 +137,6 @@ Run 2026-10-16 on 0.26.5: **pass**. The server answered with 14 `edgedeck_*` too
 | 4 | **`modlist.txt` and single files** | 0.26.1 | After updating, one change waits; Deploy. `modlist.txt` lists both archives, and View shows it replaced. Add mod, a bare `.archive`, deploy: it is in `modlist.txt` |
 | 5 | **The running game** | 0.26.3 | Deploy with the game open: EDGEdeck waits for "The game is closed now". `edgedeck deploy` refuses |
 | 6 | CET's known name | 0.26.2 | In Import from Vortex, search "Cyber Engine Tweaks", "CET" or "107": found |
-| 7 | Nexus nxm links | 0.7 | A real "Mod manager download" link and the handler registration. OAuth sign-in waits for Nexus's client id; only the fake-server smoke test covers it |
+| 7 | **Nexus nxm links** | 0.27.0 (failed on the 10-17 test build) | Start EDGEdeck once (it rewrites its old registration; the log says so), then a real "Mod manager download" link: the log says `Nexus link received`, and the file downloads into the library. OAuth sign-in waits for Nexus's client id; only the fake-server smoke test covers it |
 | 8 | REDmod deploy | M1 | Never seen working: no REDmod package in the test sets |
 | 9 | Not hand-tested | | Light-theme accents and the HUD theme suggestion; the MCP server used from an assistant; Undo on the real game (unverified) |
