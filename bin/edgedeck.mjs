@@ -1,24 +1,24 @@
 #!/usr/bin/env node
-// The REDdeck command line: the same library and deployer as the extension, for scripts, CI and
+// The EDGEdeck command line: the same library and deployer as the extension, for scripts, CI and
 // assistants. State is the library's JSON files, so every command prints JSON with --json.
 //
-//   reddeck list [--size]              what is in the library, its size and status (--size: largest first)
-//   reddeck mod <id>                   one mod in full: files, sizes, source, Nexus data, conflicts
-//   reddeck add <file|folder> [--name N] [--option FOLDER]
-//   reddeck install-project <.cpmodproj>  add a REDcode or WolvenKit project's packed output, or refresh it, and turn it on
-//   reddeck on <id> | off <id>         turn a mod on or off
-//   reddeck up <id> | down <id>        change the order (first wins conflicts)
-//   reddeck remove <id>
-//   reddeck deploy [--keep PATH...] [--restore PATH...]
-//   reddeck undo
-//   reddeck changes                    files changed in the game folder since the deploy
-//   reddeck pending                    what the next deploy adds, replaces, puts back or removes, and why
-//   reddeck conflicts                  conflicts by file path (archive conflicts need the extension)
-//   reddeck loadout save <name> | load <name or file> | list
-//   reddeck vortex list | import
-//   reddeck mcp                        serve the same verbs as MCP tools over stdio
+//   edgedeck list [--size]              what is in the library, its size and status (--size: largest first)
+//   edgedeck mod <id>                   one mod in full: files, sizes, source, Nexus data, conflicts
+//   edgedeck add <file|folder> [--name N] [--option FOLDER]
+//   edgedeck install-project <.cpmodproj>  add a REDcode or WolvenKit project's packed output, or refresh it, and turn it on
+//   edgedeck on <id> | off <id>         turn a mod on or off
+//   edgedeck up <id> | down <id>        change the order (first wins conflicts)
+//   edgedeck remove <id>
+//   edgedeck deploy [--keep PATH...] [--restore PATH...]
+//   edgedeck undo
+//   edgedeck changes                    files changed in the game folder since the deploy
+//   edgedeck pending                    what the next deploy adds, replaces, puts back or removes, and why
+//   edgedeck conflicts                  conflicts by file path (archive conflicts need the extension)
+//   edgedeck loadout save <name> | load <name or file> | list
+//   edgedeck vortex list | import
+//   edgedeck mcp                        serve the same verbs as MCP tools over stdio
 //
-// Options: --library <folder> (default %USERPROFILE%\REDdeck), --game <folder> (default: the
+// Options: --library <folder> (default %USERPROFILE%\EDGEdeck), --game <folder> (default: the
 // library's remembered game, else the Steam folder), --json.
 
 import { createRequire } from "node:module";

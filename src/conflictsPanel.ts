@@ -45,7 +45,7 @@ export class ConflictsPanel {
 
   show(data: ConflictsData): void {
     if (!this.panel) {
-      this.panel = vscode.window.createWebviewPanel("reddeck.conflicts", "Conflicts", { viewColumn: vscode.ViewColumn.Active, preserveFocus: false }, { enableScripts: true });
+      this.panel = vscode.window.createWebviewPanel("edgedeck.conflicts", "Conflicts", { viewColumn: vscode.ViewColumn.Active, preserveFocus: false }, { enableScripts: true });
       this.panel.onDidDispose(() => (this.panel = undefined));
       this.panel.webview.onDidReceiveMessage((m: ConflictsMessage) => this.onMessage(m));
     }
@@ -140,7 +140,7 @@ function render(d: ConflictsData, csp: string): string {
   const archiveNote = d.scanning
     ? `<p class="dim">Checking the archives...</p>`
     : !d.bridge
-      ? `<p class="dim">Conflicts inside .archive files need REDbridge. <button class="get" data-msg='${esc(JSON.stringify({ action: "getBridge", id: "" }))}'>Get REDbridge</button> fetches it into REDdeck's own folder; nothing to configure.</p>`
+      ? `<p class="dim">Conflicts inside .archive files need REDbridge. <button class="get" data-msg='${esc(JSON.stringify({ action: "getBridge", id: "" }))}'>Get REDbridge</button> fetches it into EDGEdeck's own folder; nothing to configure.</p>`
       : !d.archive
         ? `<p class="dim">Not checked yet.</p>`
         : archiveRows

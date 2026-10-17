@@ -140,7 +140,7 @@ export function listVortexMods(gamePath: string, staging?: string): VortexMod[] 
 /**
  * Names people know some mods by, keyed by Nexus mod id, for mods whose download file is named
  * otherwise (Cyber Engine Tweaks ships as "CET 1.37.1 - Scripting fixes"). Vortex keeps its display
- * names in its own database, which REDdeck does not read; the staging folder name carries the id.
+ * names in its own database, which EDGEdeck does not read; the staging folder name carries the id.
  */
 export const KnownModNames: Record<number, string> = {
   107: "Cyber Engine Tweaks",
@@ -179,7 +179,7 @@ export function importFromVortex(lib: Library, mods: VortexMod[]): ImportResult 
       continue;
     }
     if (!c.placements.length) {
-      result.skipped.push({ name: v.name, reason: "no files REDdeck knows where to put" });
+      result.skipped.push({ name: v.name, reason: "no files EDGEdeck knows where to put" });
       continue;
     }
     const mod = addMod(lib, c.placements, {

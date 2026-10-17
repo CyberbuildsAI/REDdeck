@@ -50,7 +50,7 @@ export async function extractArchive(file: string, dest: string, sevenZa: string
   if (ext === ".rar") {
     const tool = findRarTool();
     if (!tool) {
-      throw new Error("This is a .rar file. REDdeck can open it when 7-Zip (https://7-zip.org) or WinRAR is installed; or re-pack it as .zip.");
+      throw new Error("This is a .rar file. EDGEdeck can open it when 7-Zip (https://7-zip.org) or WinRAR is installed; or re-pack it as .zip.");
     }
     await run(tool.exe, tool.args(file, dest), { windowsHide: true, maxBuffer: 1 << 24 });
     return;

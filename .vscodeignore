@@ -15,3 +15,5 @@ dist/uiTest.js
 dist/core.js
 .vscode-test/**
 dist/npm/**
+nexus/**
+dist/*.zip

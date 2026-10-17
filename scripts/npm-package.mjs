@@ -1,7 +1,7 @@
-// Assembles the npm package @edgemodders/reddeck-mcp in dist/npm from the built extension files:
+// Assembles the npm package @edgemodders/edgedeck-mcp in dist/npm from the built extension files:
 // the MCP server and the command line, with the bundled 7za.exe. Run after npm run build.
 //   node scripts/npm-package.mjs          then: npm publish ./dist/npm (the ./ matters)
-// The version is REDdeck's, so the extension and the tools never drift apart.
+// The version is EDGEdeck's, so the extension and the tools never drift apart.
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,8 +13,8 @@ const ext = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"))
 const files = [
   ["dist/mcp.js", "dist/mcp.js"],
   ["dist/core.js", "dist/core.js"],
-  ["bin/reddeck.mjs", "bin/reddeck.mjs"],
-  ["bin/reddeck-mcp.mjs", "bin/reddeck-mcp.mjs"],
+  ["bin/edgedeck.mjs", "bin/edgedeck.mjs"],
+  ["bin/edgedeck-mcp.mjs", "bin/edgedeck-mcp.mjs"],
   ["bin/7za.exe", "bin/7za.exe"],
   ["ThirdPartyNotices.txt", "ThirdPartyNotices.txt"],
   ["LICENSE", "LICENSE"],
@@ -29,16 +29,16 @@ for (const [from, to] of files) {
 }
 
 const pkg = {
-  name: "@edgemodders/reddeck-mcp",
+  name: "@edgemodders/edgedeck-mcp",
   version: ext.version,
-  description: "REDdeck's MCP server and command line: manage Cyberpunk 2077 mods (add, turn on or off, order, deploy, undo, conflicts, loadouts) from an AI assistant or a script.",
+  description: "EDGEdeck's MCP server and command line: manage Cyberpunk 2077 mods (add, turn on or off, order, deploy, undo, conflicts, loadouts) from an AI assistant or a script.",
   license: ext.license,
   author: "Edgemodders",
-  homepage: "https://edgemodders.github.io/REDdeck/",
-  repository: { type: "git", url: "git+https://github.com/Edgemodders/REDdeck.git" },
-  bugs: { url: "https://github.com/Edgemodders/REDdeck/issues" },
+  homepage: "https://edgemodders.github.io/EDGEdeck/",
+  repository: { type: "git", url: "git+https://github.com/Edgemodders/EDGEdeck.git" },
+  bugs: { url: "https://github.com/Edgemodders/EDGEdeck/issues" },
   keywords: ["cyberpunk", "cyberpunk2077", "modding", "mod manager", "mcp", "model context protocol", "claude"],
-  bin: { "reddeck-mcp": "bin/reddeck-mcp.mjs", reddeck: "bin/reddeck.mjs" },
+  bin: { "edgedeck-mcp": "bin/edgedeck-mcp.mjs", edgedeck: "bin/edgedeck.mjs" },
   files: files.map(([, to]) => to),
   os: ["win32"],
   engines: { node: ">=20" },

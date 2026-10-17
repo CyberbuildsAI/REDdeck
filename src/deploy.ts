@@ -7,15 +7,15 @@ import * as path from "node:path";
 import { isGameFolder } from "./game";
 import { backupFolder, sourcePath, type Library, type ModInfo } from "./library";
 
-export const ManifestName = "reddeck.deployment.json";
+export const ManifestName = "edgedeck.deployment.json";
 export const VortexManifestName = "vortex.deployment.json";
 export const ModListPath = "archive/pc/mod/modlist.txt";
-const Generated = "reddeck";
+const Generated = "edgedeck";
 
 export interface ManifestEntry {
   /** Path under the game folder, forward slashes. */
   path: string;
-  /** Mod id, or "reddeck" for files REDdeck generates (modlist.txt). */
+  /** Mod id, or "edgedeck" for files EDGEdeck generates (modlist.txt). */
   mod: string;
   /** File identity of the deployed file: inode as a string for links, size and mtime for copies. */
   ino?: string;
@@ -34,7 +34,7 @@ export interface Manifest {
   /** The game's version at this deploy, when it was known. */
   gameVersion?: string;
   files: ManifestEntry[];
-  /** Folders REDdeck created, deepest first, removed on undo when empty. */
+  /** Folders EDGEdeck created, deepest first, removed on undo when empty. */
   dirs: string[];
 }
 
@@ -108,7 +108,7 @@ export function vortexManages(gamePath: string): boolean {
 export function canHardlink(libraryRoot: string, gamePath: string): boolean {
   try {
     if (fs.statSync(libraryRoot).dev !== fs.statSync(gamePath).dev) return false;
-    const canary = path.join(gamePath, "__reddeck_canary.tmp");
+    const canary = path.join(gamePath, "__edgedeck_canary.tmp");
     const link = canary + ".link";
     fs.writeFileSync(canary, "x");
     try {
@@ -132,7 +132,7 @@ function sourceReplaced(entry: ManifestEntry, method: Manifest["method"], d: Des
   return src.size !== entry.size || Math.abs(src.mtimeMs - entry.mtimeMs) >= 2000;
 }
 
-/** Whether a deployed file is still the one REDdeck put there. */
+/** Whether a deployed file is still the one EDGEdeck put there. */
 function stillOurs(entry: ManifestEntry, method: Manifest["method"], gamePath: string): ChangeKind | "ok" {
   const id = identity(gameFile(gamePath, entry.path));
   if (!id) return "missing";
@@ -144,7 +144,7 @@ function stillOurs(entry: ManifestEntry, method: Manifest["method"], gamePath: s
   return id.size === entry.size && Math.abs(id.mtimeMs - entry.mtimeMs) < 2000 ? "ok" : "changed";
 }
 
-/** Whether a file REDdeck generates says something other than it should (or is missing). */
+/** Whether a file EDGEdeck generates says something other than it should (or is missing). */
 function generatedDiffers(file: string, content: string): boolean {
   try {
     return fs.readFileSync(file, "utf8") !== content;
@@ -186,7 +186,7 @@ export function plan(lib: Library, gamePath: string): Plan {
   const add = [...desired.values()].filter((d) => {
     const e = current.get(key(d.rel));
     if (!e || (d.mod?.id ?? Generated) !== e.mod) return true;
-    // A file REDdeck writes itself (modlist.txt) is due when what it should say has changed.
+    // A file EDGEdeck writes itself (modlist.txt) is due when what it should say has changed.
     if (d.content !== undefined && generatedDiffers(gameFile(gamePath, d.rel), d.content)) return true;
     if (stillOurs(e, method, gamePath) !== "ok") return true;
     return sourceReplaced(e, method, d);
@@ -194,7 +194,7 @@ export function plan(lib: Library, gamePath: string): Plan {
   return { method, desired: [...desired.values()], conflicts: [...conflicts.values()], stale, add, vortex: vortexManages(gamePath) };
 }
 
-/** Files in the manifest that no longer match what REDdeck deployed. */
+/** Files in the manifest that no longer match what EDGEdeck deployed. */
 export function detectChanges(gamePath: string): Change[] {
   const manifest = readManifest(gamePath);
   if (!manifest) return [];
@@ -222,14 +222,14 @@ export interface DeployResult {
 export interface DeployChange {
   /** Path under the game folder, forward slashes. */
   path: string;
-  /** Mod id, or "reddeck" for files REDdeck generates. */
+  /** Mod id, or "edgedeck" for files EDGEdeck generates. */
   mod: string;
   kind: "added" | "replaced" | "removed";
   /** added: a file of the game's was moved to the backup folder first. removed: that backup went back. */
   backup?: boolean;
 }
 
-/** Mods (not REDdeck's own files) a deploy put in or replaced files for. */
+/** Mods (not EDGEdeck's own files) a deploy put in or replaced files for. */
 export function modsTouched(result: DeployResult): string[] {
   return [...new Set(result.changes.filter((c) => c.kind !== "removed" && c.mod !== Generated).map((c) => c.mod))];
 }
@@ -251,7 +251,7 @@ const KeptReports = 30;
  * Written to <library>/deploys/<time>.md; returns its path.
  */
 export function writeDeployReport(lib: Library, gamePath: string, result: DeployResult, when = new Date()): string {
-  const name = (id: string) => (id === Generated ? "REDdeck (load order files)" : (() => {
+  const name = (id: string) => (id === Generated ? "EDGEdeck (load order files)" : (() => {
     const m = lib.mods.find((x) => x.id === id);
     return m ? `${m.name}${m.version ? ` ${m.version}` : ""}` : `${id} (no longer in the library)`;
   })());
@@ -268,7 +268,7 @@ export function writeDeployReport(lib: Library, gamePath: string, result: Deploy
   const byMod = new Map<string, DeployChange[]>();
   for (const c of result.changes) byMod.set(c.mod, [...(byMod.get(c.mod) ?? []), c]);
   const label: Record<DeployChange["kind"], string> = { added: "added", replaced: "replaced", removed: "removed" };
-  // Mods by name, REDdeck's own files last.
+  // Mods by name, EDGEdeck's own files last.
   for (const [id, cs] of [...byMod].sort(([a], [b]) => Number(a === Generated) - Number(b === Generated) || name(a).localeCompare(name(b)))) {
     lines.push("", `## ${name(id)}`, "");
     for (const c of [...cs].sort((a, b) => a.kind.localeCompare(b.kind) || a.path.localeCompare(b.path))) {
@@ -327,7 +327,7 @@ function ensureDir(gamePath: string, dir: string, manifest: Manifest): void {
   }
 }
 
-/** Removes the folders REDdeck created that are empty now, deepest first, and forgets them. */
+/** Removes the folders EDGEdeck created that are empty now, deepest first, and forgets them. */
 function cleanDirs(gamePath: string, manifest: Manifest): void {
   for (const dir of [...manifest.dirs].sort((a, b) => b.length - a.length)) {
     const abs = path.join(gamePath, ...dir.split("/"));
@@ -345,7 +345,7 @@ function cleanDirs(gamePath: string, manifest: Manifest): void {
  * keep (the changed file is copied into the library and becomes the mod's file) or restore.
  */
 export function deploy(lib: Library, gamePath: string, decisions: Map<string, Decision> = new Map(), progress?: (done: number, total: number) => void, gameVersion?: string): DeployResult {
-  if (vortexManages(gamePath)) throw new Error("Vortex manages this game folder. Purge in Vortex first (Mods > Purge), then deploy with REDdeck.");
+  if (vortexManages(gamePath)) throw new Error("Vortex manages this game folder. Purge in Vortex first (Mods > Purge), then deploy with EDGEdeck.");
   if (!isGameFolder(gamePath)) throw new Error(`${gamePath} does not look like the Cyberpunk 2077 folder (no bin\\x64\\Cyberpunk2077.exe).`);
   const p = plan(lib, gamePath);
   const manifest: Manifest = readManifest(gamePath) ?? { version: 1, library: lib.root, gamePath, method: p.method, time: "", files: [], dirs: [] };
@@ -427,7 +427,7 @@ export function deploy(lib: Library, gamePath: string, decisions: Map<string, De
   return result;
 }
 
-/** Removes everything in the manifest, restores backups, deletes the folders REDdeck created. */
+/** Removes everything in the manifest, restores backups, deletes the folders EDGEdeck created. */
 export function undo(lib: Library, gamePath: string, force = false): { removed: number; skipped: string[] } {
   const manifest = readManifest(gamePath);
   if (!manifest) return { removed: 0, skipped: [] };
@@ -451,7 +451,7 @@ export function undo(lib: Library, gamePath: string, force = false): { removed: 
 /** Per-mod status text for the list, in plain words. */
 export interface PendingChange {
   path: string;
-  /** Mod id, or "reddeck" for generated files. */
+  /** Mod id, or "edgedeck" for generated files. */
   mod: string;
   kind: "add" | "replace" | "restore" | "relink" | "remove";
   /** Plain words. */
@@ -469,7 +469,7 @@ export function pendingChanges(lib: Library, gamePath: string, p: Plan): Pending
   for (const d of p.add) {
     const id = d.mod?.id ?? Generated;
     const e = current.get(key(d.rel));
-    if (!e) out.push({ path: d.rel, mod: id, kind: "add", detail: d.content !== undefined ? "generated by REDdeck" : "new in the game folder" });
+    if (!e) out.push({ path: d.rel, mod: id, kind: "add", detail: d.content !== undefined ? "generated by EDGEdeck" : "new in the game folder" });
     else if (e.mod !== id) out.push({ path: d.rel, mod: id, kind: "replace", detail: "takes over the path from", prevMod: e.mod });
     else {
       const st = stillOurs(e, p.method, gamePath);

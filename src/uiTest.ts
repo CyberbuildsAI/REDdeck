@@ -1,4 +1,4 @@
-// Runs inside a real VS Code extension host (see scripts/ui-test.mjs): activates REDdeck against a
+// Runs inside a real VS Code extension host (see scripts/ui-test.mjs): activates EDGEdeck against a
 // scratch library and a fake game folder, checks the contributions registered, and drives the
 // commands that need no dialog. Throws on the first failure; the runner reports it.
 
@@ -8,26 +8,26 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 
 export async function run(): Promise<void> {
-  const lib = process.env.REDDECK_TEST_LIB!;
-  const game = process.env.REDDECK_TEST_GAME!;
-  assert.ok(lib && game, "REDDECK_TEST_LIB and REDDECK_TEST_GAME must be set");
+  const lib = process.env.EDGEDECK_TEST_LIB!;
+  const game = process.env.EDGEDECK_TEST_GAME!;
+  assert.ok(lib && game, "EDGEDECK_TEST_LIB and EDGEDECK_TEST_GAME must be set");
 
-  const cfg = vscode.workspace.getConfiguration("reddeck");
+  const cfg = vscode.workspace.getConfiguration("edgedeck");
   await cfg.update("libraryPath", lib, vscode.ConfigurationTarget.Global);
   await cfg.update("gamePath", game, vscode.ConfigurationTarget.Global);
 
-  const ext = vscode.extensions.getExtension("edgemodders.reddeck");
-  assert.ok(ext, "extension edgemodders.reddeck not found");
+  const ext = vscode.extensions.getExtension("edgemodders.edgedeck");
+  assert.ok(ext, "extension edgemodders.edgedeck not found");
   await ext.activate();
   assert.ok(ext.isActive, "extension did not activate");
 
   const commands = await vscode.commands.getCommands(true);
-  for (const c of ["reddeck.addMod", "reddeck.importVortex", "reddeck.addProject", "reddeck.saveLoadout", "reddeck.loadLoadout", "reddeck.exportLoadout", "reddeck.importLoadout", "reddeck.nexusSignIn", "reddeck.nexusSignOut", "reddeck.nexusSetKey", "reddeck.deploy", "reddeck.undo", "reddeck.remove", "reddeck.details", "reddeck.checkConflicts", "reddeck.openPage", "reddeck.suggestTheme", "reddeck.showChanges", "reddeck.getBridge", "reddeck.pickGame", "reddeck.setup", "reddeck.hideSetupStep", "reddeck.mcpSetup", "reddeck.updateBridge", "reddeck.addToProject", "reddeck.switchVersion", "reddeck.moveUp", "reddeck.moveDown", "reddeck.openInExplorer", "reddeck.openLibrary", "reddeck.refresh", "reddeck.showLog"]) {
+  for (const c of ["edgedeck.addMod", "edgedeck.importVortex", "edgedeck.addProject", "edgedeck.saveLoadout", "edgedeck.loadLoadout", "edgedeck.exportLoadout", "edgedeck.importLoadout", "edgedeck.nexusSignIn", "edgedeck.nexusSignOut", "edgedeck.nexusSetKey", "edgedeck.deploy", "edgedeck.undo", "edgedeck.remove", "edgedeck.details", "edgedeck.checkConflicts", "edgedeck.openPage", "edgedeck.suggestTheme", "edgedeck.showChanges", "edgedeck.getBridge", "edgedeck.pickGame", "edgedeck.setup", "edgedeck.hideSetupStep", "edgedeck.mcpSetup", "edgedeck.updateBridge", "edgedeck.addToProject", "edgedeck.switchVersion", "edgedeck.moveUp", "edgedeck.moveDown", "edgedeck.openInExplorer", "edgedeck.openLibrary", "edgedeck.refresh", "edgedeck.showLog"]) {
     assert.ok(commands.includes(c), `command ${c} not registered`);
   }
 
   // The library is created on activation.
-  await vscode.commands.executeCommand("reddeck.refresh");
+  await vscode.commands.executeCommand("edgedeck.refresh");
   assert.ok(fs.existsSync(path.join(lib, "library")), "library folder not created");
 
   // A mod placed in the library by hand shows up after a refresh and deploys without a dialog.
@@ -38,31 +38,31 @@ export async function run(): Promise<void> {
     path.join(modDir, "mod.json"),
     JSON.stringify({ id: "ui-test-mod", name: "UI Test Mod", version: "1.0", kinds: ["archive"], enabled: true, added: new Date().toISOString(), source: { type: "folder" }, files: ["archive/pc/mod/UiTest.archive"] }),
   );
-  await vscode.commands.executeCommand("reddeck.refresh");
-  await vscode.commands.executeCommand("reddeck.deploy");
+  await vscode.commands.executeCommand("edgedeck.refresh");
+  await vscode.commands.executeCommand("edgedeck.deploy");
   await new Promise((r) => setTimeout(r, 1500));
   assert.ok(fs.existsSync(path.join(game, "archive", "pc", "mod", "UiTest.archive")), "deploy did not link the archive");
-  assert.ok(fs.existsSync(path.join(game, "reddeck.deployment.json")), "no manifest after deploy");
+  assert.ok(fs.existsSync(path.join(game, "edgedeck.deployment.json")), "no manifest after deploy");
   assert.equal(fs.readFileSync(path.join(game, "archive", "pc", "mod", "modlist.txt"), "utf8").trim(), "UiTest.archive");
 
   // Show conflicts opens the conflicts panel; the archive scan runs through a bridge or reports that it needs one.
-  await vscode.commands.executeCommand("reddeck.checkConflicts");
+  await vscode.commands.executeCommand("edgedeck.checkConflicts");
   await new Promise((r) => setTimeout(r, 1500));
   const tabs = vscode.window.tabGroups.all.flatMap((g) => g.tabs.map((t) => t.label));
   assert.ok(tabs.includes("Conflicts"), `no Conflicts tab among ${tabs.join(", ")}`);
 
   // The pending changes panel opens as a tab.
-  await vscode.commands.executeCommand("reddeck.showChanges");
+  await vscode.commands.executeCommand("edgedeck.showChanges");
   await new Promise((r) => setTimeout(r, 500));
   assert.ok(vscode.window.tabGroups.all.flatMap((g) => g.tabs.map((t) => t.label)).includes("Pending changes"), "no Pending changes tab");
 
-  // The mods page opens as a REDdeck tab.
-  await vscode.commands.executeCommand("reddeck.openPage");
+  // The mods page opens as a EDGEdeck tab.
+  await vscode.commands.executeCommand("edgedeck.openPage");
   await new Promise((r) => setTimeout(r, 500));
-  assert.ok(vscode.window.tabGroups.all.flatMap((g) => g.tabs.map((t) => t.label)).includes("REDdeck"), "no REDdeck tab");
+  assert.ok(vscode.window.tabGroups.all.flatMap((g) => g.tabs.map((t) => t.label)).includes("EDGEdeck"), "no EDGEdeck tab");
 
   // Details for the mod opens a webview panel without throwing.
-  await vscode.commands.executeCommand("reddeck.details", { type: "mod", mod: JSON.parse(fs.readFileSync(path.join(modDir, "mod.json"), "utf8")) });
+  await vscode.commands.executeCommand("edgedeck.details", { type: "mod", mod: JSON.parse(fs.readFileSync(path.join(modDir, "mod.json"), "utf8")) });
   await new Promise((r) => setTimeout(r, 500));
 
   await cfg.update("libraryPath", undefined, vscode.ConfigurationTarget.Global);

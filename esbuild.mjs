@@ -42,7 +42,7 @@ function writeNotices(metafiles) {
     }
   }
   const parts = [
-    "REDdeck includes third-party software. Their notices follow.",
+    "EDGEdeck includes third-party software. Their notices follow.",
     [
       "7-Zip 21.07 (bin/7za.exe, from the 7zip-bin npm package)",
       "Copyright (C) 1999-2021 Igor Pavlov.",

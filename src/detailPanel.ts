@@ -37,7 +37,7 @@ export class DetailPanel {
 
   show(data: DetailData): void {
     if (!this.panel) {
-      this.panel = vscode.window.createWebviewPanel("reddeck.detail", data.mod.name, { viewColumn: vscode.ViewColumn.Active, preserveFocus: true }, { enableScripts: true });
+      this.panel = vscode.window.createWebviewPanel("edgedeck.detail", data.mod.name, { viewColumn: vscode.ViewColumn.Active, preserveFocus: true }, { enableScripts: true });
       this.panel.onDidDispose(() => {
         this.panel = undefined;
         this.current = undefined;
@@ -93,12 +93,12 @@ function render(d: DetailData, csp: string): string {
     .join("");
   const source = mod.source.type === "nexus" ? `Nexus mod ${mod.source.modId}` : mod.source.type === "vortex" ? `imported from Vortex${mod.source.modId ? ` (Nexus mod ${mod.source.modId})` : ""}` : mod.source.path ? `${mod.source.type}: ${esc(mod.source.path)}` : mod.source.type;
   const update = d.update;
-  const versionsLine = d.versions.length > 1 ? `<div class="dim">Versions in the library: ${d.versions.map((v) => (v.id === mod.id ? `<b>${esc(v.version)}</b> (this one)` : `${esc(v.version)}${v.enabled ? " (on)" : ""}`)).join(", ")}. Pick one from the version list on the REDdeck page.</div>` : "";
+  const versionsLine = d.versions.length > 1 ? `<div class="dim">Versions in the library: ${d.versions.map((v) => (v.id === mod.id ? `<b>${esc(v.version)}</b> (this one)` : `${esc(v.version)}${v.enabled ? " (on)" : ""}`)).join(", ")}. Pick one from the version list on the EDGEdeck page.</div>` : "";
   const nexusLine = mod.source.modId
     ? `<div class="dim">Nexus mod ${mod.source.modId}${mod.nexus?.author ? ` by ${esc(mod.nexus.author)}` : ""}${mod.nexus?.checked ? `, checked ${esc(mod.nexus.checked.slice(0, 10))}` : ""}. ${update ? `<span class="warn">Version ${esc(update)} is on Nexus.</span>` : mod.nexus ? "Up to date." : "Not checked yet."}</div>${mod.nexus?.summary ? `<p class="dim">${esc(mod.nexus.summary)}</p>` : ""}`
     : "";
   const archiveNote = !archive
-    ? `<p class="dim">${d.bridge ? "Checking archives..." : "Conflicts inside .archive files need REDbridge. Run <span class='mono'>REDdeck: Get REDbridge</span> once and REDdeck fetches it."}</p>`
+    ? `<p class="dim">${d.bridge ? "Checking archives..." : "Conflicts inside .archive files need REDbridge. Run <span class='mono'>EDGEdeck: Get REDbridge</span> once and EDGEdeck fetches it."}</p>`
     : archiveRows.length
       ? `<table><thead><tr><th>Resource inside the archives</th><th>Who wins</th></tr></thead><tbody>${archiveRows.join("")}</tbody></table>`
       : `<p class="dim">No resource inside this mod's archives overlaps with another enabled mod.</p>`;

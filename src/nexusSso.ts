@@ -1,9 +1,9 @@
 // Nexus Mods single sign-on: the way Vortex and Mod Organizer get a key without the user copying
-// it. REDdeck opens a websocket to Nexus, gets a connection token, opens the Nexus authorise page
+// it. EDGEdeck opens a websocket to Nexus, gets a connection token, opens the Nexus authorise page
 // in the browser, and when the user clicks Authorise the key arrives over the same socket.
 // Protocol: https://github.com/Nexus-Mods/sso-integration-demo
 //
-// The authorise page needs an application slug that Nexus staff register by hand. Until REDdeck
+// The authorise page needs an application slug that Nexus staff register by hand. Until EDGEdeck
 // has one, the extension falls back to opening the API Access page and asking for the key.
 
 import * as crypto from "node:crypto";
@@ -46,7 +46,7 @@ interface SsoMessage {
   error?: string | null;
 }
 
-/** Resolves with the API key once the user authorises REDdeck on Nexus. */
+/** Resolves with the API key once the user authorises EDGEdeck on Nexus. */
 export function signIn(options: SignInOptions): Promise<string> {
   const connect = options.connect ?? ((url: string) => new (globalThis as unknown as { WebSocket: new (u: string) => SsoSocket }).WebSocket(url));
   const log = options.log ?? (() => undefined);
@@ -72,7 +72,7 @@ export function signIn(options: SignInOptions): Promise<string> {
       else reject(err ?? new Error("Nexus sign-in failed"));
     };
     const onAbort = () => finish(new Error("Sign-in cancelled"));
-    const timer = setTimeout(() => finish(new Error("Nexus did not answer in time. Try again, and approve REDdeck in the browser tab that opens.")), options.timeoutMs ?? 5 * 60_000);
+    const timer = setTimeout(() => finish(new Error("Nexus did not answer in time. Try again, and approve EDGEdeck in the browser tab that opens.")), options.timeoutMs ?? 5 * 60_000);
     options.signal?.addEventListener("abort", onAbort);
     if (options.signal?.aborted) return onAbort();
 

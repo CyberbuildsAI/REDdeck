@@ -133,8 +133,8 @@ export interface InstallProjectResult {
 }
 
 /**
- * What REDcode's Install does through REDdeck: the mod that follows this project gets the packed
- * output now, whatever the file times say, and is turned on; a project REDdeck does not know yet is
+ * What REDcode's Install does through EDGEdeck: the mod that follows this project gets the packed
+ * output now, whatever the file times say, and is turned on; a project EDGEdeck does not know yet is
  * added as version "dev". Deploying is a separate step, so the caller can ask about other pending
  * changes first.
  */

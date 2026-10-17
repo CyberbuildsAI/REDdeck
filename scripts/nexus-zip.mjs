@@ -1,4 +1,4 @@
-// Builds the Nexus Mods file from the packaged extension: dist/REDdeck-<version>-nexus.zip with the
+// Builds the Nexus Mods file from the packaged extension: dist/EDGEdeck-<version>-nexus.zip with the
 // .vsix, how to install it, and the licenses. Run after the vsix is packaged (npm run package).
 //   node scripts/nexus-zip.mjs
 // The publish workflow runs it and attaches the zip to the GitHub release; it is uploaded to Nexus
@@ -10,9 +10,9 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { version } = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-const vsix = path.join(root, "dist", `reddeck-${version}.vsix`);
+const vsix = path.join(root, "dist", `edgedeck-${version}.vsix`);
 const stage = path.join(root, "dist", "nexus");
-const zip = path.join(root, "dist", `REDdeck-${version}-nexus.zip`);
+const zip = path.join(root, "dist", `EDGEdeck-${version}-nexus.zip`);
 
 if (!fs.existsSync(vsix)) throw new Error(`${vsix} is missing: run npm run package first`);
 fs.rmSync(stage, { recursive: true, force: true });
@@ -25,26 +25,26 @@ fs.copyFileSync(path.join(root, "ThirdPartyNotices.txt"), path.join(stage, "Thir
 fs.writeFileSync(
   path.join(stage, "README.txt"),
   [
-    `REDdeck ${version}: a simple mod manager for Cyberpunk 2077, inside VS Code.`,
+    `EDGEdeck ${version}: a simple mod manager for Cyberpunk 2077, inside VS Code.`,
     "",
     "This is a VS Code extension, not a game mod. Do not install it with Vortex.",
     "",
     "Install:",
     "  1. In VS Code (or VSCodium, or EDGEkit), open the Extensions view (Ctrl+Shift+X).",
     "  2. Click ... at its top, choose Install from VSIX..., and pick",
-    `     reddeck-${version}.vsix from this folder.`,
-    "  3. Click the REDdeck icon in the activity bar and follow Set up.",
+    `     edgedeck-${version}.vsix from this folder.`,
+    "  3. Click the EDGEdeck icon in the activity bar and follow Set up.",
     "",
     "Or from a terminal:",
-    `  code --install-extension reddeck-${version}.vsix`,
+    `  code --install-extension edgedeck-${version}.vsix`,
     "",
-    "The same extension is on the VS Code Marketplace and Open VSX (search for REDdeck),",
+    "The same extension is on the VS Code Marketplace and Open VSX (search for EDGEdeck),",
     "where it updates itself.",
     "",
     "Needs Windows 10 or 11, 64-bit, and VS Code 1.80 or later.",
     "",
-    "Guide: https://edgemodders.github.io/REDdeck/",
-    "Source and issues: https://github.com/Edgemodders/REDdeck",
+    "Guide: https://edgemodders.github.io/EDGEdeck/",
+    "Source and issues: https://github.com/Edgemodders/EDGEdeck",
     "",
   ].join("\r\n"),
 );

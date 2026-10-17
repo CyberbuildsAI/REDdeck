@@ -1,7 +1,7 @@
 # Publishes a release when a version tag is pushed: git tag v0.25.0 && git push origin v0.25.0
 # Checks the tag against package.json, builds, tests, packages for Windows x64, then publishes to
 # the VS Code Marketplace (VSCE_PAT) and Open VSX (OVSX_PAT, skipped while that secret is not set),
-# publishes the MCP server and CLI to npm as @edgemodders/reddeck-mcp at the same version (NPM_TOKEN),
+# publishes the MCP server and CLI to npm as @edgemodders/edgedeck-mcp at the same version (NPM_TOKEN),
 # and attaches the .vsix and the Nexus Mods zip (scripts/nexus-zip.mjs, uploaded to Nexus by hand) to a
 # GitHub release. The tokens are Edgemodders organisation secrets.
 name: Publish
@@ -44,7 +44,7 @@ jobs:
       - run: npm run smoke
 
       - name: Package
-        run: npx vsce package --no-dependencies --target win32-x64 --readme-path docs/marketplace.md --out "dist/reddeck-${VERSION}.vsix"
+        run: npx vsce package --no-dependencies --target win32-x64 --readme-path docs/marketplace.md --out "dist/edgedeck-${VERSION}.vsix"
 
       - name: Nexus zip
         run: node scripts/nexus-zip.mjs
@@ -53,7 +53,7 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         # --skip-duplicate: a re-run of a release that got partway does not fail on what is already out.
-        run: npx vsce publish --packagePath "dist/reddeck-${VERSION}.vsix" --skip-duplicate
+        run: npx vsce publish --packagePath "dist/edgedeck-${VERSION}.vsix" --skip-duplicate
 
       - name: Open VSX
         env:
@@ -63,9 +63,9 @@ jobs:
             echo "::warning::OVSX_PAT is not set; not published to Open VSX"
             exit 0
           fi
-          npx ovsx publish "dist/reddeck-${VERSION}.vsix" --pat "${OVSX_PAT}" --skip-duplicate
+          npx ovsx publish "dist/edgedeck-${VERSION}.vsix" --pat "${OVSX_PAT}" --skip-duplicate
 
-      - name: npm (@edgemodders/reddeck-mcp)
+      - name: npm (@edgemodders/edgedeck-mcp)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -74,8 +74,8 @@ jobs:
             exit 0
           fi
           node scripts/npm-package.mjs
-          if npm view "@edgemodders/reddeck-mcp@${VERSION}" version >/dev/null 2>&1; then
-            echo "@edgemodders/reddeck-mcp ${VERSION} is already on npm"
+          if npm view "@edgemodders/edgedeck-mcp@${VERSION}" version >/dev/null 2>&1; then
+            echo "@edgemodders/edgedeck-mcp ${VERSION} is already on npm"
             exit 0
           fi
           # ./ matters: "dist/npm" alone reads as a GitHub repository.
@@ -88,7 +88,7 @@ jobs:
           notes=$(node -e "const s=require('fs').readFileSync('CHANGELOG.md','utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' '));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}")
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             echo "Release ${GITHUB_REF_NAME} already exists; adding the Nexus zip if it is missing"
-            gh release upload "${GITHUB_REF_NAME}" "dist/REDdeck-${VERSION}-nexus.zip" --clobber
+            gh release upload "${GITHUB_REF_NAME}" "dist/EDGEdeck-${VERSION}-nexus.zip" --clobber
             exit 0
           fi
-          gh release create "${GITHUB_REF_NAME}" "dist/reddeck-${VERSION}.vsix" "dist/REDdeck-${VERSION}-nexus.zip" --title "REDdeck ${VERSION}" --notes "${notes}"
+          gh release create "${GITHUB_REF_NAME}" "dist/edgedeck-${VERSION}.vsix" "dist/EDGEdeck-${VERSION}-nexus.zip" --title "EDGEdeck ${VERSION}" --notes "${notes}"

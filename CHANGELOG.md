@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.27.0 (2026-10-17)
+
+- **REDdeck is now EDGEdeck**, part of the EDGE platform: a mod manager that will not stay tied to one engine. It is a new extension, `edgemodders.edgedeck`, so it installs next to REDdeck rather than updating it, and nothing carries over: before switching, turn every mod off and deploy in REDdeck, then uninstall it.
+- Every name follows: the commands and settings are `edgedeck.*`, the library folder is `%USERPROFILE%\EDGEdeck`, the game folder's manifest is `edgedeck.deployment.json`, the MCP tools are `edgedeck_*`, and the command line is `edgedeck`. On npm it is `@edgemodders/edgedeck-mcp`.
+- New icon and banner. The repository is now [Edgemodders/EDGEdeck](https://github.com/Edgemodders/EDGEdeck) and the docs are at https://edgemodders.github.io/EDGEdeck/.
+- Entries below this one are REDdeck's.
+
 ## 0.26.6 (2026-10-16)
 
 - **A Nexus Mods download.** Each release now also has `REDdeck-<version>-nexus.zip`: the extension's .vsix, a README with the install steps, and the licenses, for REDdeck's page on Nexus Mods. The extension itself does not change.

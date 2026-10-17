@@ -1,10 +1,10 @@
-// Nexus Mods sign-in with OAuth 2 and PKCE, the way Vortex signs in since 2023. REDdeck listens
+// Nexus Mods sign-in with OAuth 2 and PKCE, the way Vortex signs in since 2023. EDGEdeck listens
 // on a loopback port, opens the Nexus authorise page in the browser with a code challenge, gets the
 // code back on that port when the user approves, and trades it for an access token and a refresh
 // token. The access token goes to the REST API as a Bearer token in place of the personal key.
 // RFC 7636 (PKCE), RFC 8252 (loopback redirects for native apps).
 //
-// Nexus assigns the client id by hand. Until REDdeck has one, sign-in falls back to the personal
+// Nexus assigns the client id by hand. Until EDGEdeck has one, sign-in falls back to the personal
 // key, which stays as a choice afterwards too.
 
 import * as crypto from "node:crypto";
@@ -37,7 +37,7 @@ interface TokenReply {
 }
 
 export interface OAuthOptions {
-  /** The client id Nexus assigned to REDdeck. */
+  /** The client id Nexus assigned to EDGEdeck. */
   clientId: string;
   /** Opens the authorise page in the user's browser. */
   open: (url: string) => void | Thenable<unknown>;
@@ -129,9 +129,9 @@ export async function fetchUser(accessToken: string, base = OAuthBase): Promise<
 
 function resultPage(ok: boolean, detail?: string): string {
   const body = ok
-    ? "<h1>Signed in</h1><p>REDdeck has what it needs. You can close this tab and go back to VS Code.</p>"
+    ? "<h1>Signed in</h1><p>EDGEdeck has what it needs. You can close this tab and go back to VS Code.</p>"
     : `<h1>Not signed in</h1><p>${detail ?? "Nexus did not approve the sign-in."} Go back to VS Code and try again.</p>`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>REDdeck</title>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>EDGEdeck</title>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0b0c10;color:#e6e6e6;font:16px/1.5 system-ui,sans-serif}
 main{max-width:28rem;padding:2rem;text-align:center}h1{color:${ok ? "#c8f55a" : "#ff5e5e"};font-weight:600;margin:0 0 .5rem}p{margin:0;opacity:.85}</style></head>
 <body><main>${body}</main></body></html>`;
@@ -157,7 +157,7 @@ export function signInWithOAuth(options: OAuthOptions): Promise<OAuthTokens> {
       else reject(err ?? new Error("Nexus sign-in failed"));
     };
     const onAbort = () => finish(new Error("Sign-in cancelled"));
-    const timer = setTimeout(() => finish(new Error("Nexus did not answer in time. Try again, and approve REDdeck in the browser tab that opens.")), options.timeoutMs ?? 5 * 60_000);
+    const timer = setTimeout(() => finish(new Error("Nexus did not answer in time. Try again, and approve EDGEdeck in the browser tab that opens.")), options.timeoutMs ?? 5 * 60_000);
     options.signal?.addEventListener("abort", onAbort);
     if (options.signal?.aborted) return onAbort();
 

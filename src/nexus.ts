@@ -1,5 +1,5 @@
 // Nexus Mods, through its public REST API (v1), with the user's personal API key or the access
-// token from an OAuth sign-in (nexusOAuth.ts). REDdeck caches what it learns in mod.json and asks
+// token from an OAuth sign-in (nexusOAuth.ts). EDGEdeck caches what it learns in mod.json and asks
 // sparingly: the API allows 2,500 requests a day.
 // https://help.nexusmods.com/article/114-api-acceptable-use-policy
 
@@ -100,8 +100,8 @@ export class NexusClient {
       headers: {
         ...("bearer" in this.auth ? { authorization: `Bearer ${this.auth.bearer}` } : { apikey: this.auth.apiKey }),
         accept: "application/json",
-        "user-agent": `REDdeck/${this.version} (Windows; +https://github.com/Edgemodders/REDdeck)`,
-        "application-name": "REDdeck",
+        "user-agent": `EDGEdeck/${this.version} (Windows; +https://github.com/Edgemodders/EDGEdeck)`,
+        "application-name": "EDGEdeck",
         "application-version": this.version,
       },
     });

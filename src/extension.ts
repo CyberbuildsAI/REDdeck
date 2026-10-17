@@ -1,4 +1,4 @@
-// REDdeck: a simple mod manager for Cyberpunk 2077. The extension is a thin shell over src/core.ts:
+// EDGEdeck: a simple mod manager for Cyberpunk 2077. The extension is a thin shell over src/core.ts:
 // the Mods view, the four verbs (add, on/off, deploy, remove), undo, import from Vortex, the detail
 // panel, and the archive conflict scan through REDbridge when it is available.
 
@@ -52,20 +52,20 @@ let scanTimer: NodeJS.Timeout | undefined;
 let state: { plan?: Plan; changes: Change[]; archive?: ArchiveConflictSummary; version?: string; bridgeInfo?: string; bridgeUpdate?: string; setup: SetupStep[]; nxmHandler?: string; vortexMods: number } = { changes: [], setup: [], vortexMods: 0 };
 const archiveCache = new Map<string, { mtimeMs: number; resources: Map<string, string> }>();
 
-export function activate(context: vscode.ExtensionContext): REDdeckApi {
+export function activate(context: vscode.ExtensionContext): EDGEdeckApi {
   extensionRoot = context.extensionPath;
   storageDir = context.globalStorageUri.fsPath;
   extensionVersion = String((context.extension.packageJSON as { version?: string }).version ?? "0.0.0");
   secrets = context.secrets;
   globalState = context.globalState;
-  log = vscode.window.createOutputChannel("REDdeck");
+  log = vscode.window.createOutputChannel("EDGEdeck");
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 40);
-  status.command = "reddeck.deploy";
+  status.command = "edgedeck.deploy";
   status.show();
   sevenZa = findSevenZip(extensionRoot);
 
   view = new ModsView(() => library, statusFor, frameworkCheck, () => state.setup);
-  tree = vscode.window.createTreeView("reddeck.mods", { treeDataProvider: view, showCollapseAll: false });
+  tree = vscode.window.createTreeView("edgedeck.mods", { treeDataProvider: view, showCollapseAll: false });
   detail = new DetailPanel((action, id) => run(() => detailAction(action, id)));
   conflictsPanel = new ConflictsPanel((m) => run(() => conflictsAction(m)));
   modsPage = new ModsPage((m) => run(() => pageAction(m)));
@@ -85,57 +85,57 @@ export function activate(context: vscode.ExtensionContext): REDdeckApi {
       }
       refresh();
     }),
-    vscode.commands.registerCommand("reddeck.addMod", () => run(addModCommand)),
-    vscode.commands.registerCommand("reddeck.importVortex", () => run(importVortexCommand)),
-    vscode.commands.registerCommand("reddeck.addProject", (uri?: vscode.Uri) => run(() => addProjectCommand(uri?.fsPath))),
-    vscode.commands.registerCommand("reddeck.saveLoadout", () => run(saveLoadoutCommand)),
-    vscode.commands.registerCommand("reddeck.loadLoadout", () => run(loadLoadoutCommand)),
-    vscode.commands.registerCommand("reddeck.exportLoadout", () => run(() => exportLoadoutCommand(library ? activeLoadout(library, state.version) : ""))),
-    vscode.commands.registerCommand("reddeck.importLoadout", () => run(importLoadoutCommand)),
-    vscode.commands.registerCommand("reddeck.deploy", () => run(deployCommand)),
-    vscode.commands.registerCommand("reddeck.undo", () => run(undoCommand)),
-    vscode.commands.registerCommand("reddeck.remove", (node: ModNode) => run(() => removeCommand(modOf(node)))),
-    vscode.commands.registerCommand("reddeck.details", (node: ModNode) => run(() => showDetails(modOf(node)))),
-    vscode.commands.registerCommand("reddeck.checkConflicts", () => run(showConflicts)),
-    vscode.commands.registerCommand("reddeck.openPage", () => run(showPage)),
-    vscode.commands.registerCommand("reddeck.suggestTheme", () => run(() => suggestTheme(true))),
-    vscode.commands.registerCommand("reddeck.showChanges", () => run(() => showChanges())),
-    vscode.commands.registerCommand("reddeck.getBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
-    vscode.commands.registerCommand("reddeck.updateBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
-    vscode.commands.registerCommand("reddeck.setup", () => run(setupCommand)),
-    vscode.commands.registerCommand("reddeck.mcpSetup", () => run(mcpSetupCommand)),
+    vscode.commands.registerCommand("edgedeck.addMod", () => run(addModCommand)),
+    vscode.commands.registerCommand("edgedeck.importVortex", () => run(importVortexCommand)),
+    vscode.commands.registerCommand("edgedeck.addProject", (uri?: vscode.Uri) => run(() => addProjectCommand(uri?.fsPath))),
+    vscode.commands.registerCommand("edgedeck.saveLoadout", () => run(saveLoadoutCommand)),
+    vscode.commands.registerCommand("edgedeck.loadLoadout", () => run(loadLoadoutCommand)),
+    vscode.commands.registerCommand("edgedeck.exportLoadout", () => run(() => exportLoadoutCommand(library ? activeLoadout(library, state.version) : ""))),
+    vscode.commands.registerCommand("edgedeck.importLoadout", () => run(importLoadoutCommand)),
+    vscode.commands.registerCommand("edgedeck.deploy", () => run(deployCommand)),
+    vscode.commands.registerCommand("edgedeck.undo", () => run(undoCommand)),
+    vscode.commands.registerCommand("edgedeck.remove", (node: ModNode) => run(() => removeCommand(modOf(node)))),
+    vscode.commands.registerCommand("edgedeck.details", (node: ModNode) => run(() => showDetails(modOf(node)))),
+    vscode.commands.registerCommand("edgedeck.checkConflicts", () => run(showConflicts)),
+    vscode.commands.registerCommand("edgedeck.openPage", () => run(showPage)),
+    vscode.commands.registerCommand("edgedeck.suggestTheme", () => run(() => suggestTheme(true))),
+    vscode.commands.registerCommand("edgedeck.showChanges", () => run(() => showChanges())),
+    vscode.commands.registerCommand("edgedeck.getBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
+    vscode.commands.registerCommand("edgedeck.updateBridge", () => run(getBridgeCommand).then(() => refreshSetup())),
+    vscode.commands.registerCommand("edgedeck.setup", () => run(setupCommand)),
+    vscode.commands.registerCommand("edgedeck.mcpSetup", () => run(mcpSetupCommand)),
     ...registerMcp(),
     { dispose: () => stopWatching() },
-    vscode.commands.registerCommand("reddeck.hideSetupStep", (node: ModNode) => run(() => hideSetupStep(node))),
+    vscode.commands.registerCommand("edgedeck.hideSetupStep", (node: ModNode) => run(() => hideSetupStep(node))),
     secrets.onDidChange((e) => {
       if (e.key === NexusKeySecret || e.key === NexusTokensSecret) void refreshSetup();
     }),
-    vscode.commands.registerCommand("reddeck.pickGame", () => run(pickGameCommand)),
-    vscode.commands.registerCommand("reddeck.switchVersion", (node: ModNode) => run(() => switchVersionCommand(modOf(node)))),
-    vscode.commands.registerCommand("reddeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
-    vscode.commands.registerCommand("reddeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
-    vscode.commands.registerCommand("reddeck.addToProject", (node: ModNode) => run(() => addToProjectCommand(node))),
+    vscode.commands.registerCommand("edgedeck.pickGame", () => run(pickGameCommand)),
+    vscode.commands.registerCommand("edgedeck.switchVersion", (node: ModNode) => run(() => switchVersionCommand(modOf(node)))),
+    vscode.commands.registerCommand("edgedeck.moveUp", (node: ModNode) => move(modOf(node), -1)),
+    vscode.commands.registerCommand("edgedeck.moveDown", (node: ModNode) => move(modOf(node), 1)),
+    vscode.commands.registerCommand("edgedeck.addToProject", (node: ModNode) => run(() => addToProjectCommand(node))),
     vscode.workspace.onDidChangeWorkspaceFolders(() => updateProjectContext()),
-    vscode.commands.registerCommand("reddeck.revealInGame", (node: ModNode) => run(() => revealInGameCommand(node))),
-    vscode.commands.registerCommand("reddeck.openInExplorer", (node: ModNode) => {
+    vscode.commands.registerCommand("edgedeck.revealInGame", (node: ModNode) => run(() => revealInGameCommand(node))),
+    vscode.commands.registerCommand("edgedeck.openInExplorer", (node: ModNode) => {
       if (node?.type === "mod" && library) vscode.env.openExternal(vscode.Uri.file(modFolder(library, node.mod)));
     }),
-    vscode.commands.registerCommand("reddeck.openLibrary", () => {
+    vscode.commands.registerCommand("edgedeck.openLibrary", () => {
       if (library) vscode.env.openExternal(vscode.Uri.file(library.root));
     }),
-    vscode.commands.registerCommand("reddeck.nexusSignIn", () => run(() => nexusSignInCommand().then(() => undefined))),
-    vscode.commands.registerCommand("reddeck.nexusSignOut", () => run(nexusSignOutCommand)),
-    vscode.commands.registerCommand("reddeck.nexusSetKey", () => run(() => nexusSetKeyCommand().then(() => undefined))),
-    vscode.commands.registerCommand("reddeck.nexusOpen", (node: ModNode) => run(() => nexusOpenCommand(modOf(node)))),
-    vscode.commands.registerCommand("reddeck.checkUpdates", () => run(() => checkUpdatesCommand(false))),
-    vscode.commands.registerCommand("reddeck.nexusAddLink", () => run(nexusAddLinkCommand)),
-    vscode.commands.registerCommand("reddeck.nexusHandleLinks", () => run(nexusHandleLinksCommand).then(() => refreshSetup(true))),
-    vscode.commands.registerCommand("reddeck.nexusReleaseLinks", () => run(nexusReleaseLinksCommand).then(() => refreshSetup(true))),
+    vscode.commands.registerCommand("edgedeck.nexusSignIn", () => run(() => nexusSignInCommand().then(() => undefined))),
+    vscode.commands.registerCommand("edgedeck.nexusSignOut", () => run(nexusSignOutCommand)),
+    vscode.commands.registerCommand("edgedeck.nexusSetKey", () => run(() => nexusSetKeyCommand().then(() => undefined))),
+    vscode.commands.registerCommand("edgedeck.nexusOpen", (node: ModNode) => run(() => nexusOpenCommand(modOf(node)))),
+    vscode.commands.registerCommand("edgedeck.checkUpdates", () => run(() => checkUpdatesCommand(false))),
+    vscode.commands.registerCommand("edgedeck.nexusAddLink", () => run(nexusAddLinkCommand)),
+    vscode.commands.registerCommand("edgedeck.nexusHandleLinks", () => run(nexusHandleLinksCommand).then(() => refreshSetup(true))),
+    vscode.commands.registerCommand("edgedeck.nexusReleaseLinks", () => run(nexusReleaseLinksCommand).then(() => refreshSetup(true))),
     vscode.window.registerUriHandler({ handleUri: (uri) => void run(() => handleUri(uri)) }),
-    vscode.commands.registerCommand("reddeck.refresh", () => reload()),
-    vscode.commands.registerCommand("reddeck.showLog", () => log.show(true)),
+    vscode.commands.registerCommand("edgedeck.refresh", () => reload()),
+    vscode.commands.registerCommand("edgedeck.showLog", () => log.show(true)),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("reddeck")) {
+      if (e.affectsConfiguration("edgedeck")) {
         bridge?.stop();
         bridge = undefined;
         reload();
@@ -148,32 +148,32 @@ export function activate(context: vscode.ExtensionContext): REDdeckApi {
 }
 
 /**
- * What other extensions get from extensions.getExtension("edgemodders.reddeck").exports. REDcode
+ * What other extensions get from extensions.getExtension("edgemodders.edgedeck").exports. REDcode
  * uses it to install a packed project as a mod and deploy it, so one tool owns the game folder.
  * Keep it small and stable: bump apiVersion when a call changes meaning.
  */
-export interface REDdeckApi {
+export interface EDGEdeckApi {
   apiVersion: 1;
-  /** The game folder REDdeck deploys to, or "" when it has none. */
+  /** The game folder EDGEdeck deploys to, or "" when it has none. */
   gamePath(): string;
-  /** The id of the mod that follows this project, if REDdeck has one. */
+  /** The id of the mod that follows this project, if EDGEdeck has one. */
   projectMod(projectFile: string): string | undefined;
   /** Adds the project's packed output, or refreshes the mod that follows it, and turns it on. Does not deploy. */
   installProject(projectFile: string): { id: string; name: string; files: number; added: boolean };
   /** Names of the mods, other than `except`, whose changes wait for a deploy. */
   pendingMods(except?: string): string[];
-  /** Deploys as REDdeck: Deploy does, with its questions and its result message. Undefined when refused or cancelled. */
+  /** Deploys as EDGEdeck: Deploy does, with its questions and its result message. Undefined when refused or cancelled. */
   deploy(): Promise<{ linked: number; removed: number; kept: number; skipped: string[]; conflicts: number } | undefined>;
   /** Turns a mod off; the next deploy removes its files from the game. */
   turnOff(id: string): void;
 }
 
 function needLibrary(): Library {
-  if (!library) throw new Error("REDdeck has no library loaded; see the REDdeck log.");
+  if (!library) throw new Error("EDGEdeck has no library loaded; see the EDGEdeck log.");
   return library;
 }
 
-const api: REDdeckApi = {
+const api: EDGEdeckApi = {
   apiVersion: 1,
   gamePath: () => settings().gamePath,
   projectMod: (projectFile) => library?.mods.find((m) => m.source.type === "project" && m.source.path?.toLowerCase() === projectFile.toLowerCase())?.id,
@@ -189,7 +189,7 @@ const api: REDdeckApi = {
     if (!isGameFolder(gamePath)) return [];
     const ids = new Set(pendingChanges(lib, gamePath, plan(lib, gamePath)).map((c) => c.mod));
     ids.delete(except ?? "");
-    ids.delete("reddeck");
+    ids.delete("edgedeck");
     return [...ids].map((id) => lib.mods.find((m) => m.id === id)?.name ?? id);
   },
   deploy: async () => {
@@ -199,7 +199,7 @@ const api: REDdeckApi = {
   turnOff: (id) => {
     const lib = needLibrary();
     const mod = lib.mods.find((m) => m.id === id);
-    if (!mod) throw new Error(`REDdeck has no mod with id ${id}`);
+    if (!mod) throw new Error(`EDGEdeck has no mod with id ${id}`);
     mod.enabled = false;
     saveMod(lib, mod);
     refresh();
@@ -216,18 +216,18 @@ function modOf(node: ModNode | undefined): ModInfo | undefined {
 
 // ---- setup: what is missing, as rows in the tree, buttons on the page and welcome content ---
 
-const SetupHiddenKey = "reddeck.setupHidden";
+const SetupHiddenKey = "edgedeck.setupHidden";
 
 /** Every step, done or not, in the order they matter. */
 async function allSetupSteps(): Promise<(SetupStep & { done: boolean })[]> {
   const signedIn = await nexusSignedIn();
   const handler = describeHandler(state.nxmHandler);
   return [
-    { id: "game", label: "Find the game folder", detail: "Not found through Steam, GOG or Epic", command: "reddeck.pickGame", done: isGameFolder(settings().gamePath) },
-    { id: "bridge", label: "Get REDbridge", detail: "Sees conflicts inside archives; a 70 MB download", command: "reddeck.getBridge", done: !!bridgeExe },
-    { id: "nexus", label: "Sign in to Nexus Mods", detail: "For updates and downloads from the site", command: "reddeck.nexusSignIn", done: signedIn },
-    { id: "links", label: "Handle Nexus download links", detail: `Mod manager download buttons go to ${handler} now`, command: "reddeck.nexusHandleLinks", done: !signedIn || handler === "REDdeck" },
-    { id: "vortex", label: "Import from Vortex", detail: `${state.vortexMods} mod${state.vortexMods === 1 ? "" : "s"} in Vortex, none in the library yet`, command: "reddeck.importVortex", done: !state.vortexMods || !!library?.mods.some((m) => m.source.type === "vortex") },
+    { id: "game", label: "Find the game folder", detail: "Not found through Steam, GOG or Epic", command: "edgedeck.pickGame", done: isGameFolder(settings().gamePath) },
+    { id: "bridge", label: "Get REDbridge", detail: "Sees conflicts inside archives; a 70 MB download", command: "edgedeck.getBridge", done: !!bridgeExe },
+    { id: "nexus", label: "Sign in to Nexus Mods", detail: "For updates and downloads from the site", command: "edgedeck.nexusSignIn", done: signedIn },
+    { id: "links", label: "Handle Nexus download links", detail: `Mod manager download buttons go to ${handler} now`, command: "edgedeck.nexusHandleLinks", done: !signedIn || handler === "EDGEdeck" },
+    { id: "vortex", label: "Import from Vortex", detail: `${state.vortexMods} mod${state.vortexMods === 1 ? "" : "s"} in Vortex, none in the library yet`, command: "edgedeck.importVortex", done: !state.vortexMods || !!library?.mods.some((m) => m.source.type === "vortex") },
   ];
 }
 
@@ -237,7 +237,7 @@ async function refreshSetup(full = false): Promise<void> {
   const hidden = new Set(globalState.get<string[]>(SetupHiddenKey, []));
   const all = await allSetupSteps();
   state.setup = all.filter((s) => !s.done && !hidden.has(s.id));
-  for (const s of all) void vscode.commands.executeCommand("setContext", `reddeck.setup.${s.id}`, !s.done && !hidden.has(s.id));
+  for (const s of all) void vscode.commands.executeCommand("setContext", `edgedeck.setup.${s.id}`, !s.done && !hidden.has(s.id));
   view.refresh();
   void updatePage();
 }
@@ -247,24 +247,24 @@ async function hideSetupStep(node: ModNode | undefined): Promise<void> {
   const hidden = new Set(globalState.get<string[]>(SetupHiddenKey, []));
   hidden.add(node.step.id);
   await globalState.update(SetupHiddenKey, [...hidden]);
-  log.appendLine(`Setup: "${node.step.label}" hidden. REDdeck: Set up... shows every step again.`);
+  log.appendLine(`Setup: "${node.step.label}" hidden. EDGEdeck: Set up... shows every step again.`);
   await refreshSetup();
 }
 
-/** The palette's "REDdeck: Set up...": every step with its state, and hidden ones come back. */
+/** The palette's "EDGEdeck: Set up...": every step with its state, and hidden ones come back. */
 async function setupCommand(): Promise<void> {
   await globalState.update(SetupHiddenKey, []);
   await refreshSetup(true);
   const all = await allSetupSteps();
   const picked = await vscode.window.showQuickPick(
     all.map((s) => ({ label: `${s.done ? "$(check)" : "$(circle-large-outline)"} ${s.label}`, description: s.done ? "done" : s.detail, step: s })),
-    { title: "REDdeck: Set up", placeHolder: "Pick a step to do it" },
+    { title: "EDGEdeck: Set up", placeHolder: "Pick a step to do it" },
   );
   if (picked && !picked.step.done) await vscode.commands.executeCommand(picked.step.command);
 }
 
 function settings(): { gamePath: string; libraryPath: string; bridgePath: string; dotnetRoot: string; checkUpdates: boolean; vortexStaging: string } {
-  const cfg = vscode.workspace.getConfiguration("reddeck");
+  const cfg = vscode.workspace.getConfiguration("edgedeck");
   return {
     gamePath: cfg.get<string>("gamePath", "") || detectedGame || "",
     libraryPath: cfg.get<string>("libraryPath", "") || defaultLibraryPath(),
@@ -281,28 +281,28 @@ async function run(fn: () => Promise<void> | void): Promise<void> {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.appendLine(`Error: ${message}`);
-    void vscode.window.showErrorMessage(`REDdeck: ${message}`, "Show log").then((a) => a && log.show(true));
+    void vscode.window.showErrorMessage(`EDGEdeck: ${message}`, "Show log").then((a) => a && log.show(true));
   }
 }
 
 function reload(): void {
   forgetSizes();
-  const configured = vscode.workspace.getConfiguration("reddeck").get<string>("gamePath", "");
+  const configured = vscode.workspace.getConfiguration("edgedeck").get<string>("gamePath", "");
   detectedGame = configured ? undefined : findGame();
   const { libraryPath, gamePath } = settings();
   try {
     library = loadLibrary(libraryPath, gamePath);
-    const how = configured ? "from the reddeck.gamePath setting" : detectedGame ? "found through Steam, GOG or Epic" : "not found";
+    const how = configured ? "from the edgedeck.gamePath setting" : detectedGame ? "found through Steam, GOG or Epic" : "not found";
     log.appendLine(`Library: ${libraryPath} (${library.mods.length} mods), game: ${gamePath || "(none)"} (${how})`);
     if (!configured && !detectedGame) {
       const libs = steamLibraries();
       log.appendLine(`  Steam libraries checked: ${libs.length ? libs.join("; ") : "none (Steam is not in the registry)"}`);
-      log.appendLine("  Use REDdeck: Pick the game folder... to set it, and please report the lines above if the game is in one of those libraries.");
+      log.appendLine("  Use EDGEdeck: Pick the game folder... to set it, and please report the lines above if the game is in one of those libraries.");
     }
   } catch (err) {
     library = undefined;
     log.appendLine(`Could not open the library at ${libraryPath}: ${String(err)}`);
-    void vscode.window.showErrorMessage(`REDdeck could not open the library at ${libraryPath}. See the log.`);
+    void vscode.window.showErrorMessage(`EDGEdeck could not open the library at ${libraryPath}. See the log.`);
   }
   bridgeExe = findBridge(settings().bridgePath, extensionRoot) ?? installedBridge(storageDir) ?? "";
   try {
@@ -338,7 +338,7 @@ function currentProject(): string | undefined {
 }
 
 function updateProjectContext(): void {
-  void vscode.commands.executeCommand("setContext", "reddeck.projectOpen", !!currentProject());
+  void vscode.commands.executeCommand("setContext", "edgedeck.projectOpen", !!currentProject());
 }
 
 /** What redcode.extractToProject returns (REDcode request #1): project-relative paths. */
@@ -463,7 +463,7 @@ function mcpArgs(): string[] {
 
 /**
  * Registers the server with VS Code's own MCP support (1.101 and later), so agents VS Code hosts
- * see REDdeck's tools without any setup. VS Code's binary runs it as Node. Older VS Code: nothing.
+ * see EDGEdeck's tools without any setup. VS Code's binary runs it as Node. Older VS Code: nothing.
  */
 function registerMcp(): vscode.Disposable[] {
   const lm = (vscode as unknown as { lm?: { registerMcpServerDefinitionProvider?: (id: string, p: unknown) => vscode.Disposable } }).lm;
@@ -472,30 +472,30 @@ function registerMcp(): vscode.Disposable[] {
   const changed = new vscode.EventEmitter<void>();
   return [
     changed,
-    lm.registerMcpServerDefinitionProvider("reddeck.mcp", {
+    lm.registerMcpServerDefinitionProvider("edgedeck.mcp", {
       onDidChangeMcpServerDefinitions: changed.event,
-      provideMcpServerDefinitions: () => [new Def("REDdeck", process.execPath, mcpArgs(), { ELECTRON_RUN_AS_NODE: "1" }, extensionVersion)],
+      provideMcpServerDefinitions: () => [new Def("EDGEdeck", process.execPath, mcpArgs(), { ELECTRON_RUN_AS_NODE: "1" }, extensionVersion)],
     }),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("reddeck")) changed.fire();
+      if (e.affectsConfiguration("edgedeck")) changed.fire();
     }),
   ];
 }
 
-/** "REDdeck: Connect an assistant (MCP)...": the one line Claude Code needs, or a JSON entry for other clients. */
+/** "EDGEdeck: Connect an assistant (MCP)...": the one line Claude Code needs, or a JSON entry for other clients. */
 async function mcpSetupCommand(): Promise<void> {
   const args = mcpArgs();
   const q = (s: string) => `"${s}"`;
-  const claude = `claude mcp add reddeck -- node ${args.map(q).join(" ")}`;
-  const jsonEntry = JSON.stringify({ reddeck: { command: "node", args } }, null, 2);
-  const inVsCode = (vscode as unknown as { lm?: { registerMcpServerDefinitionProvider?: unknown } }).lm?.registerMcpServerDefinitionProvider ? "Agents inside this VS Code already see REDdeck's tools." : "This VS Code is older than 1.101, so agents inside it do not see MCP servers.";
+  const claude = `claude mcp add edgedeck -- node ${args.map(q).join(" ")}`;
+  const jsonEntry = JSON.stringify({ edgedeck: { command: "node", args } }, null, 2);
+  const inVsCode = (vscode as unknown as { lm?: { registerMcpServerDefinitionProvider?: unknown } }).lm?.registerMcpServerDefinitionProvider ? "Agents inside this VS Code already see EDGEdeck's tools." : "This VS Code is older than 1.101, so agents inside it do not see MCP servers.";
   const picked = await vscode.window.showQuickPick(
     [
-      { label: "$(terminal) Copy the Claude Code command", description: "claude mcp add reddeck ...", detail: "Paste it in a terminal once. Claude Code then has reddeck_list, reddeck_deploy and the rest.", action: "claude" },
+      { label: "$(terminal) Copy the Claude Code command", description: "claude mcp add edgedeck ...", detail: "Paste it in a terminal once. Claude Code then has edgedeck_list, edgedeck_deploy and the rest.", action: "claude" },
       { label: "$(json) Copy a JSON entry", description: "for other MCP clients", detail: "The server entry for a client's MCP settings file.", action: "json" },
       { label: "$(file) Reveal the server file", description: "dist/mcp.js", detail: "Any MCP client can run it with Node: node mcp.js --library <folder> --game <folder>.", action: "reveal" },
     ],
-    { title: "REDdeck: Connect an assistant (MCP)", placeHolder: inVsCode },
+    { title: "EDGEdeck: Connect an assistant (MCP)", placeHolder: inVsCode },
   );
   if (!picked) return;
   if (picked.action === "claude") {
@@ -562,13 +562,13 @@ function watchLibrary(libraryRoot: string, gamePath: string): void {
   }
 }
 
-/** Once a day, when the bridge in use is the copy REDdeck fetched: is there a newer release? */
+/** Once a day, when the bridge in use is the copy EDGEdeck fetched: is there a newer release? */
 async function maybeCheckBridge(): Promise<void> {
   const ours = installedBridge(storageDir);
   if (!ours || bridgeExe !== ours) return;
-  const last = globalState.get<number>("reddeck.lastBridgeCheck", 0);
+  const last = globalState.get<number>("edgedeck.lastBridgeCheck", 0);
   if (Date.now() - last < 24 * 3600 * 1000) return;
-  await globalState.update("reddeck.lastBridgeCheck", Date.now());
+  await globalState.update("edgedeck.lastBridgeCheck", Date.now());
   let release;
   try {
     release = await latestBridgeRelease();
@@ -607,8 +607,8 @@ function refresh(): void {
     state = { ...state, plan: undefined, changes: [] };
   }
   seenManifestTime = readManifest(gamePath)?.time;
-  void vscode.commands.executeCommand("setContext", "reddeck.empty", !library || library.mods.length === 0);
-  void vscode.commands.executeCommand("setContext", "reddeck.deployed", !!readManifest(gamePath));
+  void vscode.commands.executeCommand("setContext", "edgedeck.empty", !library || library.mods.length === 0);
+  void vscode.commands.executeCommand("setContext", "edgedeck.deployed", !!readManifest(gamePath));
   updateProjectContext();
   updateStatus();
   view.refresh();
@@ -620,10 +620,10 @@ function refresh(): void {
   scanTimer = setTimeout(() => void run(() => scanArchives(false)), 400);
 }
 
-/** REDdeck's own REDbridge process, started on first use. */
+/** EDGEdeck's own REDbridge process, started on first use. */
 async function ensureBridge(): Promise<BridgeClient> {
   if (bridge?.running) return bridge;
-  if (!bridgeExe) throw new Error("This needs REDbridge. Run REDdeck: Get REDbridge.");
+  if (!bridgeExe) throw new Error("This needs REDbridge. Run EDGEdeck: Get REDbridge.");
   bridge = new BridgeClient(bridgeExe, settings().dotnetRoot);
   bridge.start();
   const info = await bridge.info();
@@ -673,22 +673,22 @@ function statusFor(mod: ModInfo, withUpdate = true): string {
 
 function updateStatus(): void {
   if (!library) {
-    status.text = "$(package) REDdeck: no library";
-    status.tooltip = "Set reddeck.libraryPath";
+    status.text = "$(package) EDGEdeck: no library";
+    status.tooltip = "Set edgedeck.libraryPath";
     return;
   }
   const p = state.plan;
   const pending = p ? p.add.length + p.stale.length : 0;
   const on = library.mods.filter((m) => m.enabled).length;
   const game = state.version ? `Cyberpunk 2077 ${state.version}` : "game not found";
-  status.command = "reddeck.deploy";
+  status.command = "edgedeck.deploy";
   if (!isGameFolder(settings().gamePath)) {
-    status.text = `$(package) REDdeck: game not found`;
-    status.tooltip = "REDdeck looked in Steam's libraries, GOG and Epic. Click to pick the Cyberpunk 2077 folder.";
-    status.command = "reddeck.pickGame";
+    status.text = `$(package) EDGEdeck: game not found`;
+    status.tooltip = "EDGEdeck looked in Steam's libraries, GOG and Epic. Click to pick the Cyberpunk 2077 folder.";
+    status.command = "edgedeck.pickGame";
   } else if (p?.vortex) {
     status.text = `$(package) ${on} of ${library.mods.length} mods on · Vortex manages the game`;
-    status.tooltip = `${game}. Purge in Vortex, then deploy with REDdeck. Click to see.`;
+    status.tooltip = `${game}. Purge in Vortex, then deploy with EDGEdeck. Click to see.`;
   } else if (pending) {
     status.text = `$(package) ${on} of ${library.mods.length} mods on · Deploy (${pending} change${pending === 1 ? "" : "s"})`;
     status.tooltip = `${game}. Click to deploy.`;
@@ -707,7 +707,7 @@ async function scanArchives(explicit: boolean): Promise<void> {
   if (!bridgeExe) {
     state.archive = undefined;
     if (explicit) {
-      void vscode.window.showInformationMessage("Conflicts inside archives need REDbridge, which REDdeck can fetch for you.", "Get REDbridge").then((a) => {
+      void vscode.window.showInformationMessage("Conflicts inside archives need REDbridge, which EDGEdeck can fetch for you.", "Get REDbridge").then((a) => {
         if (a) void run(getBridgeCommand);
       });
     }
@@ -766,7 +766,7 @@ function showDetails(mod: ModInfo | undefined): void {
 // ---- the mods page -------------------------------------------------------------------------------
 
 let modsPage: ModsPage;
-/** The loadout the REDdeck page shows and edits; the active one unless the user picked another. */
+/** The loadout the EDGEdeck page shows and edits; the active one unless the user picked another. */
 let pageLoadout = "";
 
 /** The loadout the page edits when it is not the active one, else undefined (edits go to the mods). */
@@ -844,12 +844,12 @@ async function showPage(): Promise<void> {
 /** The house colour theme of the EDGE tools, from the REDcode repository. */
 const HudThemeId = "edgemodders.rednode-hud-theme";
 const HudThemeLabel = "REDnode HUD";
-const ThemeSuggestedKey = "reddeck.themeSuggested";
+const ThemeSuggestedKey = "edgedeck.themeSuggested";
 
 /**
- * Once, the first time the REDdeck page opens under another theme: offers the REDnode HUD theme,
- * which REDdeck's pages are drawn for. Never asks again by itself, whatever the answer; the
- * reddeck.suggestTheme command asks on demand.
+ * Once, the first time the EDGEdeck page opens under another theme: offers the REDnode HUD theme,
+ * which EDGEdeck's pages are drawn for. Never asks again by itself, whatever the answer; the
+ * edgedeck.suggestTheme command asks on demand.
  */
 async function suggestTheme(asked = false): Promise<void> {
   if (!asked && globalState.get<boolean>(ThemeSuggestedKey)) return;
@@ -861,14 +861,14 @@ async function suggestTheme(asked = false): Promise<void> {
   await globalState.update(ThemeSuggestedKey, true);
   const installed = !!vscode.extensions.getExtension(HudThemeId);
   const use = installed ? "Use REDnode HUD" : "Install REDnode HUD";
-  const a = await vscode.window.showInformationMessage("REDdeck is drawn for REDnode HUD, the colour theme of the EDGE modding tools. Try it? You can switch back any time with Preferences: Color Theme.", use, "No thanks");
+  const a = await vscode.window.showInformationMessage("EDGEdeck is drawn for REDnode HUD, the colour theme of the EDGE modding tools. Try it? You can switch back any time with Preferences: Color Theme.", use, "No thanks");
   if (a !== use) return;
   if (!installed) {
     try {
       await vscode.commands.executeCommand("workbench.extensions.installExtension", HudThemeId);
     } catch (err) {
       log.appendLine(`Installing ${HudThemeId}: ${err instanceof Error ? err.message : String(err)}`);
-      void vscode.window.showInformationMessage("REDnode HUD could not be installed: it may not be in the extension store yet. Run REDdeck: Suggest the HUD theme to try again later.");
+      void vscode.window.showInformationMessage("REDnode HUD could not be installed: it may not be in the extension store yet. Run EDGEdeck: Suggest the HUD theme to try again later.");
       return;
     }
   }
@@ -1033,7 +1033,7 @@ async function pageAction(m: PageMessage): Promise<void> {
 // ---- sections ------------------------------------------------------------------------------------
 
 /** Sections folded shut on the mods page, by name. */
-const FoldedKey = "reddeck.foldedSections";
+const FoldedKey = "edgedeck.foldedSections";
 
 /** Asks for a new section's name; returns it once made. */
 async function newSectionCommand(): Promise<string | undefined> {
@@ -1173,7 +1173,7 @@ async function pickGameCommand(): Promise<void> {
     }
   }
   if (!isGameFolder(folder)) throw new Error(`${folder} does not contain bin\\x64\\Cyberpunk2077.exe.`);
-  await vscode.workspace.getConfiguration("reddeck").update("gamePath", folder, vscode.ConfigurationTarget.Global);
+  await vscode.workspace.getConfiguration("edgedeck").update("gamePath", folder, vscode.ConfigurationTarget.Global);
   log.appendLine(`Game folder set to ${folder}`);
   reload();
 }
@@ -1181,7 +1181,7 @@ async function pickGameCommand(): Promise<void> {
 // ---- REDbridge -----------------------------------------------------------------------------------
 
 /**
- * Fetches the latest REDbridge release into REDdeck's storage folder, and the .NET 10 runtime
+ * Fetches the latest REDbridge release into EDGEdeck's storage folder, and the .NET 10 runtime
  * per user if the machine has none. One question, then it is done.
  */
 async function getBridgeCommand(): Promise<void> {
@@ -1195,7 +1195,7 @@ async function getBridgeCommand(): Promise<void> {
   }
   const needRuntime = !dotnet10Root();
   const mb = Math.round(release.size / 1048576);
-  const detail = `REDbridge ${release.version} (${mb} MB) downloads from ${release.page} into REDdeck's own folder.${have ? ` The ${have} you have is removed afterwards.` : ""}${needRuntime ? " The .NET 10 runtime is not installed, so Microsoft's installer puts it in your user profile too (about 70 MB, no admin rights)." : ""} Nothing outside those folders changes.`;
+  const detail = `REDbridge ${release.version} (${mb} MB) downloads from ${release.page} into EDGEdeck's own folder.${have ? ` The ${have} you have is removed afterwards.` : ""}${needRuntime ? " The .NET 10 runtime is not installed, so Microsoft's installer puts it in your user profile too (about 70 MB, no admin rights)." : ""} Nothing outside those folders changes.`;
   const a = await vscode.window.showInformationMessage(have ? `Update REDbridge ${have} to ${release.version}?` : `Get REDbridge ${release.version}?`, { modal: true, detail }, have ? "Update" : "Get it");
   if (!a) return;
   await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Getting REDbridge", cancellable: false }, async (progress) => {
@@ -1230,7 +1230,7 @@ async function getBridgeCommand(): Promise<void> {
 let changesPanel: ChangesPanel;
 
 function nameOf(id: string): string {
-  if (id === "reddeck") return "REDdeck";
+  if (id === "edgedeck") return "EDGEdeck";
   return library?.mods.find((m) => m.id === id)?.name ?? id;
 }
 
@@ -1430,7 +1430,7 @@ async function addFrom(source: string, preset?: { name: string; version: string;
   let temp: string | undefined;
   try {
     if (isFile) {
-      temp = fs.mkdtempSync(path.join(os.tmpdir(), "reddeck-"));
+      temp = fs.mkdtempSync(path.join(os.tmpdir(), "edgedeck-"));
       await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Opening ${path.basename(source)}` }, () => unpackOrCopy(source, temp!, sevenZa));
       folder = temp;
     }
@@ -1465,7 +1465,7 @@ async function addFrom(source: string, preset?: { name: string; version: string;
     }
     if (c.unplaced.length) {
       log.appendLine(`  not placed: ${c.unplaced.join(", ")}`);
-      void vscode.window.showWarningMessage(`${mod.name} added. ${c.unplaced.length} file${c.unplaced.length === 1 ? "" : "s"} REDdeck did not know where to put ${c.unplaced.length === 1 ? "was" : "were"} left out. See the log.`);
+      void vscode.window.showWarningMessage(`${mod.name} added. ${c.unplaced.length} file${c.unplaced.length === 1 ? "" : "s"} EDGEdeck did not know where to put ${c.unplaced.length === 1 ? "was" : "were"} left out. See the log.`);
     }
     refresh();
   } finally {
@@ -1495,7 +1495,7 @@ async function revealInGameCommand(node: ModNode): Promise<void> {
   const mod = modOf(node);
   if (!mod) return;
   const { gamePath } = settings();
-  if (!isGameFolder(gamePath)) throw new Error("REDdeck does not know the game folder yet. Use REDdeck: Pick the game folder... first.");
+  if (!isGameFolder(gamePath)) throw new Error("EDGEdeck does not know the game folder yet. Use EDGEdeck: Pick the game folder... first.");
   const inGame = (rel: string) => path.join(gamePath, ...rel.split("/").filter(Boolean));
   const notThere = (what: string) => vscode.window.showInformationMessage(`${what} is not in the game folder${mod.enabled ? " yet; deploy to put it there" : ": the mod is off"}.`);
   if (node.type === "file") {
@@ -1534,7 +1534,7 @@ async function addProjectCommand(target: string | undefined): Promise<void> {
   }
   const existing = library.mods.find((m) => m.source.type === "project" && m.source.path?.toLowerCase() === projectFile!.toLowerCase());
   if (existing) {
-    void vscode.window.showInformationMessage(`${existing.name} already follows this project. Pack the project again and REDdeck picks up the new files.`);
+    void vscode.window.showInformationMessage(`${existing.name} already follows this project. Pack the project again and EDGEdeck picks up the new files.`);
     return;
   }
   const c = classifyProject(projectFile);
@@ -1554,7 +1554,7 @@ async function saveLoadoutCommand(): Promise<void> {
   const file = saveLoadout(lib, name.trim(), state.version);
   log.appendLine(`Loadout saved: ${file}`);
   void updatePage();
-  void vscode.window.showInformationMessage(`Loadout "${name.trim()}" saved. Switch to it from the Mods view's title bar or the REDdeck page.`);
+  void vscode.window.showInformationMessage(`Loadout "${name.trim()}" saved. Switch to it from the Mods view's title bar or the EDGEdeck page.`);
 }
 
 /** + New loadout on the page: empty, or a copy of the one the page shows. The page then shows the new one. */
@@ -1618,7 +1618,7 @@ async function importLoadoutCommand(): Promise<void> {
   pageLoadout = name;
   log.appendLine(`Loadout imported as ${name} from ${picked[0].fsPath}`);
   await updatePage();
-  void vscode.window.showInformationMessage(`Imported as the loadout ${name}. It is not active; the REDdeck page shows it.`);
+  void vscode.window.showInformationMessage(`Imported as the loadout ${name}. It is not active; the EDGEdeck page shows it.`);
 }
 
 /** Makes a loadout the active one and offers to deploy it. */
@@ -1671,7 +1671,7 @@ async function importVortexCommand(): Promise<void> {
       void vscode.window.showWarningMessage(`${folder} holds no Vortex mods. Pick the folder that has one folder per mod, often ending in cyberpunk2077.`);
       return;
     }
-    await vscode.workspace.getConfiguration("reddeck").update("vortexStagingPath", folder, vscode.ConfigurationTarget.Global);
+    await vscode.workspace.getConfiguration("edgedeck").update("vortexStagingPath", folder, vscode.ConfigurationTarget.Global);
     log.appendLine(`Vortex staging folder set to ${folder}`);
   }
   // Mods already imported are left out; nothing starts ticked, so a search and a tick import just that one.
@@ -1736,7 +1736,7 @@ async function deployCommand(): Promise<void> {
   await deployNow();
 }
 
-/** REDdeck: Deploy, for the command and the API: asks about changed files, deploys, reports. Undefined when refused or cancelled. */
+/** EDGEdeck: Deploy, for the command and the API: asks about changed files, deploys, reports. Undefined when refused or cancelled. */
 /**
  * Before anything changes the game folder: the running game keeps mod files open, and Windows then
  * refuses to replace or delete them partway through. Returns false when the user leaves it for now.
@@ -1763,7 +1763,7 @@ async function deployNow(): Promise<DeployResult | undefined> {
   if (!(await gameClosed("deploying"))) return;
   if (vortexManages(gamePath)) {
     const a = await vscode.window.showWarningMessage(
-      "Vortex manages this game folder, and two managers cannot share one. In Vortex, choose Mods > Purge, then deploy here. Until then REDdeck only reads.",
+      "Vortex manages this game folder, and two managers cannot share one. In Vortex, choose Mods > Purge, then deploy here. Until then EDGEdeck only reads.",
       "Import from Vortex",
     );
     if (a) await importVortexCommand();
@@ -1791,7 +1791,7 @@ async function deployNow(): Promise<DeployResult | undefined> {
   for (const c of detectChanges(gamePath).filter((c) => c.kind === "changed")) {
     const mod = library.mods.find((m) => m.id === c.entry.mod)?.name ?? c.entry.mod;
     const a = await vscode.window.showWarningMessage(
-      `${c.entry.path} changed in the game folder since REDdeck deployed it from ${mod}. Keep the changed file, or put the mod's file back?`,
+      `${c.entry.path} changed in the game folder since EDGEdeck deployed it from ${mod}. Keep the changed file, or put the mod's file back?`,
       { modal: true },
       "Keep the changed file",
       "Put the mod's file back",
@@ -1884,12 +1884,12 @@ function move(mod: ModInfo | undefined, delta: -1 | 1): void {
 // ---- Nexus Mods ----------------------------------------------------------------------------------
 
 /** A pasted personal API key. */
-const NexusKeySecret = "reddeck.nexusApiKey";
+const NexusKeySecret = "edgedeck.nexusApiKey";
 /** The tokens of an OAuth sign-in, as JSON. One or the other is kept, never both. */
-const NexusTokensSecret = "reddeck.nexusTokens";
+const NexusTokensSecret = "edgedeck.nexusTokens";
 
 function nexusClientId(): string {
-  return vscode.workspace.getConfiguration("reddeck").get<string>("nexusClientId", "").trim();
+  return vscode.workspace.getConfiguration("edgedeck").get<string>("nexusClientId", "").trim();
 }
 
 async function nexusTokens(): Promise<OAuthTokens | undefined> {
@@ -1981,7 +1981,7 @@ async function browserSignIn<T>(fn: (signal: AbortSignal) => Promise<T>): Promis
       async (progress, cancel) => {
         const controller = new AbortController();
         cancel.onCancellationRequested(() => controller.abort());
-        progress.report({ message: "approve REDdeck in the browser tab that opened" });
+        progress.report({ message: "approve EDGEdeck in the browser tab that opened" });
         return fn(controller.signal);
       },
     );
@@ -1992,13 +1992,13 @@ async function browserSignIn<T>(fn: (signal: AbortSignal) => Promise<T>): Promis
 }
 
 /**
- * Sign in, by the best path there is: OAuth in the browser when Nexus has given REDdeck a client
+ * Sign in, by the best path there is: OAuth in the browser when Nexus has given EDGEdeck a client
  * id, the older single sign-on when it has an application slug, else the API Access page and a
  * pasted key. A pasted key is always a choice (Nexus: set API key), including when the browser
  * path fails. True when signed in afterwards.
  */
 async function nexusSignInCommand(): Promise<boolean> {
-  const cfg = vscode.workspace.getConfiguration("reddeck");
+  const cfg = vscode.workspace.getConfiguration("edgedeck");
   const clientId = nexusClientId();
   const application = cfg.get<string>("nexusApplication", "").trim();
   const openPage = (url: string) => vscode.env.openExternal(vscode.Uri.parse(url));
@@ -2080,8 +2080,8 @@ function frameworkCheck(): FrameworkCheck | undefined {
 async function gameChanged(version: string | undefined): Promise<void> {
   const check = frameworkCheck();
   if (!version || !check?.changed || !check.frameworks.length) return;
-  if (globalState.get<string>("reddeck.checkedForGame") === version) return;
-  await globalState.update("reddeck.checkedForGame", version);
+  if (globalState.get<string>("edgedeck.checkedForGame") === version) return;
+  await globalState.update("edgedeck.checkedForGame", version);
   log.appendLine(`Game updated: ${check.deployed} at the last deploy, ${version} now. Checking ${check.frameworks.length} frameworks on Nexus.`);
   if (!(await nexusSignedIn())) {
     void vscode.window.showWarningMessage(`The game updated to ${version} since the last deploy. Sign in to Nexus to check the frameworks for newer files.`, "Sign in", "Not now").then((a) => {
@@ -2104,7 +2104,7 @@ async function gameChanged(version: string | undefined): Promise<void> {
 /** Once a day, when a key is stored and the setting allows. Never prompts. */
 async function maybeCheckUpdates(): Promise<void> {
   if (!settings().checkUpdates || !library?.mods.some((m) => m.source.modId)) return;
-  const last = globalState.get<number>("reddeck.lastUpdateCheck", 0);
+  const last = globalState.get<number>("edgedeck.lastUpdateCheck", 0);
   if (Date.now() - last < 24 * 3600 * 1000) return;
   if (!(await nexusSignedIn())) return;
   await checkUpdatesCommand(true);
@@ -2146,7 +2146,7 @@ async function checkUpdatesCommand(quiet: boolean, only?: ModInfo[]): Promise<vo
       }
     }
   });
-  await globalState.update("reddeck.lastUpdateCheck", Date.now());
+  await globalState.update("edgedeck.lastUpdateCheck", Date.now());
   refresh();
   const rate = client.rate ? ` (${client.rate.dailyRemaining} Nexus requests left today)` : "";
   log.appendLine(`Nexus: ${mods.length} mods checked, ${updates} updates, ${failed} failed${rate}`);
@@ -2164,7 +2164,7 @@ async function nexusAddLinkCommand(): Promise<void> {
 async function handleUri(uri: vscode.Uri): Promise<void> {
   if (uri.path !== "/nxm") return;
   const url = new URLSearchParams(uri.query).get("url");
-  if (!url) throw new Error("The link REDdeck received had no nxm URL in it.");
+  if (!url) throw new Error("The link EDGEdeck received had no nxm URL in it.");
   await addFromLink(url);
 }
 
@@ -2173,7 +2173,7 @@ async function addFromLink(link: string): Promise<void> {
   const page = /nexusmods\.com\/cyberpunk2077\/mods\/(\d+)/i.exec(link);
   if (page) {
     void vscode.window
-      .showInformationMessage(`That is a mod page. On it, pick a file and press "Mod manager download"; the link comes here when REDdeck handles them (REDdeck: Nexus: handle download links).`, "Open the page")
+      .showInformationMessage(`That is a mod page. On it, pick a file and press "Mod manager download"; the link comes here when EDGEdeck handles them (EDGEdeck: Nexus: handle download links).`, "Open the page")
       .then((a) => a && vscode.env.openExternal(vscode.Uri.parse(link)));
     return;
   }
@@ -2262,19 +2262,19 @@ async function updateModCommand(mod: ModInfo | undefined): Promise<void> {
     void vscode.window.showInformationMessage(`${fam.name} ${newestHere} is the newest file on Nexus${fam.active.version !== newestHere ? `, and it is in the library; pick it from the version list` : ""}.`);
     return;
   }
-  const a = await vscode.window.showInformationMessage(`Update ${fam.name} from ${fam.active.version} to ${latest}?`, { modal: true, detail: "REDdeck downloads the newest file from Nexus into the library, puts it in this mod's place and turns this version off. The game folder changes when you deploy." }, "Update");
+  const a = await vscode.window.showInformationMessage(`Update ${fam.name} from ${fam.active.version} to ${latest}?`, { modal: true, detail: "EDGEdeck downloads the newest file from Nexus into the library, puts it in this mod's place and turns this version off. The game folder changes when you deploy." }, "Update");
   if (a !== "Update") return;
   try {
     await fetchFromNexus(mod.source.modId, fileId);
   } catch (err) {
     if (!(err instanceof PremiumError)) throw err;
     const handler = describeHandler(await currentNxmHandler());
-    const ours = /reddeck/i.test(handler);
+    const ours = /edgedeck/i.test(handler);
     void vscode.env.openExternal(vscode.Uri.parse(`${modPageUrl(mod.source.modId)}?tab=files&file_id=${fileId}`));
     void vscode.window.showInformationMessage(
       ours
-        ? `Nexus gives direct downloads to Premium members only. The file page is open: press "Mod manager download" and REDdeck takes it from there.`
-        : `Nexus gives direct downloads to Premium members only. The file page is open: press "Mod manager download". ${handler} handles those links right now; run "REDdeck: Nexus: handle download links" so they land here.`,
+        ? `Nexus gives direct downloads to Premium members only. The file page is open: press "Mod manager download" and EDGEdeck takes it from there.`
+        : `Nexus gives direct downloads to Premium members only. The file page is open: press "Mod manager download". ${handler} handles those links right now; run "EDGEdeck: Nexus: handle download links" so they land here.`,
     );
   }
 }
@@ -2282,22 +2282,22 @@ async function updateModCommand(mod: ModInfo | undefined): Promise<void> {
 async function nexusHandleLinksCommand(): Promise<void> {
   const before = await currentNxmHandler();
   const who = describeHandler(before);
-  if (who !== "nobody" && who !== "REDdeck") {
-    const a = await vscode.window.showWarningMessage(`${who} handles Nexus download links right now. Hand them to REDdeck? ${who} can take them back from its own settings.`, { modal: true }, "Hand them to REDdeck");
+  if (who !== "nobody" && who !== "EDGEdeck") {
+    const a = await vscode.window.showWarningMessage(`${who} handles Nexus download links right now. Hand them to EDGEdeck? ${who} can take them back from its own settings.`, { modal: true }, "Hand them to EDGEdeck");
     if (!a) return;
   }
   await registerNxmHandler();
-  log.appendLine(`nxm links: now handled by REDdeck (before: ${who})`);
-  void vscode.window.showInformationMessage("REDdeck now handles Nexus download links. On a mod page, press Mod manager download and the file lands in the library.");
+  log.appendLine(`nxm links: now handled by EDGEdeck (before: ${who})`);
+  void vscode.window.showInformationMessage("EDGEdeck now handles Nexus download links. On a mod page, press Mod manager download and the file lands in the library.");
 }
 
 async function nexusReleaseLinksCommand(): Promise<void> {
   const who = describeHandler(await currentNxmHandler());
-  if (who !== "REDdeck") {
-    void vscode.window.showInformationMessage(`Nexus download links are handled by ${who}, not REDdeck.`);
+  if (who !== "EDGEdeck") {
+    void vscode.window.showInformationMessage(`Nexus download links are handled by ${who}, not EDGEdeck.`);
     return;
   }
   await unregisterNxmHandler();
-  log.appendLine("nxm links: REDdeck no longer handles them");
-  void vscode.window.showInformationMessage("REDdeck no longer handles Nexus download links. Start Vortex once to give them back to it.");
+  log.appendLine("nxm links: EDGEdeck no longer handles them");
+  void vscode.window.showInformationMessage("EDGEdeck no longer handles Nexus download links. Start Vortex once to give them back to it.");
 }

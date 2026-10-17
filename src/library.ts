@@ -1,5 +1,5 @@
 // The mod library: one folder per mod, laid out exactly as it deploys, plus mod.json in each
-// and library.json at the root. Everything REDdeck knows is in these files, so a person or an
+// and library.json at the root. Everything EDGEdeck knows is in these files, so a person or an
 // assistant can read the state without the UI.
 
 import * as fs from "node:fs";
@@ -53,7 +53,7 @@ export interface Library {
 }
 
 export function defaultLibraryPath(): string {
-  return path.join(os.homedir(), "REDdeck");
+  return path.join(os.homedir(), "EDGEdeck");
 }
 
 export function libraryFolder(root: string): string {

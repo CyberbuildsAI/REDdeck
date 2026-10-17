@@ -1,6 +1,6 @@
 # Builds the docs site and deploys it to GitHub Pages.
 #   Jekyll renders docs/ with the HUD layout; the result is deployed to
-#   https://edgemodders.github.io/REDdeck/
+#   https://edgemodders.github.io/EDGEdeck/
 # Requires Settings > Pages > Source: GitHub Actions.
 
 name: Docs site

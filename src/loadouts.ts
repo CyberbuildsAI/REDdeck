@@ -1,6 +1,6 @@
 // Loadouts: named sets of which mods are on, and which version of each. One is always active: it is
 // what the mods' on/off state says, what the sidebar shows and what a deploy puts in the game, and
-// every change saves into it. The others wait as files, and the REDdeck page can edit them without
+// every change saves into it. The others wait as files, and the EDGEdeck page can edit them without
 // touching the game. The library, sections and load order are shared by every loadout. A loadout is
 // one JSON file in the library's loadouts folder, so it can be exported, shared and imported.
 
@@ -21,7 +21,7 @@ export interface LoadoutEntry {
 }
 
 export interface Loadout {
-  /** 1: a snapshot from REDdeck before 0.26 (it also carried an order, now ignored). 2: a loadout. */
+  /** 1: a snapshot from EDGEdeck before 0.26 (it also carried an order, now ignored). 2: a loadout. */
   version: 1 | 2;
   name: string;
   saved: string;
@@ -267,7 +267,7 @@ export function exportLoadout(lib: Library, name: string, dest: string, gameVers
 /** Adds a loadout file from elsewhere as a new loadout, renamed when its name is taken. Returns the name. */
 export function importLoadout(lib: Library, file: string): string {
   const loadout = readLoadout(file);
-  if (!Array.isArray(loadout.mods)) throw new Error(`${path.basename(file)} is not a REDdeck loadout.`);
+  if (!Array.isArray(loadout.mods)) throw new Error(`${path.basename(file)} is not a EDGEdeck loadout.`);
   let name = (loadout.name || path.basename(file, ".json")).trim();
   for (let n = 2; findLoadout(lib.root, name); n++) name = `${(loadout.name || "Loadout").trim()} (${n})`;
   writeLoadout(lib.root, { ...loadout, name, saved: new Date().toISOString() });
